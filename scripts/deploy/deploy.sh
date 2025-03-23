@@ -45,8 +45,8 @@ cd ..
 # Build client application
 echo "Building client application..."
 cd client
-npm install
-npm run build
+pnpm install
+pnpm run build
 cd ..
 
 # Run Terraform deployment
