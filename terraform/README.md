@@ -13,6 +13,12 @@ The infrastructure consists of the following components:
    - Whisper API transcription
 4. **EventBridge Scheduler**: Triggers the RSS Lambda function daily
 
+## Environment Strategy
+
+To minimize costs and match expected usage patterns:
+- **Production (`prod`)**: The main environment that runs continuously
+- **Development (`dev`)**: Temporary environment for testing changes before deploying to production
+
 ## Directory Structure
 
 - `/terraform`: Main Terraform configuration
@@ -23,6 +29,7 @@ The infrastructure consists of the following components:
     - `/eventbridge`: EventBridge scheduler
   - `/environments`: Environment-specific variable files
     - `dev.tfvars`: Development environment variables
+    - `prod.tfvars`: Production environment variables
 
 ## Prerequisites
 
@@ -42,21 +49,32 @@ The infrastructure consists of the following components:
    terraform init
    ```
 
-2. Plan the deployment:
+2. Plan the deployment for development:
    ```
    terraform plan -var-file=environments/dev.tfvars -var="openai_api_key=sk-your-api-key"
    ```
 
-3. Apply the configuration:
+3. Apply the configuration for development:
    ```
    terraform apply -var-file=environments/dev.tfvars -var="openai_api_key=sk-your-api-key"
+   ```
+
+4. For production deployment:
+   ```
+   terraform apply -var-file=environments/prod.tfvars -var="openai_api_key=sk-your-api-key"
+   ```
+
+5. To destroy a development environment when no longer needed:
+   ```
+   terraform destroy -var-file=environments/dev.tfvars -var="openai_api_key=sk-your-api-key"
    ```
 
 ## Important Notes
 
 - The OpenAI API key should be provided securely, preferably through environment variables or AWS Secrets Manager in production
 - For production use, consider setting up a remote backend for Terraform state (uncomment the backend configuration in main.tf)
-- Update the S3 bucket name to ensure global uniqueness 
+- Update the S3 bucket name to ensure global uniqueness
+- The development environment can be destroyed when not in use to minimize costs
 
 ## Outputs
 

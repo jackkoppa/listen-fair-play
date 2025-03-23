@@ -9,6 +9,15 @@ on:
       - 'processing/**'
       - '.github/workflows/terraform-deploy.yml'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev or prod)'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - prod
 
 permissions:
   contents: read
@@ -84,10 +93,20 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Determine environment
+        id: env
+        run: |
+          # Use workflow_dispatch input if available, otherwise use prod for main branch pushes
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          fi
+
       - name: Terraform Plan
         run: |
           terraform plan \
-            -var-file=environments/dev.tfvars \
+            -var-file=environments/${{ steps.env.outputs.environment }}.tfvars \
             -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
             -out=tfplan
       

@@ -9,6 +9,6 @@ variable "bucket_regional_domain_name" {
 }
 
 variable "environment" {
-  description = "The environment name (e.g. dev, staging, prod)"
+  description = "The environment name (dev or prod)"
   type        = string
 } 
