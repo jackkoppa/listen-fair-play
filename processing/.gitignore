@@ -22,7 +22,8 @@ transcripts/*.srt
 !transcripts/README.md
 
 # Environment variables
-.env
+.env*
+!.env
 
 # Logs
 logs/
