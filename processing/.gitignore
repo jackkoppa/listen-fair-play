@@ -9,7 +9,7 @@ pnpm-lock.yaml
 dist/
 
 # Audio files (large MP3s)
-audio/*.mp3
+audio/**/*.mp3
 
 # RSS XML files (these can be large)
 rss/*.xml

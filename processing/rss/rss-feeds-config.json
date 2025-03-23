@@ -1,18 +1,18 @@
 {
-  "rss-feeds": [
+  "rssFeeds": [
     {
-      "file": "football-cliches-rss.xml",
+      "rssFeedFile": "football-cliches.xml",
       "title": "Football Cliches",
       "status": "active",
       "url": "https://feeds.megaphone.fm/GLT7974369854",
-      "lastRetrieved": "2025-03-23T02:07:26.801Z"
+      "lastRetrieved": "2025-03-23T03:22:13.526Z"
     },
     {
-      "file": "for-our-sins-the-cliches-pod-archive-rss.xml",
+      "rssFeedFile": "for-our-sins-the-cliches-pod-archive.xml",
       "title": "For Our Sins: The Clichés Pod Archive",
       "status": "archived",
       "url": "https://feeds.megaphone.fm/tamc1411507018",
-      "lastRetrieved": "2025-03-22T18:48:51.128Z"
+      "lastRetrieved": "2025-03-23T03:22:13.868Z"
     }
   ]
 }

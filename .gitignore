@@ -22,9 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Currently using local for storing .mp3 & .srt files
-# but these should be stored in S3 bucket
-# ignore for now
-processing/audio-files/*.mp3
-processing/transcripts/*.srt

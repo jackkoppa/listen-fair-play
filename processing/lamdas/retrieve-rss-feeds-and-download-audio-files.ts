@@ -6,8 +6,8 @@ import { promisify } from 'util';
 
 // Types
 interface RSSFeedConfig {
-  'rss-feeds': Array<{
-    file: string;
+  'rssFeeds': Array<{
+    rssFeedFile: string;
     title: string;
     status: 'active' | 'archived';
     url: string;
@@ -93,9 +93,9 @@ async function parseRSSFeed(xmlContent: string): Promise<any> {
 // Save RSS feed to file and update config
 async function saveRSSFeed(
   xmlContent: string, 
-  feedConfig: RSSFeedConfig['rss-feeds'][0]
+  feedConfig: RSSFeedConfig['rssFeeds'][0]
 ): Promise<void> {
-  const filePath = path.join(RSS_DIR, feedConfig.file);
+  const filePath = path.join(RSS_DIR, feedConfig.rssFeedFile);
   
   try {
     await fs.writeFile(filePath, xmlContent);
@@ -106,10 +106,10 @@ async function saveRSSFeed(
     
     // Update config file
     const fullConfig = await readRSSConfig();
-    const feedIndex = fullConfig['rss-feeds'].findIndex(feed => feed.file === feedConfig.file);
+    const feedIndex = fullConfig['rssFeeds'].findIndex(feed => feed.rssFeedFile === feedConfig.rssFeedFile);
     
     if (feedIndex !== -1) {
-      fullConfig['rss-feeds'][feedIndex] = feedConfig;
+      fullConfig['rssFeeds'][feedIndex] = feedConfig;
       await fs.writeFile(RSS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
       console.log(`Updated lastRetrieved timestamp for ${feedConfig.title}`);
     }
@@ -122,10 +122,18 @@ async function saveRSSFeed(
 // Get episodes that haven't been downloaded
 async function identifyNewEpisodes(
   parsedFeed: any, 
-  feedConfig: RSSFeedConfig['rss-feeds'][0]
+  feedConfig: RSSFeedConfig['rssFeeds'][0]
 ): Promise<Episode[]> {
   const episodes = parsedFeed.rss.channel.item || [];
-  const existingFiles = await fs.readdir(AUDIO_DIR);
+  
+  // Create podcast-specific directory path
+  const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
+  const podcastAudioDir = path.join(AUDIO_DIR, podcastDir);
+  
+  // Ensure the podcast-specific directory exists
+  await fs.ensureDir(podcastAudioDir);
+  
+  const existingFiles = await fs.readdir(podcastAudioDir);
   
   return episodes.filter((episode: Episode) => {
     // Skip episodes without enclosure or URL
@@ -140,10 +148,15 @@ async function identifyNewEpisodes(
 }
 
 // Download episode audio file
-async function downloadEpisodeAudio(episode: Episode): Promise<string> {
+async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig['rssFeeds'][0]): Promise<string> {
   const url = episode.enclosure.$.url;
   const filename = getEpisodeFilename(episode);
-  const filePath = path.join(AUDIO_DIR, filename);
+  
+  // Create podcast-specific directory path
+  const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
+  const podcastAudioDir = path.join(AUDIO_DIR, podcastDir);
+  
+  const filePath = path.join(podcastAudioDir, filename);
   
   try {
     console.log(`Downloading episode: ${episode.title}`);
@@ -213,7 +226,7 @@ export async function handler(): Promise<void> {
     await fs.ensureDir(AUDIO_DIR);
     
     const config = await readRSSConfig();
-    const activeFeeds = config['rss-feeds'].filter(feed => feed.status === 'active');
+    const activeFeeds = config['rssFeeds'].filter(feed => feed.status === 'active');
     
     console.log(`Found ${activeFeeds.length} active feeds to process`);
     
@@ -245,7 +258,7 @@ export async function handler(): Promise<void> {
         // Download each new episode
         for (const episode of newEpisodes) {
           try {
-            const audioFilePath = await downloadEpisodeAudio(episode);
+            const audioFilePath = await downloadEpisodeAudio(episode, feed);
             newAudioFiles.push(audioFilePath);
           } catch (downloadError) {
             console.error(`Failed to download episode ${episode.title}:`, downloadError);
