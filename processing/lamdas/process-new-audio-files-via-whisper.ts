@@ -62,23 +62,50 @@ async function splitAudioFile(filePath: string): Promise<TranscriptionChunk[]> {
     const chunks: TranscriptionChunk[] = [];
     let currentStart = 0;
     
-    ffmpeg.ffprobe(filePath, (err: Error | null, metadata: FfprobeMetadata) => {
+    ffmpeg.ffprobe(filePath, async (err: Error | null, metadata: FfprobeMetadata) => {
       if (err) reject(err);
       
       const duration = metadata.format.duration || 0;
       const chunkDuration = CHUNK_DURATION_MINUTES * 60;
       
+      const promises: Promise<void>[] = [];
+      
       while (currentStart < duration) {
         const endTime = Math.min(currentStart + chunkDuration, duration);
+        const chunkPath = `${filePath}.part${chunks.length + 1}.mp3`;
+        
         chunks.push({
           startTime: currentStart,
           endTime: endTime,
-          filePath: `${filePath}.part${chunks.length + 1}.mp3`
+          filePath: chunkPath
         });
+        
+        // Actually create the chunk file using ffmpeg
+        promises.push(new Promise<void>((resolveChunk, rejectChunk) => {
+          ffmpeg(filePath)
+            .setStartTime(currentStart)
+            .setDuration(endTime - currentStart)
+            .output(chunkPath)
+            .on('end', () => {
+              console.log(`Created chunk: ${chunkPath}`);
+              resolveChunk();
+            })
+            .on('error', (err) => {
+              console.error(`Error creating chunk ${chunkPath}:`, err);
+              rejectChunk(err);
+            })
+            .run();
+        }));
+        
         currentStart = endTime;
       }
       
-      resolve(chunks);
+      try {
+        await Promise.all(promises);
+        resolve(chunks);
+      } catch (error) {
+        reject(error);
+      }
     });
   });
 }
@@ -90,37 +117,84 @@ function combineSrtFiles(srtFiles: string[]): string {
   let currentId = 1;
   
   srtFiles.forEach((srtContent, index) => {
-    const entries = parser.fromSrt(srtContent);
-    const offset = index * CHUNK_DURATION_MINUTES * 60;
-    
-    entries.forEach((entry: any) => {
-      // Convert entry to our SrtEntry format
-      const newEntry: SrtEntry = {
-        id: currentId.toString(),
-        startTime: adjustTimestamp(entry.startTime, offset),
-        endTime: adjustTimestamp(entry.endTime, offset),
-        text: entry.text,
-        startSeconds: entry.startSeconds + offset,
-        endSeconds: entry.endSeconds + offset
-      };
-      currentId++;
-      combinedEntries.push(newEntry);
-    });
+    try {
+      const entries = parser.fromSrt(srtContent);
+      const offset = index * CHUNK_DURATION_MINUTES * 60;
+      
+      entries.forEach((entry: any) => {
+        // Skip entries with invalid timestamps (sometimes Whisper can return these)
+        if (!entry.startTime || !entry.endTime || 
+            entry.startTime.includes('NaN') || entry.endTime.includes('NaN')) {
+          console.log(`Skipping entry with invalid timestamp: ${JSON.stringify(entry)}`);
+          return;
+        }
+        
+        // Calculate seconds if not already present
+        if (typeof entry.startSeconds !== 'number' || isNaN(entry.startSeconds)) {
+          entry.startSeconds = timeStringToSeconds(entry.startTime);
+        }
+        
+        if (typeof entry.endSeconds !== 'number' || isNaN(entry.endSeconds)) {
+          entry.endSeconds = timeStringToSeconds(entry.endTime);
+        }
+        
+        // Convert entry to our SrtEntry format with valid seconds
+        const newEntry: SrtEntry = {
+          id: currentId.toString(),
+          startTime: adjustTimestamp(entry.startTime, offset),
+          endTime: adjustTimestamp(entry.endTime, offset),
+          text: entry.text,
+          startSeconds: entry.startSeconds + offset,
+          endSeconds: entry.endSeconds + offset
+        };
+        currentId++;
+        combinedEntries.push(newEntry);
+      });
+    } catch (error) {
+      console.error(`Error parsing SRT content for chunk ${index}:`, error);
+    }
   });
+  
+  // Ensure entries are sorted by time
+  combinedEntries.sort((a, b) => a.startSeconds - b.startSeconds);
   
   return parser.toSrt(combinedEntries);
 }
 
+// Helper function to convert SRT timestamp to seconds
+function timeStringToSeconds(timeString: string): number {
+  // Handle format like "00:00:00,000"
+  const parts = timeString.split(',');
+  const [hours, minutes, seconds] = (parts[0] || '00:00:00').split(':').map(part => {
+    const num = Number(part);
+    return isNaN(num) ? 0 : num;
+  });
+  
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 // Helper function to adjust SRT timestamps
 function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
-  const [hours, minutes, seconds] = timestamp.split(':').map(Number);
+  // Handle timestamp format like "00:00:00,000"
+  const parts = timestamp.split(',');
+  const milliseconds = parts[1] || '000';
+  
+  // Parse time components
+  const [hours, minutes, seconds] = (parts[0] || '00:00:00').split(':').map(part => {
+    // Ensure we're dealing with valid numbers
+    const num = Number(part);
+    return isNaN(num) ? 0 : num;
+  });
+  
+  // Calculate total seconds with offset
   const totalSeconds = hours * 3600 + minutes * 60 + seconds + offsetSeconds;
   
+  // Format new timestamp
   const newHours = Math.floor(totalSeconds / 3600);
   const newMinutes = Math.floor((totalSeconds % 3600) / 60);
-  const newSeconds = totalSeconds % 60;
+  const newSeconds = Math.floor(totalSeconds % 60);
   
-  return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')},000`;
+  return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')},${milliseconds}`;
 }
 
 // Helper function to process a single audio file
@@ -193,7 +267,11 @@ async function processAudioFile(filePath: string): Promise<void> {
   
   // Save the final SRT file
   await fs.writeFile(transcriptPath, finalSrt);
-  console.log(`Saved transcription to ${transcriptPath}`);
+  
+  // Add more visual prominence to completion message
+  console.log('\n---------------------------------------------------');
+  console.log(`✅ COMPLETED: Saved transcription to ${transcriptPath}`);
+  console.log('---------------------------------------------------\n');
 }
 
 /**
