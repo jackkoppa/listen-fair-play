@@ -15,7 +15,7 @@ audio/**/*.mp3
 rss/*.xml
 
 # Transcription files
-transcripts/*.srt
+transcripts/**/*.srt
 
 # Keep README files
 !audio/README.md

@@ -5,8 +5,11 @@
   "description": "A system for processing and analyzing podcast content",
   "scripts": {
     "preinstall": "node scripts/check-pnpm.js",
-    "dev:processing": "pnpm --filter podcast-processing dev",
+    "dev:client": "pnpm --filter listen-fair-play dev",
+    "dev:rss": "pnpm --filter podcast-processing run dev:rss",
+    "dev:whisper": "pnpm --filter podcast-processing run dev:whisper",
     "build:processing": "pnpm --filter podcast-processing build",
+    "build:client": "pnpm --filter listen-fair-play build",
     "install:all": "pnpm install",
     "setup": "bash scripts/setup.sh"
   },

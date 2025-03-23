@@ -50,10 +50,13 @@ cd listen-fair-play
 pnpm install:all
 
 # Run the client
-pnpm run dev
+pnpm dev:client
 
-# Run the processing module
-pnpm dev:processing
+# Run the RSS feed processing
+pnpm dev:rss
+
+# Run the Whisper transcription 
+pnpm dev:whisper
 
 # view client @ http://localhost:5173
 ```
@@ -64,7 +67,10 @@ The processing module handles retrieving podcast RSS feeds, downloading audio fi
 
 ```shell
 # Run the RSS feed retrieval and audio download process
-pnpm dev:processing
+pnpm dev:rss
+
+# Run the Whisper transcription process
+pnpm dev:whisper
 
 # Build the Lambda functions for deployment
 pnpm build:processing

@@ -1,8 +1,17 @@
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
+import { config } from '@dotenvx/dotenvx';
+
+// Load environment variables from .env.local
+config({ path: path.join(process.cwd(), '.env.local') });
+
+// ES Module dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Constants
 const AUDIO_DIR = path.join(__dirname, '../audio');
@@ -39,12 +48,9 @@ async function getMp3Files(dir: string): Promise<string[]> {
 }
 
 // Helper function to check if transcription exists
-async function hasTranscription(audioFile: string): Promise<boolean> {
-  const podcastDir = path.dirname(audioFile);
-  const podcastName = path.basename(podcastDir);
-  const transcriptDir = path.join(TRANSCRIPTS_DIR, podcastName);
-  
-  const audioFileName = path.basename(audioFile, '.mp3');
+async function transcriptExists(filePath: string): Promise<boolean> {
+  const audioFileName = path.basename(filePath, path.extname(filePath));
+  const transcriptDir = path.join(TRANSCRIPTS_DIR, path.dirname(filePath).split('/').pop() || '');
   const transcriptPath = path.join(transcriptDir, `${audioFileName}.srt`);
   
   return fs.pathExists(transcriptPath);
@@ -129,8 +135,8 @@ async function processAudioFile(filePath: string): Promise<void> {
   
   // Check if transcription already exists
   const transcriptPath = path.join(transcriptDir, `${audioFileName}.srt`);
-  if (await hasTranscription(filePath)) {
-    console.log(`Transcription already exists for ${filePath}`);
+  if (await transcriptExists(filePath)) {
+    console.log(`Transcript already exists for ${filePath}, skipping`);
     return;
   }
   
@@ -190,8 +196,10 @@ async function processAudioFile(filePath: string): Promise<void> {
   console.log(`Saved transcription to ${transcriptPath}`);
 }
 
-// Main handler function
-export async function handler(event: any): Promise<void> {
+/**
+ * Lambda handler function
+ */
+export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
   try {
     // Ensure directories exist
     await fs.ensureDir(AUDIO_DIR);
@@ -233,7 +241,10 @@ export async function handler(event: any): Promise<void> {
 }
 
 // For local development, call the handler directly
-if (require.main === module) {
+// In ES modules, we can use the import.meta.url to check if this is the main module
+const isMainModule = import.meta.url.endsWith(process.argv[1].replace('file://', ''));
+
+if (isMainModule) {
   console.log('Starting audio processing via Whisper - running via pnpm...');
   const mockEvent = {
     audioFiles: [

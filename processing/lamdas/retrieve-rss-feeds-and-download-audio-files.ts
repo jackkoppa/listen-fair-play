@@ -2,7 +2,11 @@ import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+
+// ES Module dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Types
 interface RSSFeedConfig {

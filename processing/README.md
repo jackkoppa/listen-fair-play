@@ -38,7 +38,7 @@ pnpm install
 To run the RSS feed retrieval and audio download process:
 
 ```
-pnpm dev
+pnpm dev:rss
 ```
 
 This will:
@@ -47,6 +47,17 @@ This will:
 3. Check for any new podcast episodes
 4. Download any new episodes to the `/audio` directory
 5. Update timestamps in the config file
+
+To run the audio file transcription process:
+
+```
+pnpm dev:whisper
+```
+
+This will:
+1. Process audio files in the `/audio` directory
+2. Create transcriptions using OpenAI's Whisper API
+3. Save SRT files to the `/transcripts` directory
 
 ## AWS Lambda Deployment
 
