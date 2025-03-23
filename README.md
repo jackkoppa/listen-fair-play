@@ -1,79 +1,40 @@
-# listen, fair play
+# Listen Fair Play
 
-Searchable archive of Football Cliches podcast episodes
-
-> [!NOTE]  
-> Very much a WIP. Heavily Cursor-assisted.
+A podcast archiving and searching application:
+1. Retrieves podcast RSS feeds
+2. Downloads audio files
+3. Transcribes audio using OpenAI's Whisper API
+4. Provides a search interface for transcripts
 
 ## Project Structure
 
-This project consists of multiple parts:
-- `/client` - Frontend application 
-- `/processing` - Podcast RSS feed processing system
+- `/client`: React web application for searching transcripts
+- `/processing`: AWS Lambda functions for podcast processing
+  - `retrieve-rss-feeds-and-download-audio-files.ts`: Retrieves RSS feeds and downloads audio
+  - `process-new-audio-files-via-whisper.ts`: Transcribes audio files via Whisper API
+- `/diagrams`: Architecture diagrams
+  - `aws-architecture.drawio`: DrawIO diagram of AWS infrastructure
+  - `architecture-text.md`: Text-based description of architecture
 
-## Prerequisites
+## AWS Architecture
 
-- Node.js 22 or later (we recommend using [nvm](https://github.com/nvm-sh/nvm) to manage Node versions)
-- pnpm 8 or later
+The system is deployed on AWS using a serverless architecture:
 
-If you have nvm installed, you can set up the correct Node version with:
-```shell
-nvm use
-```
+1. **EventBridge Scheduler** triggers the RSS feed Lambda daily
+2. **Lambda 1** retrieves podcast RSS feeds and downloads new audio files
+3. **Lambda 2** processes audio files via OpenAI Whisper API for transcription
+4. **Amazon S3** stores all audio, transcriptions, and hosts the client application
+5. **CloudFront** delivers all content to users
+
+For a detailed view of the architecture:
+- Open `diagrams/aws-architecture.drawio` with [draw.io](https://app.diagrams.net/)
+- View the text-based description in `diagrams/architecture-text.md`
 
 ## Local Development
 
-### Quick Setup
+See the processing README for details on local development:
+- [Processing README](/processing/README.md)
 
-We provide a setup script that checks for the required tools and sets up everything you need:
+## Deployment
 
-```shell
-# Clone the repository
-git clone git@github.com:jackkoppa/listen-fair-play.git
-cd listen-fair-play
-
-# Run the setup script (requires nvm)
-bash scripts/setup.sh
-```
-
-### Manual Setup
-
-```shell
-# Use the correct Node version
-nvm use
-# Install pnpm if you don't have it
-npm install -g pnpm
-
-# Clone and set up the project
-git clone git@github.com:jackkoppa/listen-fair-play.git
-cd listen-fair-play
-pnpm install:all
-
-# Run the client
-pnpm dev:client
-
-# Run the RSS feed processing
-pnpm dev:rss
-
-# Run the Whisper transcription 
-pnpm dev:whisper
-
-# view client @ http://localhost:5173
-```
-
-## Processing Module
-
-The processing module handles retrieving podcast RSS feeds, downloading audio files, and transcribing content.
-
-```shell
-# Run the RSS feed retrieval and audio download process
-pnpm dev:rss
-
-# Run the Whisper transcription process
-pnpm dev:whisper
-
-# Build the Lambda functions for deployment
-pnpm build:processing
-```
-
-See the [processing README](./processing/README.md) for more details.
+*Coming soon: Terraform configuration and GitHub Actions deployment*
