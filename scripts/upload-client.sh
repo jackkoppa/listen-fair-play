@@ -13,8 +13,18 @@ echo "CloudFront domain: $CLOUDFRONT_DOMAIN"
 # Go back to the project root
 cd ..
 
+# Make the generate-transcript-index.sh script executable
+chmod +x scripts/generate-transcript-index.sh
+
+# Generate the transcript index file
+./scripts/generate-transcript-index.sh
+
 # Upload client files to S3
 aws s3 sync client/dist/ s3://$BUCKET_NAME/ --delete
+
+# Create a directory structure for transcripts in the S3 bucket
+echo "Uploading transcript files to S3 bucket"
+aws s3 sync processing/transcripts/ s3://$BUCKET_NAME/assets/transcripts/ --exclude "README.md"
 
 echo "Upload complete. Your site should be available at:"
 echo "https://$CLOUDFRONT_DOMAIN" 

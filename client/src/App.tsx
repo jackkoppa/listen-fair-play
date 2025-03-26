@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import fuzzysort from 'fuzzysort'
 import './App.css'
 
-// Import transcript files directly
-import COMG8015171916 from './assets/transcripts/COMG8015171916.srt?raw'
-import COMG3990255774 from './assets/transcripts/COMG3990255774.srt?raw'
+// Import the parse transcript content function
+import parseTranscriptContent from './utils/parseTranscriptContent'
 
 // Import SearchResult component
 import SearchResult, { TranscriptEntry } from './components/SearchResult'
@@ -22,61 +21,59 @@ function App() {
   const [searchResults, setSearchResults] = useState<SearchResultWithContext[]>([]);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load transcript files on component mount
   useEffect(() => {
     const loadTranscripts = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // Get transcripts from imported files
-        const transcriptFiles = [
-          { content: COMG8015171916, fileName: 'COMG8015171916.srt' },
-          { content: COMG3990255774, fileName: 'COMG3990255774.srt' }
-        ];
+        let allTranscripts: TranscriptEntry[] = [];
         
-        const allTranscripts: TranscriptEntry[] = [];
+        // Check if we're in production (deployed) or development environment
+        const isProd = import.meta.env.PROD;
         
-        // Process each file
-        for (const { content, fileName } of transcriptFiles) {
-          // Parse SRT format
-          const lines = content.split('\n');
-          let currentEntry: Partial<TranscriptEntry> = {};
-          
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            
-            if (!isNaN(Number(line)) && line !== '') {
-              // This is an entry ID
-              currentEntry = { id: Number(line) };
-            } else if (line.includes('-->')) {
-              // This is a timestamp
-              const [startTime, endTime] = line.split('-->').map(t => t.trim());
-              currentEntry.startTime = startTime;
-              currentEntry.endTime = endTime;
-            } else if (line.startsWith('[SPEAKER_')) {
-              // This is a speaker line with text
-              const speakerMatch = line.match(/\[SPEAKER_\d+\]:/);
-              const speaker = speakerMatch ? speakerMatch[0] : '';
-              const text = line.replace(speaker, '').trim();
-              
-              currentEntry.speaker = speaker;
-              currentEntry.text = text;
-              currentEntry.fullText = line;
-              currentEntry.fileName = fileName;
-              
-              if (currentEntry.id !== undefined && 
-                  currentEntry.startTime && 
-                  currentEntry.text) {
-                allTranscripts.push(currentEntry as TranscriptEntry);
-                currentEntry = {};
-              }
+        if (isProd) {
+          try {
+            // In production, fetch transcripts from the deployed assets directory
+            const response = await fetch('/assets/transcripts/index.json');
+            if (!response.ok) {
+              throw new Error(`Failed to fetch transcript index: ${response.status}`);
             }
+            
+            const transcriptIndex = await response.json();
+            
+            // Load each transcript file
+            for (const fileName of transcriptIndex.files) {
+              const fileResponse = await fetch(`/assets/transcripts/${fileName}`);
+              if (!fileResponse.ok) {
+                console.error(`Failed to fetch transcript: ${fileName}`);
+                continue;
+              }
+              
+              const content = await fileResponse.text();
+              const parsedEntries = parseTranscriptContent(content, fileName);
+              allTranscripts = [...allTranscripts, ...parsedEntries];
+            }
+          } catch (fetchError) {
+            console.error('Error fetching transcripts:', fetchError);
+            setError('Failed to load transcripts from server. Falling back to local transcripts.');
+            
+            // Fall back to locally loaded transcripts
+            const localTranscripts = await loadLocalTranscripts();
+            allTranscripts = [...allTranscripts, ...localTranscripts];
           }
+        } else {
+          // In development, load transcripts from /processing/transcripts
+          const localTranscripts = await loadLocalTranscripts();
+          allTranscripts = [...allTranscripts, ...localTranscripts];
         }
         
         setTranscripts(allTranscripts);
       } catch (error) {
         console.error('Error loading transcripts:', error);
+        setError('Failed to load transcripts. Please try again later.');
       } finally {
         setIsLoading(false);
       }
@@ -85,6 +82,74 @@ function App() {
     loadTranscripts();
   }, []);
 
+  // Function to load transcripts from the processing directory during development
+  const loadLocalTranscripts = async () => {
+    let allTranscripts: TranscriptEntry[] = [];
+    
+    try {
+      // In development, we need to fetch from the processing directory
+      // First, get the list of transcript files
+      const transcriptIndexResponse = await fetch('/api/transcript-files');
+      
+      if (!transcriptIndexResponse.ok) {
+        throw new Error(`Failed to fetch transcript index: ${transcriptIndexResponse.status}`);
+      }
+      
+      const transcriptFiles = await transcriptIndexResponse.json();
+      // Load each transcript file
+      for (const fileName of transcriptFiles.files) {
+        try {
+          const fileResponse = await fetch(`/api/transcripts/${fileName}`);
+          if (!fileResponse.ok) {
+            console.error(`Failed to fetch transcript: ${fileName}`);
+            continue;
+          }
+          
+          const content = await fileResponse.text();
+          const parsedEntries = parseTranscriptContent(content, fileName);
+          allTranscripts = [...allTranscripts, ...parsedEntries];
+        } catch (error) {
+          console.error(`Error loading transcript ${fileName}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading local transcripts:', error);
+      setError('Failed to load local transcripts. Check the development server setup.');
+      
+      // If all else fails, use demo data
+      return loadDemoTranscripts();
+    }
+    
+    return allTranscripts;
+  };
+  
+  // Function to load demo transcript data as a last resort
+  const loadDemoTranscripts = () => {
+    // Create some placeholder transcript entries for demo purposes
+    const demoTranscripts: TranscriptEntry[] = [
+      {
+        id: 1,
+        startTime: '00:00:10,000',
+        endTime: '00:00:15,000',
+        speaker: '[SPEAKER_1]:',
+        text: 'This is a demo transcript entry.',
+        fullText: '[SPEAKER_1]: This is a demo transcript entry.',
+        fileName: 'demo-transcript.srt'
+      },
+      {
+        id: 2,
+        startTime: '00:00:16,000',
+        endTime: '00:00:20,000',
+        speaker: '[SPEAKER_2]:',
+        text: 'Please ensure your development server is running correctly.',
+        fullText: '[SPEAKER_2]: Please ensure your development server is running correctly.',
+        fileName: 'demo-transcript.srt'
+      }
+    ];
+    
+    return demoTranscripts;
+  };
+  
   // Search through transcripts when query changes
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -145,6 +210,12 @@ function App() {
           className="search-input"
         />
       </div>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
       
       <div className="results-container">
         {isLoading ? (
