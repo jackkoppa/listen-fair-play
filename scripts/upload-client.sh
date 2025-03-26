@@ -20,11 +20,13 @@ chmod +x scripts/generate-transcript-index.sh
 ./scripts/generate-transcript-index.sh
 
 # Upload client files to S3
-aws s3 sync client/dist/ s3://$BUCKET_NAME/ --delete
+# TODO - figure out how to pass AWS_PROFILE
+aws s3 sync client/dist/ s3://$BUCKET_NAME/ --delete --profile TODO_AWS_PROFILE_HERE
 
 # Create a directory structure for transcripts in the S3 bucket
 echo "Uploading transcript files to S3 bucket"
-aws s3 sync processing/transcripts/ s3://$BUCKET_NAME/assets/transcripts/ --exclude "README.md"
+aws s3 sync processing/transcripts/ s3://$BUCKET_NAME/assets/transcripts/ --exclude "README.md" --profile $AWS_PROFILE
 
+# TODO: Need error handling - the AWS CLI can fail above, without being captured
 echo "Upload complete. Your site should be available at:"
 echo "https://$CLOUDFRONT_DOMAIN" 
