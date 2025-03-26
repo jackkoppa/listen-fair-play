@@ -103,6 +103,10 @@ aws sso login --profile YourProfileName
 
 # Then deploy
 ./scripts/deploy/deploy.sh prod
+
+# And finally, upload client build to S3
+# TODO - merge with above script, and cleanup directory structure
+./scripts/upload-client.sh
 ```
 
 ### Destroy an Environment
