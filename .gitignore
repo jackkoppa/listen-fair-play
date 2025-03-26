@@ -52,3 +52,6 @@ terraform/**/*.zip
 /processing/audio
 /processing/transcripts
 /processing/rss
+
+# Client build
+/client/public
