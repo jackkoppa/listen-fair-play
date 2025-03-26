@@ -26,4 +26,5 @@ variable "openai_api_key" {
   description = "OpenAI API key for Whisper transcription"
   type        = string
   sensitive   = true
+  default     = ""
 } 

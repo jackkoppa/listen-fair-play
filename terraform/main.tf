@@ -19,8 +19,10 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.aws_region
-  profile = var.aws_profile
+  region = var.aws_region
+  
+  # Comment out or remove the profile setting if using environment variables
+  # profile = var.aws_profile
   
   default_tags {
     tags = {
@@ -35,8 +37,8 @@ provider "aws" {
 module "s3_bucket" {
   source = "./modules/s3"
   
-  bucket_name       = var.s3_bucket_name
-  environment       = var.environment
+  bucket_name          = var.s3_bucket_name
+  environment          = var.environment
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
@@ -47,6 +49,37 @@ module "cloudfront" {
   bucket_name               = module.s3_bucket.bucket_name
   bucket_regional_domain_name = module.s3_bucket.bucket_regional_domain_name
   environment               = var.environment
+}
+
+# Wait for the S3 bucket to be fully configured
+resource "time_sleep" "wait_for_bucket_configuration" {
+  depends_on = [module.s3_bucket]
+  create_duration = "10s"
+}
+
+# Update S3 bucket policy with CloudFront distribution ARN
+resource "aws_s3_bucket_policy" "cloudfront_access" {
+  bucket = module.s3_bucket.bucket_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontServicePrincipal"
+        Effect    = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action    = "s3:GetObject"
+        Resource  = "${module.s3_bucket.bucket_arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = module.cloudfront.cloudfront_arn
+          }
+        }
+      }
+    ]
+  })
+  depends_on = [module.cloudfront, time_sleep.wait_for_bucket_configuration]
 }
 
 # Lambda for RSS feed processing
