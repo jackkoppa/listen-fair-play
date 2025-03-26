@@ -22,21 +22,31 @@ else
     echo "✅ AWS CLI v$AWS_VERSION installed"
 fi
 
-# Check if AWS credentials are configured
-if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    if ! aws sts get-caller-identity &> /dev/null; then
-        echo "❌ AWS credentials are not properly configured."
-        echo "  Please add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to .env.local"
-        echo "  or configure the AWS CLI using 'aws configure'"
+# Load environment variables from .env.local if it exists
+if [ -f ".env.local" ]; then
+    source .env.local
+fi
+
+# Check AWS SSO authentication
+if [ -n "$AWS_PROFILE" ]; then
+    # Test SSO authentication with the specified profile
+    if ! aws sts get-caller-identity --profile "$AWS_PROFILE" &> /dev/null; then
+        echo "❌ AWS SSO credentials are not working or expired."
+        echo "  Please run 'aws sso login --profile $AWS_PROFILE' to authenticate"
         exit 1
+    else
+        echo "✅ AWS SSO authentication verified with profile: $AWS_PROFILE"
     fi
 else
-    echo "✅ AWS credentials detected"
+    echo "❌ AWS_PROFILE is not set in .env.local"
+    echo "  Please add AWS_PROFILE to .env.local for AWS SSO authentication"
+    echo "  Run 'aws configure sso' to set up an SSO profile if needed"
+    exit 1
 fi
 
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js 22 or later"
+    echo "❌ Node.js is not installed. Please install Node.js 20 or later"
     exit 1
 else
     NODE_VERSION=$(node --version | cut -d 'v' -f 2)
@@ -44,8 +54,8 @@ else
     
     # Check Node.js version
     NODE_MAJOR=$(echo $NODE_VERSION | cut -d '.' -f 1)
-    if [ "$NODE_MAJOR" -lt 22 ]; then
-        echo "⚠️  Warning: Node.js version 22 or later is recommended (current: $NODE_VERSION)"
+    if [ "$NODE_MAJOR" -lt 20 ]; then
+        echo "⚠️  Warning: Node.js version 20 or later is recommended (current: $NODE_VERSION)"
     fi
 fi
 
@@ -74,6 +84,11 @@ else
     # Check for required variables in .env.local
     if ! grep -q "OPENAI_API_KEY" .env.local; then
         echo "⚠️  Warning: OPENAI_API_KEY not found in .env.local"
+    fi
+    
+    # Check for AWS profile
+    if ! grep -q "AWS_PROFILE" .env.local; then
+        echo "⚠️  Warning: AWS_PROFILE not found in .env.local"
     fi
 fi
 

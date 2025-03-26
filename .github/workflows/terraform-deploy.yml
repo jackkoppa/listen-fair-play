@@ -1,0 +1,114 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'processing/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev or prod)'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: Build Lambda Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
+
+      - name: Install dependencies
+        run: |
+          cd processing
+          pnpm install
+
+      - name: Build
+        run: |
+          cd processing
+          pnpm build
+
+      - name: Upload processing dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: processing-dist
+          path: processing/dist
+
+  terraform:
+    name: Terraform Apply
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download processing dist
+        uses: actions/download-artifact@v4
+        with:
+          name: processing-dist
+          path: processing/dist
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.0.0
+
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Determine environment
+        id: env
+        run: |
+          # Use workflow_dispatch input if available, otherwise use prod for main branch pushes
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var-file=environments/${{ steps.env.outputs.environment }}.tfvars \
+            -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
+            -out=tfplan
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan 

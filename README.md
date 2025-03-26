@@ -35,10 +35,14 @@ To deploy this application, you'll need:
 
 1. [Terraform](https://developer.hashicorp.com/terraform/install) (>= 1.0.0)
 2. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-3. Node.js 22 or later
-4. pnpm 8 or later
+3. Node.js 20 or later
+4. pnpm 10 or later
 
 For detailed installation and configuration instructions, see [scripts/deploy/README.md](./scripts/deploy/README.md).
+
+### AWS Authentication
+
+Log into an AWS Account / Role, with sufficient permissions to create both infrastructure resources & IAM Roles/Policies, in the AWS CLI via SSO. For @jackkoppa, the Role name used is kept at https://github.com/jackkoppa/listen-fair-play-private - you can use your own Account / Role to host the app, so long as it has sufficient permissions.
 
 ### Configuration
 
@@ -47,11 +51,14 @@ For detailed installation and configuration instructions, see [scripts/deploy/RE
    cp .env.local.example .env.local
    ```
 
-2. Add your AWS credentials and OpenAI API key to `.env.local`
+2. Add your AWS profile and OpenAI API key to `.env.local`
 
 ### Deployment Commands
 
 ```bash
+# Log in with AWS SSO first
+aws sso login --profile YourProfileName
+
 # Deploy to development environment
 ./scripts/deploy/deploy.sh dev
 

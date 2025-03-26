@@ -22,18 +22,28 @@ else
 fi
 
 # Validate required environment variables
-if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$OPENAI_API_KEY" ]; then
-  echo "Error: Required environment variables are missing."
+if [ -z "$OPENAI_API_KEY" ]; then
+  echo "Error: OpenAI API key is missing."
   echo "Make sure .env.local contains:"
-  echo "  AWS_ACCESS_KEY_ID=your_aws_access_key"
-  echo "  AWS_SECRET_ACCESS_KEY=your_aws_secret_key"
-  echo "  AWS_REGION=your_aws_region (default: us-east-1)"
   echo "  OPENAI_API_KEY=your_openai_api_key"
   exit 1
 fi
 
 # Set AWS region if not already set
 export AWS_REGION=${AWS_REGION:-us-east-1}
+
+# Set AWS profile if specified
+if [ -n "$AWS_PROFILE" ]; then
+  echo "Using AWS SSO profile: $AWS_PROFILE"
+  export AWS_PROFILE=$AWS_PROFILE
+  
+  # Check if SSO session is active
+  if ! aws sts get-caller-identity --profile "$AWS_PROFILE" &> /dev/null; then
+    echo "AWS SSO session is not active or has expired"
+    echo "Please run: aws sso login --profile $AWS_PROFILE"
+    exit 1
+  fi
+fi
 
 # Warn if trying to destroy production
 if [ "$ENV" == "prod" ]; then
@@ -52,10 +62,17 @@ cd terraform
 # Initialize Terraform (if needed)
 terraform init
 
+# Set profile flag if using AWS profile
+PROFILE_FLAG=""
+if [ -n "$AWS_PROFILE" ]; then
+  PROFILE_FLAG="-var=aws_profile=$AWS_PROFILE"
+fi
+
 # Destroy the infrastructure
 terraform destroy \
   -var-file=environments/$ENV.tfvars \
   -var="openai_api_key=$OPENAI_API_KEY" \
+  $PROFILE_FLAG \
   -auto-approve
 
 echo "======= Destruction Complete =======" 

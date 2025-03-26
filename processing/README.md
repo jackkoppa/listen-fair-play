@@ -4,8 +4,8 @@ This system retrieves podcast RSS feeds, downloads audio files, and eventually t
 
 ## Prerequisites
 
-- Node.js 22 or later (use [nvm](https://github.com/nvm-sh/nvm) to easily switch Node versions)
-- pnpm 8 or later
+- Node.js 20 or later (use [nvm](https://github.com/nvm-sh/nvm) to easily switch Node versions)
+- pnpm 10 or later
 
 If you have nvm installed, you can set up the correct Node version with:
 ```shell
@@ -21,7 +21,7 @@ nvm use
 
 ## Setup
 
-1. Make sure you're using Node 22:
+1. Make sure you're using Node 20:
 ```
 nvm use
 ```

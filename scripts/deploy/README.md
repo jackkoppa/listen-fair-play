@@ -20,11 +20,11 @@ This directory contains scripts for local deployment of the Listen Fair Play app
    # For other platforms, see https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
    ```
 
-3. **Node.js** - Make sure you have Node.js 22 or later installed
+3. **Node.js** - Make sure you have Node.js 20 or later installed
    ```bash
    # Using nvm (recommended)
-   nvm install 22
-   nvm use 22
+   nvm install 20
+   nvm use 20
    ```
 
 4. **pnpm** - For managing Node.js dependencies
@@ -32,23 +32,51 @@ This directory contains scripts for local deployment of the Listen Fair Play app
    npm install -g pnpm@8
    ```
 
+## AWS Authentication
+
+Log into an AWS Account / Role, with sufficient permissions to create both infrastructure resources & IAM Roles/Policies, in the AWS CLI via SSO. For @jackkoppa, the Role name used is kept at https://github.com/jackkoppa/listen-fair-play-private - you can use your own Account / Role to host the app, so long as it has sufficient permissions.
+
+To configure AWS SSO:
+1. Run the AWS SSO configuration command:
+   ```bash
+   aws configure sso
+   ```
+
+2. Follow the prompts to set up your SSO connection. You'll get an output like:
+   ```
+   To use this profile, specify the profile name using --profile, as shown:
+   aws sts get-caller-identity --profile YourProfileName
+   ```
+
+3. Add the profile name to your `.env.local` file:
+   ```
+   AWS_PROFILE=YourProfileName
+   ```
+
+4. Before deployment, make sure to login with SSO:
+   ```bash
+   aws sso login --profile YourProfileName
+   ```
+
 ## Configuration
 
-1. Create a `.env.local` file in the project root with your AWS and OpenAI credentials:
+1. Create a `.env.local` file in the project root with your configuration:
    ```bash
    cp .env.local.example .env.local
    ```
 
 2. Edit `.env.local` and fill in your credentials:
    ```
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   # AWS Configuration
+   AWS_PROFILE=YourProfileName
    AWS_REGION=us-east-1
+   
+   # OpenAI API Key
    OPENAI_API_KEY=your_openai_api_key
    ```
 
-3. AWS IAM User Requirements:
-   - Your AWS user needs permissions for:
+3. AWS IAM User/Role Requirements:
+   - Your AWS user/role needs permissions for:
      - Lambda management
      - S3 bucket creation/management
      - CloudFront distribution management
@@ -60,12 +88,20 @@ This directory contains scripts for local deployment of the Listen Fair Play app
 ### Deploy to Development Environment
 
 ```bash
+# Make sure your SSO session is active first
+aws sso login --profile YourProfileName
+
+# Then deploy
 ./scripts/deploy/deploy.sh dev
 ```
 
 ### Deploy to Production Environment
 
 ```bash
+# Make sure your SSO session is active first
+aws sso login --profile YourProfileName
+
+# Then deploy
 ./scripts/deploy/deploy.sh prod
 ```
 
@@ -94,9 +130,25 @@ The deployment process:
 
 ## Troubleshooting
 
+### AWS SSO Session Issues
+
+If you encounter authentication issues with AWS SSO:
+
+1. Check if your session is active:
+   ```bash
+   aws sts get-caller-identity --profile YourProfileName
+   ```
+
+2. If the session has expired, renew it:
+   ```bash
+   aws sso login --profile YourProfileName
+   ```
+
+3. Verify that the correct profile name is in your `.env.local` file
+
 ### Permission Issues
 
-If you encounter permission issues, verify that your AWS user has the necessary permissions listed above.
+If you encounter permission issues, verify that your AWS user/role has the necessary permissions listed above.
 
 ### Terraform State Issues
 

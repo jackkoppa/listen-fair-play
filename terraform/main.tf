@@ -19,7 +19,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = var.aws_profile
   
   default_tags {
     tags = {
@@ -54,7 +55,7 @@ module "rss_lambda" {
   
   function_name        = "retrieve-rss-feeds-and-download-audio-files"
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
-  runtime              = "nodejs22.x"
+  runtime              = "nodejs20.x"
   timeout              = 300
   memory_size          = 512
   environment_variables = {
@@ -71,7 +72,7 @@ module "whisper_lambda" {
   
   function_name        = "process-new-audio-files-via-whisper"
   handler              = "process-new-audio-files-via-whisper.handler"
-  runtime              = "nodejs22.x"
+  runtime              = "nodejs20.x"
   timeout              = 900
   memory_size          = 1024
   environment_variables = {

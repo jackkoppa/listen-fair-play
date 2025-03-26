@@ -45,6 +45,9 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# terraform .zip files, e.g. lambda zip files
+terraform/**/*.zip
+
 # Test files
 /processing/audio
 /processing/transcripts

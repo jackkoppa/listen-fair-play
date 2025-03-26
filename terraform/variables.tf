@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_profile" {
+  description = "The AWS profile to use for authentication (for SSO)"
+  type        = string
+  default     = null
+}
+
 variable "environment" {
   description = "The environment name (dev or prod)"
   type        = string

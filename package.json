@@ -9,10 +9,10 @@
     "dev:whisper": "pnpm --filter podcast-processing run dev:whisper",
     "build:processing": "pnpm --filter podcast-processing build",
     "build:client": "pnpm --filter listen-fair-play build",
-    "install:all": "pnpm install",
+    "install:all": "pnpm install"
   },
   "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
   }
 } 
