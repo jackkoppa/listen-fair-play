@@ -4,11 +4,12 @@
   "private": true,
   "description": "A system for processing and analyzing podcast content",
   "scripts": {
-    "dev:client": "pnpm --filter listen-fair-play dev",
+    "client:dev": "pnpm --filter listen-fair-play dev",
+    "client:test": "pnpm --filter listen-fair-play test",
+    "client:build": "pnpm --filter listen-fair-play build",
     "dev:rss": "pnpm --filter podcast-processing run dev:rss",
     "dev:whisper": "pnpm --filter podcast-processing run dev:whisper",
     "build:processing": "pnpm --filter podcast-processing build",
-    "build:client": "pnpm --filter listen-fair-play build",
     "install:all": "pnpm install"
   },
   "engines": {
