@@ -365,20 +365,14 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   }
 }
 
-// For local development, call the handler directly
-// In ES modules, we can use the import.meta.url to check if this is the main module
-const isMainModule = import.meta.url.endsWith(process.argv[1].replace('file://', ''));
+// Make handler the default export for AWS Lambda
+export default handler;
 
-if (isMainModule) {
-  console.log('Starting audio processing via Whisper - running via pnpm...');
-  const mockEvent = {
-    audioFiles: [
-      // Example audio files that would be passed from Lambda-1
-      path.join(AUDIO_DIR_PREFIX, 'example-podcast/example-file.mp3')
-    ]
-  };
-  
-  handler(mockEvent)
+// Run the handler if this file is executed directly
+// In ES modules, this is the standard way to detect if a file is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  console.log('Starting audio processing via Whisper...');
+  handler()
     .then(() => console.log('Processing completed successfully'))
     .catch(error => {
       console.error('Processing failed:', error);
