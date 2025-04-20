@@ -1,6 +1,3 @@
 packages:
   - processing
   - client
-ignoredBuiltDependencies:
-  # TODO: Remove this if it turns out we need the build-script of aws-sdk
-  - aws-sdk
