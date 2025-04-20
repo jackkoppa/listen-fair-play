@@ -5,8 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev:rss": "FILE_STORAGE_ENV=local tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
-    "dev:whisper": "FILE_STORAGE_ENV=local tsx lamdas/process-new-audio-files-via-whisper.ts",
+    "run:rss:local": "FILE_STORAGE_ENV=local tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
+    "run:rss:dev-s3": "FILE_STORAGE_ENV=dev-s3 tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
+    "run:whisper:local": "FILE_STORAGE_ENV=local tsx lamdas/process-new-audio-files-via-whisper.ts",
+    "run:whisper:dev-s3": "FILE_STORAGE_ENV=dev-s3 tsx lamdas/process-new-audio-files-via-whisper.ts",
     "build": "tsc",
     "test": "vitest run"
   },

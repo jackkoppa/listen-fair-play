@@ -18,9 +18,9 @@ const s3 = new AWS.S3({
  */
 function getBucketName(): string {
   switch (FILE_STORAGE_ENV) {
-    case 'dev-S3':
+    case 'dev-s3':
       return DEV_BUCKET_NAME;
-    case 'prod-S3':
+    case 'prod-s3':
       return PROD_BUCKET_NAME;
     default:
       return '';

@@ -7,8 +7,10 @@
     "client:dev": "pnpm --filter listen-fair-play dev",
     "client:test": "pnpm --filter listen-fair-play test",
     "client:build": "pnpm --filter listen-fair-play build",
-    "dev:rss": "pnpm --filter podcast-processing run dev:rss",
-    "dev:whisper": "pnpm --filter podcast-processing run dev:whisper",
+    "run:rss:local": "pnpm --filter podcast-processing run run:rss:local",
+    "run:rss:dev-s3": "pnpm --filter podcast-processing run run:rss:dev-s3",
+    "run:whisper:local": "pnpm --filter podcast-processing run run:whisper:local",
+    "run:whisper:dev-s3": "pnpm --filter podcast-processing run run:whisper:dev-s3",
     "build:processing": "pnpm --filter podcast-processing build",
     "install:all": "pnpm install"
   },
