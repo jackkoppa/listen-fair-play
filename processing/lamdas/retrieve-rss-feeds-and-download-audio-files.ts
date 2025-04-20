@@ -1,8 +1,8 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
-import * as fs from 'fs-extra';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { fileExists, getFile, saveFile, listFiles, createDirectory } from '../utils/s3/aws-s3-client.js';
 
 // ES Module dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -32,10 +32,10 @@ interface Episode {
   guid: string;
 }
 
-// Constants
-const RSS_CONFIG_PATH = path.join(__dirname, '../rss/rss-feeds-config.json');
-const RSS_DIR = path.join(__dirname, '../rss');
-const AUDIO_DIR = path.join(__dirname, '../audio');
+// Constants - Define S3 paths
+const RSS_CONFIG_KEY = 'rss/rss-feeds-config.json';
+const RSS_DIR_PREFIX = 'rss/';
+const AUDIO_DIR_PREFIX = 'audio/';
 
 // Helper to format date as YYYY-MM-DD
 function formatDateYYYYMMDD(date: Date): string {
@@ -63,8 +63,8 @@ function getEpisodeFilename(episode: Episode): string {
 // Read RSS config file
 async function readRSSConfig(): Promise<RSSFeedConfig> {
   try {
-    const configContent = await fs.readFile(RSS_CONFIG_PATH, 'utf-8');
-    return JSON.parse(configContent);
+    const configBuffer = await getFile(RSS_CONFIG_KEY);
+    return JSON.parse(configBuffer.toString('utf-8'));
   } catch (error) {
     console.error('Error reading RSS config:', error);
     throw error;
@@ -99,10 +99,10 @@ async function saveRSSFeed(
   xmlContent: string, 
   feedConfig: RSSFeedConfig['rssFeeds'][0]
 ): Promise<void> {
-  const filePath = path.join(RSS_DIR, feedConfig.rssFeedFile);
+  const filePath = path.join(RSS_DIR_PREFIX, feedConfig.rssFeedFile);
   
   try {
-    await fs.writeFile(filePath, xmlContent);
+    await saveFile(filePath, xmlContent);
     console.log(`RSS feed saved to ${filePath}`);
     
     // Update lastRetrieved timestamp
@@ -114,7 +114,7 @@ async function saveRSSFeed(
     
     if (feedIndex !== -1) {
       fullConfig['rssFeeds'][feedIndex] = feedConfig;
-      await fs.writeFile(RSS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
+      await saveFile(RSS_CONFIG_KEY, JSON.stringify(fullConfig, null, 2));
       console.log(`Updated lastRetrieved timestamp for ${feedConfig.title}`);
     }
   } catch (error) {
@@ -132,23 +132,30 @@ async function identifyNewEpisodes(
   
   // Create podcast-specific directory path
   const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
-  const podcastAudioDir = path.join(AUDIO_DIR, podcastDir);
+  const podcastAudioPrefix = path.join(AUDIO_DIR_PREFIX, podcastDir);
   
-  // Ensure the podcast-specific directory exists
-  await fs.ensureDir(podcastAudioDir);
+  // Ensure the podcast directory exists
+  await createDirectory(podcastAudioPrefix);
   
-  const existingFiles = await fs.readdir(podcastAudioDir);
-  
-  return episodes.filter((episode: Episode) => {
-    // Skip episodes without enclosure or URL
-    if (!episode.enclosure || !episode.enclosure.$ || !episode.enclosure.$.url) {
-      return false;
-    }
+  try {
+    // Get existing files
+    const existingFiles = await listFiles(podcastAudioPrefix);
+    const existingFilenames = existingFiles.map((filePath: string) => path.basename(filePath));
     
-    const filename = getEpisodeFilename(episode);
-    // Check if file doesn't exist already
-    return !existingFiles.includes(filename);
-  });
+    return episodes.filter((episode: Episode) => {
+      // Skip episodes without enclosure or URL
+      if (!episode.enclosure || !episode.enclosure.$ || !episode.enclosure.$.url) {
+        return false;
+      }
+      
+      const filename = getEpisodeFilename(episode);
+      // Check if file doesn't exist already
+      return !existingFilenames.includes(filename);
+    });
+  } catch (error) {
+    console.error(`Error identifying new episodes for ${feedConfig.title}:`, error);
+    return [];
+  }
 }
 
 // Download episode audio file
@@ -158,56 +165,23 @@ async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig[
   
   // Create podcast-specific directory path
   const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
-  const podcastAudioDir = path.join(AUDIO_DIR, podcastDir);
-  
-  const filePath = path.join(podcastAudioDir, filename);
+  const podcastAudioKey = path.join(AUDIO_DIR_PREFIX, podcastDir, filename);
   
   try {
     console.log(`Downloading episode: ${episode.title}`);
     const response = await axios({
       method: 'GET',
       url,
-      responseType: 'stream'
+      responseType: 'arraybuffer'
     });
     
-    const totalLength = parseInt(response.headers['content-length'], 10);
-    let downloadedLength = 0;
-    let lastLogPercentage = 0;
+    // Save the audio file directly to S3 or local storage
+    await saveFile(podcastAudioKey, Buffer.from(response.data));
+    console.log(`Successfully downloaded: ${filename}`);
     
-    response.data.on('data', (chunk: Buffer) => {
-      downloadedLength += chunk.length;
-      const percentage = Math.floor((downloadedLength / totalLength) * 100);
-      
-      // Log progress every 10%
-      if (percentage >= lastLogPercentage + 10) {
-        console.log(`Download progress for ${filename}: ${percentage}%`);
-        lastLogPercentage = percentage;
-      }
-    });
-    
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
-    
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        console.log(`Successfully downloaded: ${filename}`);
-        resolve(filePath);
-      });
-      
-      writer.on('error', (err: Error) => {
-        fs.unlink(filePath, () => {}); // Delete the file on error, ignore potential deletion errors
-        console.error(`Error writing file ${filename}:`, err);
-        reject(err);
-      });
-      
-      response.data.on('error', (err: Error) => {
-        fs.unlink(filePath, () => {}); // Delete the file on error, ignore potential deletion errors
-        console.error(`Error in download stream for ${filename}:`, err);
-        reject(err);
-      });
-    });
+    return podcastAudioKey;
   } catch (error) {
-    console.error(`Error downloading episode ${episode.title}:`, error);
+    console.error(`❌ Error downloading episode ${episode.title}:`, error);
     throw error;
   }
 }
@@ -226,8 +200,14 @@ export async function handler(): Promise<void> {
     console.log('Starting RSS feed processing at', new Date().toISOString());
     
     // Ensure directories exist
-    await fs.ensureDir(RSS_DIR);
-    await fs.ensureDir(AUDIO_DIR);
+    await createDirectory(RSS_DIR_PREFIX);
+    await createDirectory(AUDIO_DIR_PREFIX);
+    
+    // Check if config exists, if not create it with empty array
+    if (!await fileExists(RSS_CONFIG_KEY)) {
+      const emptyConfig = { rssFeeds: [] };
+      await saveFile(RSS_CONFIG_KEY, JSON.stringify(emptyConfig, null, 2));
+    }
     
     const config = await readRSSConfig();
     const activeFeeds = config['rssFeeds'].filter(feed => feed.status === 'active');
@@ -265,33 +245,34 @@ export async function handler(): Promise<void> {
             const audioFilePath = await downloadEpisodeAudio(episode, feed);
             newAudioFiles.push(audioFilePath);
           } catch (downloadError) {
-            console.error(`Failed to download episode ${episode.title}:`, downloadError);
+            console.error(`❌ Failed to download episode ${episode.title}:`, downloadError);
             // Continue to next episode rather than stopping the whole process
           }
         }
       } catch (feedError) {
-        console.error(`Error processing feed ${feed.title}:`, feedError);
+        console.error(`❌ Error processing feed ${feed.title}:`, feedError);
         // Continue to next feed rather than stopping the whole process
       }
     }
     
     // If new audio files were downloaded, trigger transcription
     if (newAudioFiles.length > 0) {
-      console.log(`Successfully downloaded ${newAudioFiles.length} new episodes`);
+      console.log(`✅ Successfully downloaded ${newAudioFiles.length} new episodes`);
       await triggerTranscriptionLambda(newAudioFiles);
     } else {
-      console.log('No new episodes were downloaded');
+      console.log('☑️  No new episodes were downloaded');
     }
     
-    console.log('Finished processing RSS feeds at', new Date().toISOString());
+    console.log('✅ Finished processing RSS feeds at', new Date().toISOString());
   } catch (error) {
-    console.error('Error in RSS feed processing:', error);
+    console.error('❌ Error in RSS feed processing:', error);
     throw error;
   }
 }
 
 // For local development, call the handler directly
-if (require.main === module) {
+// ES modules don't have require.main === module, so check if this is the entry point by checking import.meta.url
+if (import.meta.url === `file://${process.argv[1]}`) {
   console.log('Starting podcast RSS feed retrieval - running via pnpm...');
   handler()
     .then(() => console.log('Processing completed successfully'))

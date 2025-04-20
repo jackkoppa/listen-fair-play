@@ -5,9 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev:rss": "tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
-    "dev:whisper": "tsx lamdas/process-new-audio-files-via-whisper.ts",
-    "build": "tsc"
+    "dev:rss": "FILE_STORAGE_ENV=local tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
+    "dev:whisper": "FILE_STORAGE_ENV=local tsx lamdas/process-new-audio-files-via-whisper.ts",
+    "build": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.39.0",
@@ -25,7 +26,8 @@
     "@types/node": "^20.0.0",
     "@types/xml2js": "^0.4.14",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1"
   },
   "engines": {
     "node": ">=20.0.0"

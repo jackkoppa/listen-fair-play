@@ -1,10 +1,18 @@
-import fs from 'fs-extra';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import { config } from '@dotenvx/dotenvx';
+import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
+import { 
+  fileExists, 
+  getFile, 
+  saveFile, 
+  listFiles, 
+  createDirectory, 
+  deleteFile 
+} from '../utils/s3/aws-s3-client.js';
 
 // Load environment variables from .env.local
 config({ path: path.join(process.cwd(), '.env.local') });
@@ -13,9 +21,9 @@ config({ path: path.join(process.cwd(), '.env.local') });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Constants
-const AUDIO_DIR = path.join(__dirname, '../audio');
-const TRANSCRIPTS_DIR = path.join(__dirname, '../transcripts');
+// Constants - S3 paths
+const AUDIO_DIR_PREFIX = 'audio/';
+const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const MAX_FILE_SIZE_MB = 25;
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 
@@ -42,27 +50,38 @@ interface FfprobeMetadata {
 }
 
 // Helper function to get all MP3 files in a directory
-async function getMp3Files(dir: string): Promise<string[]> {
-  const files = await fs.readdir(dir);
+async function getMp3Files(dirKey: string): Promise<string[]> {
+  const files = await listFiles(dirKey);
   return files.filter(file => file.endsWith('.mp3'));
 }
 
 // Helper function to check if transcription exists
-async function transcriptExists(filePath: string): Promise<boolean> {
-  const audioFileName = path.basename(filePath, path.extname(filePath));
-  const transcriptDir = path.join(TRANSCRIPTS_DIR, path.dirname(filePath).split('/').pop() || '');
-  const transcriptPath = path.join(transcriptDir, `${audioFileName}.srt`);
+async function transcriptExists(fileKey: string): Promise<boolean> {
+  const audioFileName = path.basename(fileKey, '.mp3');
+  const podcastName = path.basename(path.dirname(fileKey));
+  const transcriptKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName, `${audioFileName}.srt`);
   
-  return fs.pathExists(transcriptPath);
+  return fileExists(transcriptKey);
 }
 
 // Helper function to split audio file into chunks
-async function splitAudioFile(filePath: string): Promise<TranscriptionChunk[]> {
+async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
+  // For ffmpeg to work, we need to download the file to a temporary location
+  const tempDir = path.join('/tmp', path.dirname(fileKey));
+  const tempFilePath = path.join('/tmp', fileKey);
+  
+  // Ensure the temp directory exists
+  await fs.ensureDir(tempDir);
+  
+  // Download the file to the temp location
+  const audioBuffer = await getFile(fileKey);
+  await fs.writeFile(tempFilePath, audioBuffer);
+  
   return new Promise((resolve, reject) => {
     const chunks: TranscriptionChunk[] = [];
     let currentStart = 0;
     
-    ffmpeg.ffprobe(filePath, async (err: Error | null, metadata: FfprobeMetadata) => {
+    ffmpeg.ffprobe(tempFilePath, async (err: Error | null, metadata: FfprobeMetadata) => {
       if (err) reject(err);
       
       const duration = metadata.format.duration || 0;
@@ -72,7 +91,7 @@ async function splitAudioFile(filePath: string): Promise<TranscriptionChunk[]> {
       
       while (currentStart < duration) {
         const endTime = Math.min(currentStart + chunkDuration, duration);
-        const chunkPath = `${filePath}.part${chunks.length + 1}.mp3`;
+        const chunkPath = `${tempFilePath}.part${chunks.length + 1}.mp3`;
         
         chunks.push({
           startTime: currentStart,
@@ -82,7 +101,7 @@ async function splitAudioFile(filePath: string): Promise<TranscriptionChunk[]> {
         
         // Actually create the chunk file using ffmpeg
         promises.push(new Promise<void>((resolveChunk, rejectChunk) => {
-          ffmpeg(filePath)
+          ffmpeg(tempFilePath)
             .setStartTime(currentStart)
             .setDuration(endTime - currentStart)
             .output(chunkPath)
@@ -197,36 +216,52 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
   return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')},${milliseconds}`;
 }
 
+// Helper function to get the file size in MB
+async function getFileSizeMB(fileKey: string): Promise<number> {
+  // Download the file to check its size
+  const buffer = await getFile(fileKey);
+  return buffer.length / (1024 * 1024);
+}
+
 // Helper function to process a single audio file
-async function processAudioFile(filePath: string): Promise<void> {
-  const podcastDir = path.dirname(filePath);
-  const podcastName = path.basename(podcastDir);
-  const transcriptDir = path.join(TRANSCRIPTS_DIR, podcastName);
-  const audioFileName = path.basename(filePath, '.mp3');
+async function processAudioFile(fileKey: string): Promise<void> {
+  const podcastName = path.basename(path.dirname(fileKey));
+  const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
+  const audioFileName = path.basename(fileKey, '.mp3');
   
   // Ensure transcript directory exists
-  await fs.ensureDir(transcriptDir);
+  await createDirectory(transcriptDirKey);
   
   // Check if transcription already exists
-  const transcriptPath = path.join(transcriptDir, `${audioFileName}.srt`);
-  if (await transcriptExists(filePath)) {
-    console.log(`Transcript already exists for ${filePath}, skipping`);
+  const transcriptKey = path.join(transcriptDirKey, `${audioFileName}.srt`);
+  if (await transcriptExists(fileKey)) {
+    console.log(`Transcript already exists for ${fileKey}, skipping`);
     return;
   }
   
   // Get file size
-  const stats = await fs.stat(filePath);
-  const fileSizeMB = stats.size / (1024 * 1024);
+  const fileSizeMB = await getFileSizeMB(fileKey);
   
   let chunks: TranscriptionChunk[] = [];
   if (fileSizeMB > MAX_FILE_SIZE_MB) {
-    console.log(`File ${filePath} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
-    chunks = await splitAudioFile(filePath);
+    console.log(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
+    chunks = await splitAudioFile(fileKey);
   } else {
+    // For small files, we still need to download them to a temp location for ffmpeg
+    const tempDir = path.join('/tmp', path.dirname(fileKey));
+    const tempFilePath = path.join('/tmp', fileKey);
+    
+    // Ensure the temp directory exists
+    await fs.ensureDir(tempDir);
+    
+    // Download the file to the temp location
+    const audioBuffer = await getFile(fileKey);
+    await fs.writeFile(tempFilePath, audioBuffer);
+    
     chunks = [{
       startTime: 0,
       endTime: 0, // Will be determined by ffprobe
-      filePath: filePath
+      filePath: tempFilePath
     }];
   }
   
@@ -256,21 +291,19 @@ async function processAudioFile(filePath: string): Promise<void> {
     
     srtContents.push(transcription);
     
-    // Clean up chunk file if it was created by splitting
-    if (chunk.filePath !== filePath) {
-      await fs.remove(chunk.filePath);
-    }
+    // Clean up chunk file if it was a temporary file
+    await fs.remove(chunk.filePath);
   }
   
   // Combine SRT files if needed
   const finalSrt = chunks.length > 1 ? combineSrtFiles(srtContents) : srtContents[0];
   
   // Save the final SRT file
-  await fs.writeFile(transcriptPath, finalSrt);
+  await saveFile(transcriptKey, finalSrt);
   
   // Add more visual prominence to completion message
   console.log('\n---------------------------------------------------');
-  console.log(`✅ COMPLETED: Saved transcription to ${transcriptPath}`);
+  console.log(`✅ COMPLETED: Saved transcription to ${transcriptKey}`);
   console.log('---------------------------------------------------\n');
 }
 
@@ -280,34 +313,48 @@ async function processAudioFile(filePath: string): Promise<void> {
 export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
   try {
     // Ensure directories exist
-    await fs.ensureDir(AUDIO_DIR);
-    await fs.ensureDir(TRANSCRIPTS_DIR);
+    await createDirectory(AUDIO_DIR_PREFIX);
+    await createDirectory(TRANSCRIPTS_DIR_PREFIX);
     
     console.log('Received event:', event);
     
-    // Get all podcast directories
-    const podcastDirs = await fs.readdir(AUDIO_DIR);
+    // If specific audio files are provided, process only those
+    if (event.audioFiles && event.audioFiles.length > 0) {
+      for (const audioFile of event.audioFiles) {
+        try {
+          await processAudioFile(audioFile);
+        } catch (error) {
+          console.error(`Error processing ${audioFile}:`, error);
+          // Continue with next file even if one fails
+        }
+      }
+      return;
+    }
+    
+    // Otherwise, get all podcast directories
+    const audioPrefixFiles = await listFiles(AUDIO_DIR_PREFIX);
+    const podcastDirs = new Set(audioPrefixFiles.map(file => {
+      const relativePath = file.replace(AUDIO_DIR_PREFIX, '');
+      return relativePath.split('/')[0]; // Get the first segment which is the podcast dir
+    }));
     
     // Process each podcast directory
     for (const podcastDir of podcastDirs) {
-      const podcastPath = path.join(AUDIO_DIR, podcastDir);
-      const stats = await fs.stat(podcastPath);
+      if (!podcastDir) continue; // Skip empty strings
       
-      if (stats.isDirectory()) {
-        console.log(`Processing podcast directory: ${podcastDir}`);
-        
-        // Get all MP3 files in the directory
-        const mp3Files = await getMp3Files(podcastPath);
-        
-        // Process each MP3 file
-        for (const mp3File of mp3Files) {
-          const filePath = path.join(podcastPath, mp3File);
-          try {
-            await processAudioFile(filePath);
-          } catch (error) {
-            console.error(`Error processing ${filePath}:`, error);
-            // Continue with next file even if one fails
-          }
+      const podcastPath = path.join(AUDIO_DIR_PREFIX, podcastDir);
+      console.log(`Processing podcast directory: ${podcastDir}`);
+      
+      // Get all MP3 files in the directory
+      const mp3Files = await getMp3Files(podcastPath);
+      
+      // Process each MP3 file
+      for (const mp3File of mp3Files) {
+        try {
+          await processAudioFile(mp3File);
+        } catch (error) {
+          console.error(`Error processing ${mp3File}:`, error);
+          // Continue with next file even if one fails
         }
       }
     }
@@ -327,7 +374,7 @@ if (isMainModule) {
   const mockEvent = {
     audioFiles: [
       // Example audio files that would be passed from Lambda-1
-      path.join(AUDIO_DIR, 'example-file.mp3')
+      path.join(AUDIO_DIR_PREFIX, 'example-podcast/example-file.mp3')
     ]
   };
   
