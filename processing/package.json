@@ -13,8 +13,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.787.0",
+    "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@dotenvx/dotenvx": "^1.39.0",
-    "aws-sdk": "^2.1575.0",
+    "@smithy/smithy-client": "^4.2.0",
     "axios": "^1.6.7",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^11.2.0",

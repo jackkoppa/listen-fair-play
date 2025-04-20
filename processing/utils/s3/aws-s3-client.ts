@@ -1,6 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
-import AWS from 'aws-sdk';
+import { ServiceException } from '@smithy/smithy-client';
+import { getSignedUrl as createSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 
 // Configuration constants
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'local';
@@ -9,7 +11,7 @@ const DEV_BUCKET_NAME = 'listen-fair-play-s3-bucket-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-bucket-prod';
 
 // Initialize S3 client for AWS environments
-const s3 = new AWS.S3({
+const s3 = new S3({
   region: process.env.AWS_REGION || 'us-east-1',
 });
 
@@ -47,10 +49,11 @@ export async function fileExists(key: string): Promise<boolean> {
       await s3.headObject({
         Bucket: bucketName,
         Key: key,
-      }).promise();
+      });
       return true;
     } catch (error) {
-      if ((error as AWS.AWSError).code === 'NotFound') {
+      // Check if the error is a "NotFound" error
+      if (error instanceof Error && (error as any).name === 'NotFound') {
         return false;
       }
       throw error;
@@ -76,7 +79,7 @@ export async function directoryExists(prefix: string): Promise<boolean> {
         Bucket: bucketName,
         Prefix: dirPrefix,
         MaxKeys: 1,
-      }).promise();
+      });
       
       return (response.Contents || []).length > 0;
     } catch (error) {
@@ -104,7 +107,7 @@ export async function createDirectory(prefix: string): Promise<void> {
       Bucket: bucketName,
       Key: dirPrefix,
       Body: '',
-    }).promise();
+    });
   }
 }
 
@@ -120,9 +123,20 @@ export async function getFile(key: string): Promise<Buffer> {
     const response = await s3.getObject({
       Bucket: bucketName,
       Key: key,
-    }).promise();
+    });
     
-    return Buffer.from(response.Body as Buffer);
+    // Convert the response stream to a buffer
+    if (!response.Body) {
+      throw new Error('Empty response body');
+    }
+    
+    // Handle response.Body as a stream
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as any) {
+      chunks.push(chunk);
+    }
+    
+    return Buffer.concat(chunks);
   }
 }
 
@@ -156,7 +170,7 @@ export async function listFiles(prefix: string): Promise<string[]> {
       const response = await s3.listObjectsV2({
         Bucket: bucketName,
         Prefix: prefix,
-      }).promise();
+      });
       
       return (response.Contents || [])
         .map(item => item.Key || '')
@@ -184,7 +198,7 @@ export async function saveFile(key: string, content: Buffer | string): Promise<v
       Bucket: bucketName,
       Key: key,
       Body: content,
-    }).promise();
+    });
   }
 }
 
@@ -202,7 +216,7 @@ export async function deleteFile(key: string): Promise<void> {
     await s3.deleteObject({
       Bucket: bucketName,
       Key: key,
-    }).promise();
+    });
   }
 }
 
@@ -216,10 +230,11 @@ export async function getSignedUrl(key: string, expirationSeconds = 3600): Promi
     return `file://${localPath}`;
   } else {
     const bucketName = getBucketName();
-    return s3.getSignedUrlPromise('getObject', {
+    return createSignedUrl(s3, new GetObjectCommand({
       Bucket: bucketName,
       Key: key,
-      Expires: expirationSeconds,
+    }), {
+      expiresIn: expirationSeconds,
     });
   }
 } 
