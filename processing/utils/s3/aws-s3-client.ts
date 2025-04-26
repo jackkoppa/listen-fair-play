@@ -5,11 +5,12 @@ import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 
 // Configuration constants
-const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'local';
 const LOCAL_S3_PATH = path.join(process.cwd(), '../aws-local-dev/s3');
 const DEV_BUCKET_NAME = 'listen-fair-play-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-prod';
-const AWS_PROFILE = process.env.AWS_PROFILE || 'AdministratorAccess_LFP-008376430685';
+
+const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV;
+const AWS_PROFILE = process.env.AWS_PROFILE;
 
 // Initialize S3 client for AWS environments
 const s3 = new S3({

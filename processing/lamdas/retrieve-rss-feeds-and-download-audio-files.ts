@@ -4,10 +4,6 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '../utils/s3/aws-s3-client.js';
 
-// ES Module dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Types
 interface RSSFeedConfig {
   'rssFeeds': Array<{
