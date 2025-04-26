@@ -11,7 +11,6 @@
     "processing:build": "pnpm --filter processing build",
     "processing:run-rss:local": "pnpm --filter processing run run-rss:local",
     "processing:run-rss:dev-s3": "pnpm --filter processing run run-rss:dev-s3",
-    "processing:run-rss:dev-s3-sso": "pnpm --filter processing run run-rss:dev-s3-sso",
     "processing:run-whisper:local": "pnpm --filter processing run run-whisper:local",
     "processing:run-whisper:dev-s3": "pnpm --filter processing run run-whisper:dev-s3",
     "processing:test": "pnpm --filter processing test"
