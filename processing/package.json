@@ -8,12 +8,15 @@
     "build": "tsc",
     "run-rss:local": "FILE_STORAGE_ENV=local tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run-rss:dev-s3": "FILE_STORAGE_ENV=dev-s3 tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
+    "run-rss:dev-s3-sso": "AWS_PROFILE=AdministratorAccess_LFP-008376430685 FILE_STORAGE_ENV=dev-s3 tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
+    "run-rss:local-with-sso": "AWS_PROFILE=AdministratorAccess_LFP-008376430685 FILE_STORAGE_ENV=local tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run-whisper:local": "FILE_STORAGE_ENV=local tsx lamdas/process-new-audio-files-via-whisper.ts",
     "run-whisper:dev-s3": "FILE_STORAGE_ENV=dev-s3 tsx lamdas/process-new-audio-files-via-whisper.ts",
     "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",
+    "@aws-sdk/credential-provider-sso": "^3.787.0",
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@dotenvx/dotenvx": "^1.39.0",
     "axios": "^1.6.7",
