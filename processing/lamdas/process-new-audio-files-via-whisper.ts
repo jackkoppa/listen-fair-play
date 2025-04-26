@@ -1,6 +1,4 @@
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-import OpenAI from 'openai';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
@@ -12,12 +10,15 @@ import {
   createDirectory, 
   deleteFile 
 } from '../utils/s3/aws-s3-client.js';
+import { transcribeViaWhisper, WhisperApiProvider } from '../utils/transcribe-via-whisper.js';
 
 // Constants - S3 paths
 const AUDIO_DIR_PREFIX = 'audio/';
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const MAX_FILE_SIZE_MB = 25;
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
+// Which Whisper API provider to use (can be configured via environment variable)
+const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
 
 // Types
 interface TranscriptionChunk {
@@ -273,15 +274,19 @@ async function processAudioFile(fileKey: string): Promise<void> {
       chunk.endTime = metadata.format.duration || 0;
     }
     
-    // Process with Whisper API
-    const openai = new OpenAI();
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(chunk.filePath),
-      model: "whisper-1",
-      response_format: "srt"
-    });
-    
-    srtContents.push(transcription);
+    // Process with Whisper API using our new utility
+    try {
+      const transcription = await transcribeViaWhisper({
+        filePath: chunk.filePath,
+        whisperApiProvider: WHISPER_API_PROVIDER,
+        responseFormat: 'srt'
+      });
+      
+      srtContents.push(transcription);
+    } catch (error) {
+      console.error(`Error transcribing chunk ${chunk.filePath}:`, error);
+      throw error;
+    }
     
     // Clean up chunk file if it was a temporary file
     await fs.remove(chunk.filePath);
