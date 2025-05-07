@@ -86,16 +86,16 @@ const testEpisodeTitle = 'Test Episode Title';
 
 // REVISED Expected output based on function's apparent logic:
 // Stop at the *first* punctuation mark encountered *after* >= 15s duration is met.
-const expectedOutput: SearchEntry[] = require('./__fixtures__/expected-search-entry-1.json');
+const expectedOutput: SearchEntry[] = require('./__fixtures__/1--expected-search-entry.json');
 
 describe('convertSrtFileIntoSearchEntryArray', () => {
   it('should convert a sample SRT file into an array of search entries based on time/punctuation rules', () => {
     const sampleSrtContent = fs.readFileSync(
-      path.join(__dirname, '__fixtures__/example-transcription-1.srt'),
+      path.join(__dirname, '__fixtures__/1--example-transcription.srt'),
       'utf-8'
     );
-    const expectedOutput = require('./__fixtures__/expected-search-entry-1.json');
-    const episodeDetails = require('./__fixtures__/example-episode-details-1.json');
+    const expectedOutput = require('./__fixtures__/1--expected-search-entry.json');
+    const episodeDetails = require('./__fixtures__/1--example-episode-details.json');
 
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: sampleSrtContent,
@@ -104,6 +104,22 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
     });
     // Use JSON.stringify for potentially more detailed diffs in some test runners
     // expect(JSON.stringify(result, null, 2)).toEqual(JSON.stringify(expectedOutput, null, 2));
+    expect(result).toEqual(expectedOutput);
+  });
+
+  it('should correctly process a longer SRT file with multiple segments (Fixture Set 2)', () => {
+    const sampleSrtContent = fs.readFileSync(
+      path.join(__dirname, '__fixtures__/2--example-transcription.srt'),
+      'utf-8'
+    );
+    const expectedOutput = require('./__fixtures__/2--expected-search-entry.json');
+    const episodeDetails = require('./__fixtures__/2--example-episode-details.json');
+
+    const result = convertSrtFileIntoSearchEntryArray({
+      srtFileContent: sampleSrtContent,
+      episodeId: episodeDetails.id,
+      episodeTitle: episodeDetails.title
+    });
     expect(result).toEqual(expectedOutput);
   });
 
