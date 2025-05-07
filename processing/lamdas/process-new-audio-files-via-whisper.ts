@@ -2,6 +2,7 @@ import * as path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
+import log from 'loglevel';
 import { 
   fileExists, 
   getFile, 
@@ -19,6 +20,10 @@ const MAX_FILE_SIZE_MB = 25;
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 // Which Whisper API provider to use (can be configured via environment variable)
 const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
+
+// Initialize loglevel
+const loggingLevel = process.env.LOGGING_LEVEL || 'warn';
+log.setLevel(loggingLevel as log.LogLevelDesc);
 
 // Types
 interface TranscriptionChunk {
@@ -99,11 +104,11 @@ async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
             .setDuration(endTime - currentStart)
             .output(chunkPath)
             .on('end', () => {
-              console.log(`Created chunk: ${chunkPath}`);
+              log.debug(`Created chunk: ${chunkPath}`);
               resolveChunk();
             })
             .on('error', (err) => {
-              console.error(`Error creating chunk ${chunkPath}:`, err);
+              log.error(`Error creating chunk ${chunkPath}:`, err);
               rejectChunk(err);
             })
             .run();
@@ -137,7 +142,7 @@ function combineSrtFiles(srtFiles: string[]): string {
         // Skip entries with invalid timestamps (sometimes Whisper can return these)
         if (!entry.startTime || !entry.endTime || 
             entry.startTime.includes('NaN') || entry.endTime.includes('NaN')) {
-          console.log(`Skipping entry with invalid timestamp: ${JSON.stringify(entry)}`);
+          log.debug(`Skipping entry with invalid timestamp: ${JSON.stringify(entry)}`);
           return;
         }
         
@@ -163,7 +168,7 @@ function combineSrtFiles(srtFiles: string[]): string {
         combinedEntries.push(newEntry);
       });
     } catch (error) {
-      console.error(`Error parsing SRT content for chunk ${index}:`, error);
+      log.error(`Error parsing SRT content for chunk ${index}:`, error);
     }
   });
   
@@ -228,7 +233,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   // Check if transcription already exists
   const transcriptKey = path.join(transcriptDirKey, `${audioFileName}.srt`);
   if (await transcriptExists(fileKey)) {
-    console.log(`Transcript already exists for ${fileKey}, skipping`);
+    log.debug(`Transcript already exists for ${fileKey}, skipping`);
     return;
   }
   
@@ -237,7 +242,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   
   let chunks: TranscriptionChunk[] = [];
   if (fileSizeMB > MAX_FILE_SIZE_MB) {
-    console.log(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
+    log.debug(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
     chunks = await splitAudioFile(fileKey);
   } else {
     // For small files, we still need to download them to a temp location for ffmpeg
@@ -258,121 +263,90 @@ async function processAudioFile(fileKey: string): Promise<void> {
     }];
   }
   
-  // Process each chunk
-  const srtContents: string[] = [];
+  // Transcribe each chunk
+  const srtChunks: string[] = [];
   for (const chunk of chunks) {
-    console.log(`Processing chunk: ${chunk.filePath}`);
-    
-    // Get file duration if not already set
-    if (chunk.endTime === 0) {
-      const metadata = await new Promise<FfprobeMetadata>((resolve, reject) => {
-        ffmpeg.ffprobe(chunk.filePath, (err, metadata) => {
-          if (err) reject(err);
-          resolve(metadata);
-        });
-      });
-      chunk.endTime = metadata.format.duration || 0;
-    }
-    
-    // Process with Whisper API using our new utility
-    try {
-      const transcription = await transcribeViaWhisper({
-        filePath: chunk.filePath,
-        whisperApiProvider: WHISPER_API_PROVIDER,
-        responseFormat: 'srt'
-      });
-      
-      srtContents.push(transcription);
-    } catch (error) {
-      console.error(`Error transcribing chunk ${chunk.filePath}:`, error);
-      throw error;
-    }
-    
-    // Clean up chunk file if it was a temporary file
-    await fs.remove(chunk.filePath);
+    log.debug(`Transcribing chunk: ${chunk.filePath}`);
+    // Since transcribeViaWhisper expects a Buffer, we read the chunk file
+    const chunkBuffer = await fs.readFile(chunk.filePath);
+    const srtContent = await transcribeViaWhisper(chunkBuffer, WHISPER_API_PROVIDER);
+    srtChunks.push(srtContent);
+    // Clean up the individual chunk file
+    await fs.remove(chunk.filePath); 
+    log.debug(`Transcription complete for chunk: ${chunk.filePath}. SRT saved.`);
   }
   
-  // Combine SRT files if needed
-  const finalSrt = chunks.length > 1 ? combineSrtFiles(srtContents) : srtContents[0];
+  // Combine SRT files
+  const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks) : srtChunks[0];
   
-  // Save the final SRT file
-  await saveFile(transcriptKey, finalSrt);
+  // Save the combined SRT file to S3
+  await saveFile(transcriptKey, Buffer.from(finalSrt));
   
-  // Add more visual prominence to completion message
-  console.log('\n---------------------------------------------------');
-  console.log(`✅ COMPLETED: Saved transcription to ${transcriptKey}`);
-  console.log('---------------------------------------------------\n');
+  log.debug(`Transcription complete for ${fileKey}. SRT saved to ${transcriptKey}`);
+  
+  // Clean up the temporary directory (original file and its parent directory in /tmp)
+  const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
+  if (await fs.pathExists(tempBaseDir)) {
+    await fs.remove(tempBaseDir);
+    log.debug(`Cleaned up temporary directory: ${tempBaseDir}`);
+  }
 }
 
 /**
- * Lambda handler function
+ * Main Lambda handler function.
+ * This function processes new audio files by transcribing them using Whisper.
+ * It can be triggered by an S3 event or run manually with a list of audio files.
+ * 
+ * @param event - The event object, which can optionally contain a list of audio files to process.
  */
 export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
-  try {
-    // Ensure directories exist
-    await createDirectory(AUDIO_DIR_PREFIX);
-    await createDirectory(TRANSCRIPTS_DIR_PREFIX);
-    
-    console.log('Received event:', event);
-    
-    // If specific audio files are provided, process only those
-    if (event.audioFiles && event.audioFiles.length > 0) {
-      for (const audioFile of event.audioFiles) {
-        try {
-          await processAudioFile(audioFile);
-        } catch (error) {
-          console.error(`Error processing ${audioFile}:`, error);
-          // Continue with next file even if one fails
-        }
-      }
-      return;
-    }
-    
-    // Otherwise, get all podcast directories
-    const audioPrefixFiles = await listFiles(AUDIO_DIR_PREFIX);
-    const podcastDirs = new Set(audioPrefixFiles.map(file => {
-      const relativePath = file.replace(AUDIO_DIR_PREFIX, '');
-      return relativePath.split('/')[0]; // Get the first segment which is the podcast dir
-    }));
-    
-    // Process each podcast directory
-    for (const podcastDir of podcastDirs) {
-      if (!podcastDir) continue; // Skip empty strings
-      
-      const podcastPath = path.join(AUDIO_DIR_PREFIX, podcastDir);
-      console.log(`Processing podcast directory: ${podcastDir}`);
-      
-      // Get all MP3 files in the directory
-      const mp3Files = await getMp3Files(podcastPath);
-      
-      // Process each MP3 file
-      for (const mp3File of mp3Files) {
-        try {
-          await processAudioFile(mp3File);
-        } catch (error) {
-          console.error(`Error processing ${mp3File}:`, error);
-          // Continue with next file even if one fails
-        }
-      }
-    }
-    
-  } catch (error) {
-    console.error('Error in audio processing:', error);
-    throw error;
-  }
-}
+  log.debug('Starting transcription process...');
+  log.debug(`Whisper API Provider: ${WHISPER_API_PROVIDER}`);
 
-// Make handler the default export for AWS Lambda
-export default handler;
+  let filesToProcess: string[] = [];
+
+  if (event.audioFiles && event.audioFiles.length > 0) {
+    filesToProcess = event.audioFiles;
+    log.debug(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
+  } else {
+    // Fallback to original logic structure if event.audioFiles is not present
+    // This part is a best guess reconstruction based on typical patterns
+    log.debug('Scanning S3 for audio files as no specific files were provided in the event.');
+    const allPodcastDirs = await listFiles(AUDIO_DIR_PREFIX, { listDirectories: true });
+    log.debug(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
+    for (const podcastDir of allPodcastDirs) {
+      if (!podcastDir) continue; // Skip empty or undefined directory names
+      const mp3Files = await getMp3Files(podcastDir); // podcastDir should be the full prefix like 'audio/podcast_name/'
+      filesToProcess.push(...mp3Files);
+    }
+    log.debug(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
+  }
+
+  if (filesToProcess.length === 0) {
+    log.debug("No audio files found to process.");
+    return;
+  }
+
+  for (const fileKey of filesToProcess) {
+    try {
+      log.debug(`Processing file: ${fileKey}`);
+      await processAudioFile(fileKey);
+    } catch (error) {
+      log.error(`Error processing file ${fileKey}:`, error);
+      // Continue with next file even if one fails (original behavior)
+    }
+  }
+  log.debug('Transcription process finished.');
+}
 
 // Run the handler if this file is executed directly
 // In ES modules, this is the standard way to detect if a file is being run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('Starting audio processing via Whisper...');
+  log.debug('Starting audio processing via Whisper directly...');
   handler()
-    .then(() => console.log('Processing completed successfully'))
+    .then(() => log.debug('Processing completed successfully (direct run)'))
     .catch(error => {
-      console.error('Processing failed:', error);
+      log.error('Processing failed (direct run):', error);
       process.exit(1);
     });
-} 
+}

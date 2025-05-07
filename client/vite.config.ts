@@ -5,6 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import type { ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
+import { log } from './src/utils/logging.js'
 
 // Define a custom plugin to serve transcript files
 function transcriptServerPlugin() {
@@ -22,7 +23,7 @@ function transcriptServerPlugin() {
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ files: files.map(f => path.basename(f)) }));
         } catch (error) {
-          console.error('Error serving transcript-files:', error);
+          log.error('Error serving transcript-files:', error);
           res.statusCode = 500;
           res.end(JSON.stringify({ error: 'Failed to read transcript files' }));
         }
@@ -55,7 +56,7 @@ function transcriptServerPlugin() {
           res.setHeader('Content-Type', 'text/plain');
           res.end(fileContent);
         } catch (error) {
-          console.error('Error serving transcript file:', error);
+          log.error('Error serving transcript file:', error);
           res.statusCode = 500;
           res.end(JSON.stringify({ error: 'Failed to read transcript file' }));
         }

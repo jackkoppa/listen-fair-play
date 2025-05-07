@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      loglevel:
+        specifier: ^1.9.2
+        version: 1.9.2
 
   client:
     dependencies:
@@ -92,9 +96,6 @@ importers:
       openai:
         specifier: ^4.28.0
         version: 4.89.0(ws@8.18.1)
-      srt-parser-2:
-        specifier: ^1.1.1
-        version: 1.2.3
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
@@ -111,6 +112,9 @@ importers:
       '@types/xml2js':
         specifier: ^0.4.14
         version: 0.4.14
+      srt-parser-2:
+        specifier: ^1.2.3
+        version: 1.2.3
       tsx:
         specifier: ^4.7.0
         version: 4.19.3
@@ -1839,6 +1843,10 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  loglevel@1.9.2:
+    resolution: {integrity: sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==}
+    engines: {node: '>= 0.6.0'}
 
   loupe@2.3.7:
     resolution: {integrity: sha512-zSMINGVYkdpYSOBmLi0D1Uo7JU9nVdQKrHxC8eYlV+9YKK9WePqAlL7lSlorG/U2Fw1w0hTBmaa/jrQ3UbPHtA==}
@@ -4564,6 +4572,8 @@ snapshots:
       p-locate: 5.0.0
 
   lodash.merge@4.6.2: {}
+
+  loglevel@1.9.2: {}
 
   loupe@2.3.7:
     dependencies:

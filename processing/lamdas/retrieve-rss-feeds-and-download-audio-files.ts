@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { log } from '../utils/logging.js';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '../utils/s3/aws-s3-client.js';
 
 // Types
@@ -62,7 +62,7 @@ async function readRSSConfig(): Promise<RSSFeedConfig> {
     const configBuffer = await getFile(RSS_CONFIG_KEY);
     return JSON.parse(configBuffer.toString('utf-8'));
   } catch (error) {
-    console.error('Error reading RSS config:', error);
+    log.error('Error reading RSS config:', error);
     throw error;
   }
 }
@@ -73,7 +73,7 @@ async function fetchRSSFeed(url: string): Promise<string> {
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching RSS feed from ${url}:`, error);
+    log.error(`Error fetching RSS feed from ${url}:`, error);
     throw error;
   }
 }
@@ -85,7 +85,7 @@ async function parseRSSFeed(xmlContent: string): Promise<any> {
   try {
     return await parser.parseStringPromise(xmlContent);
   } catch (error) {
-    console.error('Error parsing RSS XML:', error);
+    log.error('Error parsing RSS XML:', error);
     throw error;
   }
 }
@@ -99,7 +99,7 @@ async function saveRSSFeed(
   
   try {
     await saveFile(filePath, xmlContent);
-    console.log(`RSS feed saved to ${filePath}`);
+    log.debug(`RSS feed saved to ${filePath}`);
     
     // Update lastRetrieved timestamp
     feedConfig.lastRetrieved = new Date().toISOString();
@@ -111,10 +111,10 @@ async function saveRSSFeed(
     if (feedIndex !== -1) {
       fullConfig['rssFeeds'][feedIndex] = feedConfig;
       await saveFile(RSS_CONFIG_KEY, JSON.stringify(fullConfig, null, 2));
-      console.log(`Updated lastRetrieved timestamp for ${feedConfig.title}`);
+      log.debug(`Updated lastRetrieved timestamp for ${feedConfig.title}`);
     }
   } catch (error) {
-    console.error(`Error saving RSS feed for ${feedConfig.title}:`, error);
+    log.error(`Error saving RSS feed for ${feedConfig.title}:`, error);
     throw error;
   }
 }
@@ -149,7 +149,7 @@ async function identifyNewEpisodes(
       return !existingFilenames.includes(filename);
     });
   } catch (error) {
-    console.error(`Error identifying new episodes for ${feedConfig.title}:`, error);
+    log.error(`Error identifying new episodes for ${feedConfig.title}:`, error);
     return [];
   }
 }
@@ -164,7 +164,7 @@ async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig[
   const podcastAudioKey = path.join(AUDIO_DIR_PREFIX, podcastDir, filename);
   
   try {
-    console.log(`Downloading episode: ${episode.title}`);
+    log.debug(`Downloading episode: ${episode.title}`);
     const response = await axios({
       method: 'GET',
       url,
@@ -173,27 +173,27 @@ async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig[
     
     // Save the audio file directly to S3 or local storage
     await saveFile(podcastAudioKey, Buffer.from(response.data));
-    console.log(`Successfully downloaded: ${filename}`);
+    log.debug(`Successfully downloaded: ${filename}`);
     
     return podcastAudioKey;
   } catch (error) {
-    console.error(`❌ Error downloading episode ${episode.title}:`, error);
+    log.error(`❌ Error downloading episode ${episode.title}:`, error);
     throw error;
   }
 }
 
 // Trigger Lambda-2 for transcription (placeholder for now)
 async function triggerTranscriptionLambda(newAudioFiles: string[]): Promise<void> {
-  console.log('New audio files to transcribe:', newAudioFiles);
+  log.debug('New audio files to transcribe:', newAudioFiles);
   // In AWS environment, this would use AWS SDK to trigger another Lambda
   // For local dev, we'll just log the files
-  console.log('Would trigger Lambda-2 with these files:', newAudioFiles);
+  log.debug('Would trigger Lambda-2 with these files:', newAudioFiles);
 }
 
 // Main handler function
 export async function handler(): Promise<void> {
   try {
-    console.log('Starting RSS feed processing at', new Date().toISOString());
+    log.debug('Starting RSS feed processing at', new Date().toISOString());
     
     // Ensure directories exist
     await createDirectory(RSS_DIR_PREFIX);
@@ -208,12 +208,12 @@ export async function handler(): Promise<void> {
     const config = await readRSSConfig();
     const activeFeeds = config['rssFeeds'].filter(feed => feed.status === 'active');
     
-    console.log(`Found ${activeFeeds.length} active feeds to process`);
+    log.debug(`Found ${activeFeeds.length} active feeds to process`);
     
     const newAudioFiles: string[] = [];
     
     for (const feed of activeFeeds) {
-      console.log(`Processing feed: ${feed.title}`);
+      log.debug(`Processing feed: ${feed.title}`);
       
       try {
         // Fetch RSS feed
@@ -229,11 +229,11 @@ export async function handler(): Promise<void> {
         const newEpisodes = await identifyNewEpisodes(parsedFeed, feed);
         
         if (newEpisodes.length === 0) {
-          console.log(`No new episodes found for ${feed.title}`);
+          log.debug(`No new episodes found for ${feed.title}`);
           continue;
         }
         
-        console.log(`Found ${newEpisodes.length} new episodes for ${feed.title}`);
+        log.debug(`Found ${newEpisodes.length} new episodes for ${feed.title}`);
         
         // Download each new episode
         for (const episode of newEpisodes) {
@@ -241,27 +241,27 @@ export async function handler(): Promise<void> {
             const audioFilePath = await downloadEpisodeAudio(episode, feed);
             newAudioFiles.push(audioFilePath);
           } catch (downloadError) {
-            console.error(`❌ Failed to download episode ${episode.title}:`, downloadError);
+            log.error(`❌ Failed to download episode ${episode.title}:`, downloadError);
             // Continue to next episode rather than stopping the whole process
           }
         }
       } catch (feedError) {
-        console.error(`❌ Error processing feed ${feed.title}:`, feedError);
+        log.error(`❌ Error processing feed ${feed.title}:`, feedError);
         // Continue to next feed rather than stopping the whole process
       }
     }
     
     // If new audio files were downloaded, trigger transcription
     if (newAudioFiles.length > 0) {
-      console.log(`✅ Successfully downloaded ${newAudioFiles.length} new episodes`);
+      log.debug(`✅ Successfully downloaded ${newAudioFiles.length} new episodes`);
       await triggerTranscriptionLambda(newAudioFiles);
     } else {
-      console.log('☑️  No new episodes were downloaded');
+      log.debug('☑️  No new episodes were downloaded');
     }
     
-    console.log('✅ Finished processing RSS feeds at', new Date().toISOString());
+    log.debug('✅ Finished processing RSS feeds at', new Date().toISOString());
   } catch (error) {
-    console.error('❌ Error in RSS feed processing:', error);
+    log.error('❌ Error in RSS feed processing:', error);
     throw error;
   }
 }
@@ -269,11 +269,11 @@ export async function handler(): Promise<void> {
 // For local development, call the handler directly
 // ES modules don't have require.main === module, so check if this is the entry point by checking import.meta.url
 if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('Starting podcast RSS feed retrieval - running via pnpm...');
+  log.debug('Starting podcast RSS feed retrieval - running via pnpm...');
   handler()
-    .then(() => console.log('Processing completed successfully'))
+    .then(() => log.debug('Processing completed successfully'))
     .catch(error => {
-      console.error('Processing failed:', error);
+      log.error('Processing failed:', error);
       process.exit(1);
     });
 } 

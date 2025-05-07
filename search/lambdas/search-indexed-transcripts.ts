@@ -9,6 +9,7 @@
 
 import * as path from 'path';
 import { Document } from 'flexsearch';
+import { log } from '../utils/logging.js';
 import { 
   getFile,
   fileExists
@@ -57,13 +58,13 @@ async function initializeFlexSearchIndex(): Promise<Document> {
     return flexSearchIndex;
   }
 
-  console.log('Initializing FlexSearch index from S3...');
+  log.debug('Initializing FlexSearch index from S3...');
   const startTime = Date.now();
 
   // Check if the index file exists
   const indexExists = await fileExists(FLEXSEARCH_INDEX_KEY);
   if (!indexExists) {
-    console.log(`FlexSearch index file not found at: ${FLEXSEARCH_INDEX_KEY}`);
+    log.debug(`FlexSearch index file not found at: ${FLEXSEARCH_INDEX_KEY}`);
     // Create and return an empty index
     return createEmptyIndex();
   }
@@ -80,7 +81,7 @@ async function initializeFlexSearchIndex(): Promise<Document> {
     await index.import(key, data);
   }
 
-  console.log(`FlexSearch index loaded in ${Date.now() - startTime}ms`);
+  log.debug(`FlexSearch index loaded in ${Date.now() - startTime}ms`);
   
   // Cache the index for future invocations
   flexSearchIndex = index;
@@ -176,7 +177,7 @@ async function searchIndex(
  * Main Lambda handler function
  */
 export async function handler(event: any): Promise<SearchResponse> {
-  console.log('Search request received:', JSON.stringify(event));
+  log.debug('Search request received:', JSON.stringify(event));
   const startTime = Date.now();
   
   try {
@@ -242,7 +243,7 @@ export async function handler(event: any): Promise<SearchResponse> {
     
     return response;
   } catch (error) {
-    console.error('Error searching indexed transcripts:', error);
+    log.error('Error searching indexed transcripts:', error);
     throw error;
   }
 }
@@ -251,6 +252,6 @@ export async function handler(event: any): Promise<SearchResponse> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const testQuery = 'test query';
   handler({ query: testQuery })
-    .then(result => console.log('Search results:', JSON.stringify(result, null, 2)))
-    .catch(err => console.error('Search failed with error:', err));
+    .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
+    .catch(err => log.error('Search failed with error:', err));
 }

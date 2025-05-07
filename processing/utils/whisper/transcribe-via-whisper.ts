@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-
+import { log } from '../../utils/logging.js';
 /**
  * `openai` has been confirmed to work
  * `replicate` partially works, but the response format likely needs tweaking
@@ -207,8 +207,8 @@ async function transcribeWithLocalWhisperCpp(
       fs.unlinkSync(tempOutputFileWithExtension);
       return transcription;
     } else {
-      console.log('\n◻️ whisper.cpp, stdout:\n', stdout, '\n\n');
-      console.log('\n❌ whisper.cpp, stderr:\n', stderr, '\n\n');
+      log.debug('\n◻️ whisper.cpp, stdout:\n', stdout, '\n\n');
+      log.debug('\n❌ whisper.cpp, stderr:\n', stderr, '\n\n');
       throw new Error(`Output file not created: ${tempOutputFileWithExtension}. See above for more details.`);
     }
   } catch (error) {

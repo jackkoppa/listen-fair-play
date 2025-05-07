@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import fuzzysort from 'fuzzysort'
 import './App.css'
 
+import { log } from './utils/logging.js'
+
 // Import the parse transcript content function
 import parseTranscriptContent from './utils/parseTranscriptContent'
 
@@ -48,7 +50,7 @@ function App() {
             for (const fileName of transcriptIndex.files) {
               const fileResponse = await fetch(`/assets/transcripts/${fileName}`);
               if (!fileResponse.ok) {
-                console.error(`Failed to fetch transcript: ${fileName}`);
+                log.error(`Failed to fetch transcript: ${fileName}`);
                 continue;
               }
               
@@ -57,7 +59,7 @@ function App() {
               allTranscripts = [...allTranscripts, ...parsedEntries];
             }
           } catch (fetchError) {
-            console.error('Error fetching transcripts:', fetchError);
+            log.error('Error fetching transcripts:', fetchError);
             setError('Failed to load transcripts from server. Falling back to local transcripts.');
             
             // Fall back to locally loaded transcripts
@@ -72,7 +74,7 @@ function App() {
         
         setTranscripts(allTranscripts);
       } catch (error) {
-        console.error('Error loading transcripts:', error);
+        log.error('Error loading transcripts:', error);
         setError('Failed to load transcripts. Please try again later.');
       } finally {
         setIsLoading(false);
@@ -101,7 +103,7 @@ function App() {
         try {
           const fileResponse = await fetch(`/api/transcripts/${fileName}`);
           if (!fileResponse.ok) {
-            console.error(`Failed to fetch transcript: ${fileName}`);
+            log.error(`Failed to fetch transcript: ${fileName}`);
             continue;
           }
           
@@ -109,11 +111,11 @@ function App() {
           const parsedEntries = parseTranscriptContent(content, fileName);
           allTranscripts = [...allTranscripts, ...parsedEntries];
         } catch (error) {
-          console.error(`Error loading transcript ${fileName}:`, error);
+          log.error(`Error loading transcript ${fileName}:`, error);
         }
       }
     } catch (error) {
-      console.error('Error loading local transcripts:', error);
+      log.error('Error loading local transcripts:', error);
       setError('Failed to load local transcripts. Check the development server setup.');
       
       // If all else fails, use demo data

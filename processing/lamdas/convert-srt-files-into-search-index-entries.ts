@@ -13,6 +13,7 @@
 
 import * as path from 'path';
 import { Document } from 'flexsearch';
+import { log } from '../utils/logging.js';
 import { 
   fileExists, 
   getFile, 
@@ -94,7 +95,7 @@ function extractEpisodeInfo(srtFilePath: string): { episodeId: number; episodeTi
 
 // Function to process a single SRT file
 async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
-  console.log(`Processing SRT file: ${srtFileKey}`);
+  log.debug(`Processing SRT file: ${srtFileKey}`);
   
   // Get the SRT file content
   const srtBuffer = await getFile(srtFileKey);
@@ -115,7 +116,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
     ...entry
   }));
   
-  console.log(`Generated ${searchEntries.length} search entries from SRT file`);
+  log.debug(`Generated ${searchEntries.length} search entries from SRT file`);
   
   // Save search entries to S3
   const srtFileName = path.basename(srtFileKey, '.srt');
@@ -128,14 +129,14 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   // Save search entries as a JSON array
   await saveFile(searchEntriesKey, JSON.stringify(searchEntries, null, 2));
   
-  console.log(`Saved ${searchEntries.length} search entries to: ${searchEntriesKey}`);
+  log.debug(`Saved ${searchEntries.length} search entries to: ${searchEntriesKey}`);
   
   return searchEntries;
 }
 
 // Function to create and export FlexSearch index
 async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): Promise<void> {
-  console.log(`Creating FlexSearch index with ${allSearchEntries.length} entries`);
+  log.debug(`Creating FlexSearch index with ${allSearchEntries.length} entries`);
   
   // Create FlexSearch Document index
   const index = new Document({
@@ -162,7 +163,7 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   await createDirectory(SEARCH_INDEX_DIR_PREFIX);
   
   // Export the index
-  console.log('Exporting FlexSearch index...');
+  log.debug('Exporting FlexSearch index...');
   
   const exportedData: Record<string, string> = {};
   
@@ -179,7 +180,7 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   // Save the exported index to S3
   await saveFile(FLEXSEARCH_INDEX_KEY, JSON.stringify(exportedData));
   
-  console.log(`FlexSearch index successfully exported to: ${FLEXSEARCH_INDEX_KEY}`);
+  log.debug(`FlexSearch index successfully exported to: ${FLEXSEARCH_INDEX_KEY}`);
 }
 
 // Function to collect all existing search entries
@@ -203,10 +204,10 @@ async function getAllSearchEntries(): Promise<SearchEntry[]> {
         }));
         allEntries = allEntries.concat(entries);
       } else {
-        console.warn(`Unexpected format in ${jsonFile} - expected array but got:`, typeof parsedEntries);
+        log.warn(`Unexpected format in ${jsonFile} - expected array but got:`, typeof parsedEntries);
       }
     } catch (error) {
-      console.error(`Error parsing JSON from ${jsonFile}:`, error);
+      log.error(`Error parsing JSON from ${jsonFile}:`, error);
     }
   }
   
@@ -215,13 +216,13 @@ async function getAllSearchEntries(): Promise<SearchEntry[]> {
 
 // Main handler function
 export async function handler(event: any = {}): Promise<any> {
-  console.log('Starting SRT to search index entries conversion at', new Date().toISOString());
-  console.log('Event:', JSON.stringify(event));
+  log.debug('Starting SRT to search index entries conversion at', new Date().toISOString());
+  log.debug('Event:', JSON.stringify(event));
   
   // Check if we should force processing all SRT files (debug mode)
   const forceReprocessAll = event.forceReprocessAll === true;
   if (forceReprocessAll) {
-    console.log('Debug mode: Forcing reprocessing of all SRT files');
+    log.debug('Debug mode: Forcing reprocessing of all SRT files');
   }
   
   try {
@@ -240,10 +241,10 @@ export async function handler(event: any = {}): Promise<any> {
       srtFilesToProcess = await getSrtFilesWithNoSearchEntries();
     }
     
-    console.log(`Found ${srtFilesToProcess.length} SRT files to process`);
+    log.debug(`Found ${srtFilesToProcess.length} SRT files to process`);
     
     if (srtFilesToProcess.length === 0) {
-      console.log('No SRT files to process');
+      log.debug('No SRT files to process');
       return { processed: 0 };
     }
     
@@ -268,7 +269,7 @@ export async function handler(event: any = {}): Promise<any> {
       totalEntries: allEntries.length
     };
   } catch (error) {
-    console.error('Error processing SRT files:', error);
+    log.error('Error processing SRT files:', error);
     throw error;
   }
 }
@@ -277,6 +278,6 @@ export async function handler(event: any = {}): Promise<any> {
 // In ESM, import.meta.url will be defined and can be compared to process.argv[1]
 if (import.meta.url === `file://${process.argv[1]}`) {
   handler()
-    .then(result => console.log('Completed with result:', result))
-    .catch(err => console.error('Failed with error:', err));
+    .then(result => log.debug('Completed with result:', result))
+    .catch(err => log.error('Failed with error:', err));
 }

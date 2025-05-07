@@ -3,6 +3,7 @@ import path from 'path';
 import { getSignedUrl as createSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
+import { log } from '../logging.js';
 
 // Configuration constants
 const LOCAL_S3_PATH = path.join(process.cwd(), '../aws-local-dev/s3');
@@ -86,7 +87,7 @@ export async function directoryExists(prefix: string): Promise<boolean> {
       
       return (response.Contents || []).length > 0;
     } catch (error) {
-      console.error('Error checking if directory exists:', error);
+      log.error('Error checking if directory exists:', error);
       return false;
     }
   }
@@ -164,7 +165,7 @@ export async function listFiles(prefix: string): Promise<string[]> {
       }
       return [];
     } catch (error) {
-      console.error('Error listing local files:', error);
+      log.error('Error listing local files:', error);
       return [];
     }
   } else {
@@ -179,7 +180,7 @@ export async function listFiles(prefix: string): Promise<string[]> {
         .map(item => item.Key || '')
         .filter(key => key !== '');
     } catch (error) {
-      console.error('Error listing S3 files:', error);
+      log.error('Error listing S3 files:', error);
       return [];
     }
   }

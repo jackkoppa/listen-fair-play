@@ -5,7 +5,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-      "build": "tsc"
+      "build": "dotenvx run -f .env.dev -- tsc"
     },
     "dependencies": {
       "flexsearch": "^0.8.158"
