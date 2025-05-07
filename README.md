@@ -8,10 +8,12 @@ A podcast archiving and searching application:
 
 ## Project Structure
 
+- `/aws-local-dev`: gitignored folders matching S3 file structure, for local dev
 - `/client`: React web application for searching transcripts
 - `/processing`: AWS Lambda functions for podcast processing
   - `retrieve-rss-feeds-and-download-audio-files.ts`: Retrieves RSS feeds and downloads audio
   - `process-new-audio-files-via-whisper.ts`: Transcribes audio files via Whisper API
+- `/search`: AWS Lambda function for searching indexed podcast transcriptions
 - `/diagrams`: Architecture diagrams
 - `/terraform`: Terraform configurations for AWS infrastructure
 - `/scripts`: Utility scripts for local development and deployment

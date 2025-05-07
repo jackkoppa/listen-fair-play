@@ -10,10 +10,6 @@ Expected structure of S3 Bucket
 
 /aws-local-dev # should match S3 bucket structure in prod
 |--s3
-   |--manifest
-   |  |--episodes.manifest.json
-   |     # Tracking all retrieved episodes, and the status for   
-   |       each (e.g. audio retrieved, transcribed, indexed, etc.)
    |--rss
    |  # RSS feeds retrieved based on /podcasts.manifest.json
    |--audio

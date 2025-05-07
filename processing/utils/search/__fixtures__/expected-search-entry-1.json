@@ -1,0 +1,34 @@
+[
+    {
+      "id": "123_86720",
+      "episodeId": 123,
+      "episodeTitle": "Test Episode Title",
+      "startTimeMs": 86720,
+      "endTimeMs": 104800,
+      "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!"
+    },
+    {
+        "id": "123_104800",
+        "episodeId": 123,
+        "episodeTitle": "Test Episode Title",
+        "startTimeMs": 104800,
+        "endTimeMs": 120400,
+        "text": "He's ran the goalkeeper, he's done it! Absolutely incredible! He launched himself six feet into the crowd, and Kung Fu kicked a supporter who was eye-whip without a shadow of a doubt giving him lip."
+    },
+    {
+        "id": "123_120400",
+        "episodeId": 123,
+        "episodeTitle": "Test Episode Title",
+        "startTimeMs": 120400,
+        "endTimeMs": 137920,
+        "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful."
+    },
+    {
+        "id": "123_137920",
+        "episodeId": 123,
+        "episodeTitle": "Test Episode Title",
+        "startTimeMs": 137920,
+        "endTimeMs": 146000,
+        "text": "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history."
+    }
+]

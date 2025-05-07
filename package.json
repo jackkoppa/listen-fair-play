@@ -13,6 +13,8 @@
     "processing:run-rss:dev-s3": "pnpm --filter processing run run-rss:dev-s3",
     "processing:run-whisper:local": "pnpm --filter processing run run-whisper:local",
     "processing:run-whisper:dev-s3": "pnpm --filter processing run run-whisper:dev-s3",
+    "processing:run-search-conversion:local": "pnpm --filter processing run run-search-conversion:local",
+    "processing:run-search-conversion:dev-s3": "pnpm --filter processing run run-search-conversion:dev-s3",
     "processing:test": "pnpm --filter processing test"
   },
   "engines": {

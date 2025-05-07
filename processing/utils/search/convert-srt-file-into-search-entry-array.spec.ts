@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { convertSrtFileIntoSearchEntryArray } from './convert-srt-file-into-search-entry-array.js'; // Assuming the function is exported from here
 
 // Define the structure we expect the function to return
@@ -84,51 +86,21 @@ const testEpisodeTitle = 'Test Episode Title';
 
 // REVISED Expected output based on function's apparent logic:
 // Stop at the *first* punctuation mark encountered *after* >= 15s duration is met.
-const expectedOutput: SearchEntry[] = [
-  {
-    // Chunk 1: Lines 22-26. Meets duration & punc at line 26.
-    id: `${testEpisodeId}_86720`,      // Start time of line 22
-    episodeId: testEpisodeId,
-    episodeTitle: testEpisodeTitle,
-    startTimeMs: 86720,
-    endTimeMs: 104800,                // End time of line 26
-    text: "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!"
-  },
-  {
-    // Chunk 2: Lines 27-31. Meets duration at line 30 (no punc). Meets duration & punc at line 31.
-    id: `${testEpisodeId}_104800`,     // Start time of line 27
-    episodeId: testEpisodeId,
-    episodeTitle: testEpisodeTitle,
-    startTimeMs: 104800,              // Start time of line 27
-    endTimeMs: 120400,                // End time of line 31
-    text: "He's ran the goalkeeper, he's done it! Absolutely incredible! He launched himself six feet into the crowd, and Kung Fu kicked a supporter who was eye-whip without a shadow of a doubt giving him lip."
-  },
-  {
-    // Chunk 3: Lines 32-36. Meets duration at line 35 (no punc). Meets duration & punc at line 36.
-    id: `${testEpisodeId}_120400`,    // Start time of line 32
-    episodeId: testEpisodeId,
-    episodeTitle: testEpisodeTitle,
-    startTimeMs: 120400,             // Start time of line 32
-    endTimeMs: 137920,               // End time of line 36
-    text: "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful."
-  },
-  {
-    // Chunk 4: Lines 37-43. Meets duration at line 41 (no punc). Meets duration & punc at line 43 (also last line).
-    id: `${testEpisodeId}_137920`,   // Start time of line 37
-    episodeId: testEpisodeId,
-    episodeTitle: testEpisodeTitle,
-    startTimeMs: 137920,            // Start time of line 37
-    endTimeMs: 146000,              // End time of line 43
-    text: "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history."
-  }
-];
+const expectedOutput: SearchEntry[] = require('./__fixtures__/expected-search-entry-1.json');
 
 describe('convertSrtFileIntoSearchEntryArray', () => {
   it('should convert a sample SRT file into an array of search entries based on time/punctuation rules', () => {
+    const sampleSrtContent = fs.readFileSync(
+      path.join(__dirname, '__fixtures__/example-transcription-1.srt'),
+      'utf-8'
+    );
+    const expectedOutput = require('./__fixtures__/expected-search-entry-1.json');
+    const episodeDetails = require('./__fixtures__/example-episode-details-1.json');
+
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: sampleSrtContent,
-      episodeId: testEpisodeId,
-      episodeTitle: testEpisodeTitle
+      episodeId: episodeDetails.id,
+      episodeTitle: episodeDetails.title
     });
     // Use JSON.stringify for potentially more detailed diffs in some test runners
     // expect(JSON.stringify(result, null, 2)).toEqual(JSON.stringify(expectedOutput, null, 2));

@@ -1,0 +1,19 @@
+{
+    "name": "search",
+    "version": "1.0.0",
+    "description": "Search indexed podcast transcriptions",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+      "build": "tsc"
+    },
+    "dependencies": {
+      "flexsearch": "^0.8.158"
+    },
+    "devDependencies": {
+      "typescript": "^5.3.3"
+    },
+    "engines": {
+      "node": ">=20.0.0"
+    }
+  }
