@@ -21,7 +21,7 @@ import {
   listFiles,
   createDirectory
 } from '../utils/s3/aws-s3-client.js';
-import { convertSrtFileIntoSearchEntryArray } from '../utils/search/convert-srt-file-into-search-entry-array.js';
+import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-srt-file-into-search-entry-array.js';
 
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
@@ -129,7 +129,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   // Save search entries as a JSON array
   await saveFile(searchEntriesKey, JSON.stringify(searchEntries, null, 2));
   
-  log.debug(`Saved ${searchEntries.length} search entries to: ${searchEntriesKey}`);
+  log.info(`Saved ${searchEntries.length} search entries to: ${searchEntriesKey}`);
   
   return searchEntries;
 }
@@ -142,21 +142,48 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   const index = new Document({
     document: {
       id: 'id',
-      index: ['text', 'episodeTitle']
+      index: ['text']
     },
     tokenize: 'forward',
     cache: 100, // Cache the last 100 search results
-    resolution: 9,
-    context: {
-      depth: 2,
-      resolution: 3,
-      bidirectional: true
-    }
+    context: true
   });
   
   // Add all search entries to the index
+  const totalEntries = allSearchEntries.length;
+  let processedCount = 0;
+  let lastLoggedPercentage = 0;
+  const startTime = Date.now();
+
+  // Temporary hardcoded maximum of 2000 entries to process
+  const TEMPORARY_MAX_ENTRIES_TO_PROCESS = 10000;
+  
+  // If we have more entries than the maximum, log a warning and truncate the array
+  if (allSearchEntries.length > TEMPORARY_MAX_ENTRIES_TO_PROCESS) {
+    log.warn(`Limiting indexing to ${TEMPORARY_MAX_ENTRIES_TO_PROCESS} entries out of ${allSearchEntries.length} total entries (temporary restriction)`);
+    allSearchEntries = allSearchEntries.slice(0, TEMPORARY_MAX_ENTRIES_TO_PROCESS);
+    log.debug(`Proceeding with ${allSearchEntries.length} entries after applying limit`);
+  }
+  
   for (const entry of allSearchEntries) {
     index.add(entry);
+    processedCount++;
+    
+    // Calculate current percentage
+    const currentPercentage = Math.floor((processedCount / totalEntries) * 100);
+    
+    // Log at each 5% increment
+    if (currentPercentage >= lastLoggedPercentage + 5) {
+      lastLoggedPercentage = Math.floor(currentPercentage / 5) * 5;
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      log.info(`Indexing progress: ${lastLoggedPercentage}% (${processedCount}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
+    }
+  }
+  
+  // Ensure we log 100% completion
+  if (lastLoggedPercentage < 100 && totalEntries > 0) {
+    const elapsedTime = (Date.now() - startTime) / 1000;
+    log.info(`Indexing progress: 100% (${totalEntries}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
   }
   
   // Ensure the search index directory exists
@@ -165,22 +192,14 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   // Export the index
   log.debug('Exporting FlexSearch index...');
   
-  const exportedData: Record<string, string> = {};
-  
-  // Use type assertion to access the export function
-  const exportFunction = (index as any).export as (
-    callback: (key: string, data: any) => Promise<void>
-  ) => Promise<void>;
-  
-  // Export the index safely using a callback that returns a promise
-  await exportFunction(async (key, data) => {
-    exportedData[key] = data || '';
+
+  index.export(async function(key, data){
+    await saveFile(FLEXSEARCH_INDEX_KEY, data);
   });
   
-  // Save the exported index to S3
-  await saveFile(FLEXSEARCH_INDEX_KEY, JSON.stringify(exportedData));
   
-  log.debug(`FlexSearch index successfully exported to: ${FLEXSEARCH_INDEX_KEY}`);
+  const totalElapsedTime = (Date.now() - startTime) / 1000;
+  log.info(`FlexSearch index successfully exported to: ${FLEXSEARCH_INDEX_KEY} - Total elapsed time: ${totalElapsedTime.toFixed(2)}s`);
 }
 
 // Function to collect all existing search entries
