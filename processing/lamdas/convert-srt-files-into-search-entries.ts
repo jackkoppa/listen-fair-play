@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs/promises'; // For local DB file operations
-import { Index, Document } from 'flexsearch';
+import { Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
 import Database from 'flexsearch/db/sqlite';
 import { log } from '../utils/logging.js';
@@ -173,7 +173,7 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
       }],
       store: true, // Ensure documents (or specified fields) are stored for later enrichment.
     },
-    commit: false, 
+    commit: false, // We don't make changes regularly to the index, so let's only explicitly commit when needed (at the end)
   });
 
   await index.mount(db);
@@ -230,10 +230,6 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
       }
     });
   }
-
-  // Wait 5 seconds before uploading to S3 to allow DB operations to complete
-  log.info('Waiting 5 seconds before uploading to S3...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
   
   // Upload the SQLite DB file to S3
   log.info(`Uploading SQLite DB from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
