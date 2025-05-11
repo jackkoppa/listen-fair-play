@@ -1,18 +1,12 @@
-// TODO: Implement
-// This lambda function will be triggered after additional SRT transcripts are uploaded to S3
-// It will read the SRT files from S3, convert them into a JSON format that can be used by the search lambda, and then upload the JSON files to S3
-// It will use `/processing/utils/convert-srt-to-search-index-entry.ts` to convert the SRT files into search index entries 
-
-// The search index entries will be stored in S3, next to `/audio` and `/transcripts` - we'll store them in a folder called `/search-index-entries`
-// Each SRT file will be converted into one JSON file, with the same name as the SRT file
-// Finally, at the end of every lambda function, we'll re-generate the latest flexsearch index, to include all existing & new search index entries 
-// See docs here for exporting the flexsearch index: https://github.com/nextapps-de/flexsearch/blob/master/doc/export-import.md 
-
-// The lambda function at `/search/lambdas/search-indexed-transcripts.ts` will always start by importing the latest flexsearch index, before executing a search query,
-// it will retrieve that index from S3 when it's first cold started
+// CURSOR-TODO: Switch this file to use SQLite via FlexSearch's SQLite adapter
+// https://github.com/nextapps-de/flexsearch/blob/master/doc/persistent-sqlite.md
+// This function needs to create the index via the SQLite adapter, and then eventually save the index to S3
 
 import * as path from 'path';
-import { Document } from 'flexsearch';
+import * as fs from 'fs/promises'; // For local DB file operations
+import { Index, Document } from 'flexsearch';
+import sqlite3 from "sqlite3";
+import Database from 'flexsearch/db/sqlite'; // Changed import path
 import { log } from '../utils/logging.js';
 import { 
   fileExists, 
@@ -25,9 +19,12 @@ import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-sr
 
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
-const SEARCH_INDEX_ENTRIES_DIR_PREFIX = 'search-index-entries/';
-const SEARCH_INDEX_DIR_PREFIX = 'search-index/';
-const FLEXSEARCH_INDEX_KEY = path.join(SEARCH_INDEX_DIR_PREFIX, 'flexsearch-index.json');
+const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
+const SEARCH_INDEX_DB_S3_KEY = 'search-index/flexsearch_index.db'; // Path for the SQLite DB file in S3
+const LOCAL_DB_PATH = '/tmp/flexsearch_index.db'; // Local path for SQLite DB in Lambda environment
+
+// TODO: Share this with /search lambda
+const SQLITE_DB_NAME = 'listen-fair-play-index';
 
 // Define search entry type to match the utility function's output
 // Use the same structure but add index signature needed for FlexSearch
@@ -45,7 +42,7 @@ interface SearchEntry {
 async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_INDEX_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
   
   return fileExists(searchEntriesKey);
 }
@@ -121,7 +118,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   // Save search entries to S3
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_INDEX_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
   
   // Ensure the directory exists
   await createDirectory(path.dirname(searchEntriesKey));
@@ -137,17 +134,54 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
 // Function to create and export FlexSearch index
 async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): Promise<void> {
   log.debug(`Creating FlexSearch index with ${allSearchEntries.length} entries`);
+
+  // Ensure the local /tmp/ directory is available for the SQLite DB
+  try {
+    await fs.access('/tmp');
+  } catch (error) {
+    log.error("Local /tmp directory is not accessible for SQLite DB.", error);
+    await fs.mkdir('/tmp', { recursive: true }); // Try to create it if it doesn't exist
+    log.info("Created /tmp directory.");
+  }
   
-  // Create FlexSearch Document index
+  // Delete old local DB file if it exists, to start fresh
+  try {
+    await fs.unlink(LOCAL_DB_PATH);
+    log.debug(`Deleted existing local SQLite DB at ${LOCAL_DB_PATH}`);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') { // ENOENT means file not found, which is fine
+      log.warn(`Could not delete existing local SQLite DB: ${error.message}`);
+    }
+  }
+
+  
+  // CURSOR-TODO: Can/should the DB initialization move to a /utils file, to be shared with the /search lambda?
+  const sqlite3DB = new sqlite3.Database(LOCAL_DB_PATH);
+  // Create FlexSearch Document index with SQLite adapter
+  // The adapter will create/use the DB file at LOCAL_DB_PATH
+  const db = new Database(SQLITE_DB_NAME, {
+    db: sqlite3DB
+  });
+
+  // Disabling the Document index for now, as it's not working as expected.
   const index = new Document({
     document: {
       id: 'id',
-      index: ['text']
+      index: [{
+        field: 'text',
+        tokenize: 'full',
+        context: true,
+      }],
+      store: true, // Ensure documents (or specified fields) are stored for later enrichment.
     },
-    tokenize: 'forward',
-    cache: 100, // Cache the last 100 search results
-    context: true
+    commit: false, // We don't make changes regularly to the index, so let's only explicitly commit when needed (at the end)
   });
+  // const index = new Index({
+  //   tokenize: 'full',
+  //   context: true,
+  // });
+
+  await index.mount(db);
   
   // Add all search entries to the index
   const totalEntries = allSearchEntries.length;
@@ -155,17 +189,24 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   let lastLoggedPercentage = 0;
   const startTime = Date.now();
 
-  // Temporary hardcoded maximum of 2000 entries to process
-  const TEMPORARY_MAX_ENTRIES_TO_PROCESS = 10000;
+  // // Temporary hardcoded maximum of 2000 entries to process
+  // // CURSOR-TODO: Remove this temporary limit after testing SQLite performance
+  // const TEMPORARY_MAX_ENTRIES_TO_PROCESS = 700;
+
+  // TEMP - logging the first 10 entries
+  const first10Entries = allSearchEntries.slice(0, 10);
+  log.info('TEMP - logging the first 10 entries', first10Entries);
   
-  // If we have more entries than the maximum, log a warning and truncate the array
-  if (allSearchEntries.length > TEMPORARY_MAX_ENTRIES_TO_PROCESS) {
-    log.warn(`Limiting indexing to ${TEMPORARY_MAX_ENTRIES_TO_PROCESS} entries out of ${allSearchEntries.length} total entries (temporary restriction)`);
-    allSearchEntries = allSearchEntries.slice(0, TEMPORARY_MAX_ENTRIES_TO_PROCESS);
-    log.debug(`Proceeding with ${allSearchEntries.length} entries after applying limit`);
-  }
+  // // If we have more entries than the maximum, log a warning and truncate the array
+  // if (allSearchEntries.length > TEMPORARY_MAX_ENTRIES_TO_PROCESS) {
+  //   log.warn(`Limiting indexing to ${TEMPORARY_MAX_ENTRIES_TO_PROCESS} entries out of ${allSearchEntries.length} total entries (temporary restriction)`);
+  //   allSearchEntries = allSearchEntries.slice(0, TEMPORARY_MAX_ENTRIES_TO_PROCESS);
+  //   log.debug(`Proceeding with ${allSearchEntries.length} entries after applying limit`);
+  // }
   
   for (const entry of allSearchEntries) {
+    // Using addAsync as operations with DB adapter are likely async
+    // await index.addAsync(entry);
     index.add(entry);
     processedCount++;
     
@@ -173,8 +214,8 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     const currentPercentage = Math.floor((processedCount / totalEntries) * 100);
     
     // Log at each 5% increment
-    if (currentPercentage >= lastLoggedPercentage + 5) {
-      lastLoggedPercentage = Math.floor(currentPercentage / 5) * 5;
+    if (currentPercentage >= lastLoggedPercentage + 2) {
+      lastLoggedPercentage = Math.floor(currentPercentage / 2) * 2;
       const elapsedTime = (Date.now() - startTime) / 1000;
       log.info(`Indexing progress: ${lastLoggedPercentage}% (${processedCount}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
     }
@@ -185,26 +226,93 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     const elapsedTime = (Date.now() - startTime) / 1000;
     log.info(`Indexing progress: 100% (${totalEntries}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
   }
+
+  // TEMP - checking if the index is being added to
+  // make a for loop, rather than forEach
+  for (const entry of first10Entries) {
+    const result = await index.contain(entry.id);
+    log.info('INDEX RESULT', entry.id, result);
+  }
+
+  const searchResult = await index.search('miss a second');
+  log.info('SEARCH RESULT', searchResult);
   
-  // Ensure the search index directory exists
-  await createDirectory(SEARCH_INDEX_DIR_PREFIX);
+  // Ensure the search index directory exists - This might not be needed if we save a single file.
+  // await createDirectory(SEARCH_INDEX_DIR_PREFIX); // Keeping for now, might remove.
   
-  // Export the index
-  log.debug('Exporting FlexSearch index...');
+  // Commit changes to the SQLite database
+  // The adapter might handle commits automatically on add, or might require an explicit commit.
+  // Refer to flexsearch-sqlite documentation if issues arise.
+  // For now, assuming addAsync handles writes or we need a final commit.
+  log.info('will commit FlexSearch index changes to local SQLite DB.');
+  await index.commit(); // Explicitly commit if needed by the adapter.
+  log.info('FlexSearch index changes committed to local SQLite DB.');
+
+  // TEMP - checking if the index is being added to
+  // make a for loop, rather than forEach
+  for (const entry of first10Entries) {
+    const result = await index.contain(entry.id);
+    log.info('INDEX RESULT', entry.id, result);
+  }
+
+  // let tableNames: string[] = [];
+  // log.info('Checking if the table exists...');
+  // sqlite3DB.all('SELECT name FROM sqlite_master WHERE type="table"', function(err, rows) {
+  //   if (err) {
+  //     log.warn('Error listing tables in SQLite DB:', err);
+  //   } else {
+  //     tableNames = rows.map((row: any) => row.name);
+  //     log.info('Tables in SQLite DB:', tableNames);
+  //   }
+  // });
+
+  const tableNames = [
+    'map_text',
+    'ctx_text',
+    'reg',
+    'tag_text',
+    'cfg_text',
+    'sqlite_stat1'
+  ]
+
+  if (tableNames.length > 0) {
+    const tableQueries = tableNames.map(tableName => `SELECT '${tableName}' as table_name, COUNT(*) as count FROM ${tableName}`).join(' UNION ALL ');
+    sqlite3DB.all(tableQueries, function(err, rows) {
+      if (err) {
+        log.warn('Error counting rows in tables:', err);
+      } else {
+        rows.forEach((row: any) => {
+          log.info(`Number of rows in ${row.table_name} table:`, row.count);
+        });
+      }
+    });
+  }
+
+  // Wait 10 seconds
+  log.info('Waiting 5 seconds before uploading to S3...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
   
 
-  index.export(async function(key, data){
-    await saveFile(FLEXSEARCH_INDEX_KEY, data);
-  });
-  
+  // Upload the SQLite DB file to S3
+  log.info(`Uploading SQLite DB from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
+  const dbFileBuffer = await fs.readFile(LOCAL_DB_PATH);
+  await saveFile(SEARCH_INDEX_DB_S3_KEY, dbFileBuffer);
   
   const totalElapsedTime = (Date.now() - startTime) / 1000;
-  log.info(`FlexSearch index successfully exported to: ${FLEXSEARCH_INDEX_KEY} - Total elapsed time: ${totalElapsedTime.toFixed(2)}s`);
+  log.info(`FlexSearch index successfully created as SQLite DB and exported to S3: ${SEARCH_INDEX_DB_S3_KEY} - Total elapsed time: ${totalElapsedTime.toFixed(2)}s`);
+
+  // Clean up local DB file after upload
+  try {
+    await fs.unlink(LOCAL_DB_PATH);
+    log.info(`Cleaned up local SQLite DB file: ${LOCAL_DB_PATH}`);
+  } catch (error: any) {
+    log.warn(`Could not clean up local SQLite DB file: ${error.message}`);
+  }
 }
 
 // Function to collect all existing search entries
 async function getAllSearchEntries(): Promise<SearchEntry[]> {
-  const searchEntryFiles = await listFiles(SEARCH_INDEX_ENTRIES_DIR_PREFIX);
+  const searchEntryFiles = await listFiles(SEARCH_ENTRIES_DIR_PREFIX);
   const jsonFiles = searchEntryFiles.filter(file => file.endsWith('.json'));
   
   let allEntries: SearchEntry[] = [];
@@ -246,7 +354,7 @@ export async function handler(event: any = {}): Promise<any> {
   
   try {
     // Ensure the search index entries directory exists
-    await createDirectory(SEARCH_INDEX_ENTRIES_DIR_PREFIX);
+    await createDirectory(SEARCH_ENTRIES_DIR_PREFIX);
     
     // Get SRT files to process - either all or only new ones
     let srtFilesToProcess: string[];

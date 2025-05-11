@@ -15,7 +15,8 @@
     "processing:run-whisper:dev-s3": "pnpm --filter processing run run-whisper:dev-s3",
     "processing:run-search-conversion:local": "pnpm --filter processing run run-search-conversion:local",
     "processing:run-search-conversion:dev-s3": "pnpm --filter processing run run-search-conversion:dev-s3",
-    "processing:test": "pnpm --filter processing test"
+    "processing:test": "pnpm --filter processing test",
+    "search:test:local": "pnpm --filter search test:local"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -23,5 +24,8 @@
   },
   "devDependencies": {
     "loglevel": "^1.9.2"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
   }
 }

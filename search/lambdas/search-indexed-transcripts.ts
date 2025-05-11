@@ -1,26 +1,30 @@
-// TODO: Implement
+// CURSOR-TODO: Switch this file to use SQLite via FlexSearch's SQLite adapter
+// https://github.com/nextapps-de/flexsearch/blob/master/doc/persistent-sqlite.md
+// On AWS Lambda, we'll save the SQLite database to S3 and load it on every lambda cold start
 
-// This lambda function will be used to search the indexed transcripts for a given query
-// It will use flexsearch to search the transcripts: https://github.com/nextapps-de/flexsearch
-// It will be triggered by an API Gateway endpoint 
-
-// See code comments in `/processing/convert-srt-files-into-search-index-entries.ts` for more details on how the search index is generated,
-// which in this file, we'll retrieve from S3 on every lambda cold start
-
-import * as path from 'path';
+import * as fs from 'fs/promises'; // For local DB file operations
 import { Document } from 'flexsearch';
+import sqlite3 from "sqlite3";
+import Database from 'flexsearch/db/sqlite';
 import { log } from '../utils/logging.js';
 import { 
   getFile,
-  fileExists
+  // directoryExists, // No longer needed for a single DB file
+  // listFiles // No longer needed for a single DB file
+  fileExists // To check if the DB file exists in S3
 } from '../../processing/utils/s3/aws-s3-client.js';
 
 // Constants - S3 paths
-const SEARCH_INDEX_DIR_PREFIX = 'search-index/';
-const FLEXSEARCH_INDEX_KEY = path.join(SEARCH_INDEX_DIR_PREFIX, 'flexsearch-index.json');
+const SEARCH_INDEX_DB_S3_KEY = 'search-index/flexsearch_index.db'; // S3 key for the SQLite DB file
+const LOCAL_DB_PATH = '/tmp/flexsearch_index.db'; // Local path for SQLite DB in Lambda environment
+
+// CURSOR-TODO: Share this with /processing lambda
+const SQLITE_DB_NAME = 'listen-fair-play-index';
 
 // Keep the flexsearch index in memory for reuse between lambda invocations
-let flexSearchIndex: Document | null = null;
+// The type for Document with a DB adapter might be just Document, or Document<..., ..., SqliteAdapter>
+// For now, using 'any' for the adapter part if StorageInterface is not directly compatible.
+let flexSearchIndex: Document<any, any, any> | null = null;
 
 // Define the structure for a search entry
 interface SearchEntry {
@@ -53,35 +57,103 @@ interface SearchResponse {
 /**
  * Initialize the FlexSearch index from S3
  */
-async function initializeFlexSearchIndex(): Promise<Document> {
+async function initializeFlexSearchIndex(): Promise<Document<any, any, any>> {
   if (flexSearchIndex) {
     return flexSearchIndex;
   }
 
-  log.debug('Initializing FlexSearch index from S3...');
+  log.debug('Initializing FlexSearch index from S3 SQLite database...');
   const startTime = Date.now();
 
-  // Check if the index file exists
-  const indexExists = await fileExists(FLEXSEARCH_INDEX_KEY);
-  if (!indexExists) {
-    log.debug(`FlexSearch index file not found at: ${FLEXSEARCH_INDEX_KEY}`);
-    // Create and return an empty index
-    return createEmptyIndex();
+  // Ensure the local /tmp/ directory is available
+  try {
+    await fs.access('/tmp');
+  } catch (error) {
+    log.warn("Local /tmp directory is not accessible, attempting to create.", error);
+    await fs.mkdir('/tmp', { recursive: true });
+    log.info("Created /tmp directory.");
   }
 
-  // Get the serialized index from S3
-  const indexFileBuffer = await getFile(FLEXSEARCH_INDEX_KEY);
-  const serializedIndex = JSON.parse(indexFileBuffer.toString('utf-8')) as Record<string, string>;
-
-  // Create a new FlexSearch Document instance
-  const index = createEmptyIndex();
-
-  // Import the serialized index data
-  for (const [key, data] of Object.entries(serializedIndex)) {
-    await index.import(key, data);
+  // Check if the index DB file exists in S3
+  const indexDbExistsInS3 = await fileExists(SEARCH_INDEX_DB_S3_KEY);
+  if (!indexDbExistsInS3) {
+    log.warn(`FlexSearch SQLite DB not found in S3 at: ${SEARCH_INDEX_DB_S3_KEY}. Creating an empty index.`);
+    // Create and return an empty, non-persistent index if DB not found
+    // Or, depending on requirements, this could be an error state.
+    flexSearchIndex = createEmptyMemoryIndex(); 
+    return flexSearchIndex;
   }
 
-  log.debug(`FlexSearch index loaded in ${Date.now() - startTime}ms`);
+  // Download the SQLite DB file from S3 to the local /tmp path
+  log.debug(`Downloading SQLite DB from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
+  try {
+    const dbFileBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
+    await fs.writeFile(LOCAL_DB_PATH, dbFileBuffer);
+    log.info(`Successfully downloaded and saved SQLite DB to ${LOCAL_DB_PATH}`);
+    // Log the file size of the downloaded SQLite DB file
+    try {
+      const stats = await fs.stat(LOCAL_DB_PATH);
+      log.info(`SQLite DB file size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+    } catch (error) {
+      log.warn(`Failed to get file size for SQLite DB at ${LOCAL_DB_PATH}: ${error}`);
+    }
+  } catch (error) {
+    log.error(`Failed to download or save SQLite DB from S3: ${error}. Returning an empty index.`);
+    // Fallback to an empty memory index on download/write failure
+    flexSearchIndex = createEmptyMemoryIndex();
+    return flexSearchIndex;
+  }
+
+  // CURSOR-TODO: Can/should the DB initialization move to a /utils file, to be shared with the /search lambda?
+  const sqlite3DB = new sqlite3.Database(LOCAL_DB_PATH);
+
+  let tableNames: string[] = [];
+  log.info('Checking if the table exists...');
+  sqlite3DB.all('SELECT name FROM sqlite_master WHERE type="table"', function(err, rows) {
+    if (err) {
+      log.warn('Error listing tables in SQLite DB:', err);
+    } else {
+      tableNames = rows.map((row: any) => row.name);
+      log.info('Tables in SQLite DB:', tableNames);
+    }
+  });
+
+  const tableName = 'cfg_text';
+  sqlite3DB.get(`SELECT COUNT(*) as count FROM ${tableName}`, function(err, row: any) {
+    if (err) {
+      log.warn(`Error counting rows in ${tableName} table:`, err);
+    } else {
+      log.info(`Number of rows in ${tableName} table:`, row?.count);
+    }
+  });
+  
+  // Create FlexSearch Document index with SQLite adapter
+  // The adapter will create/use the DB file at LOCAL_DB_PATH
+  const db = new Database({
+    name: SQLITE_DB_NAME,
+    db: sqlite3DB                  // Define a primary key (good practice)
+  });                              // Keep 'as any' if type issues with constructor persist
+
+  const index = new Document({
+    document: {
+      id: 'id',
+      index: ['text'],
+      store: true, // Ensure documents (or specified fields) are stored for later enrichment.
+    },
+    tokenize: 'full',
+    context: true,
+  });
+
+  await index.mount(db);
+
+  
+  // It might be necessary to explicitly load or connect the index if the adapter doesn't do it automatically.
+  // e.g., await index.load() or similar if such a method exists.
+  // For now, assuming Document constructor handles this with the db adapter.
+  // A .ready() or .open() call on the adapter or index might be needed.
+  // await sqliteAdapter.connect(); // Or similar, if required by the adapter API.
+
+  log.debug(`FlexSearch index loaded from SQLite DB in ${Date.now() - startTime}ms`);
   
   // Cache the index for future invocations
   flexSearchIndex = index;
@@ -90,22 +162,19 @@ async function initializeFlexSearchIndex(): Promise<Document> {
 }
 
 /**
- * Create an empty FlexSearch index with the proper configuration
+ * Create an empty FlexSearch index (in-memory) with the proper configuration
+ * This is used as a fallback if the SQLite DB cannot be loaded.
  */
-function createEmptyIndex(): Document {
+function createEmptyMemoryIndex(): Document<any, any, any> {
+  log.debug("Creating a new empty in-memory FlexSearch index.");
   return new Document({
     document: {
       id: 'id',
-      index: ['text', 'episodeTitle']
+      index: ['text']
     },
-    tokenize: 'forward',
-    cache: 100, // Cache the last 100 search results
-    resolution: 9,
-    context: {
-      depth: 2,
-      resolution: 3,
-      bidirectional: true
-    }
+    tokenize: 'full',
+    context: true
+    // No db adapter for a purely in-memory fallback
   });
 }
 
@@ -113,7 +182,7 @@ function createEmptyIndex(): Document {
  * Perform a search against the FlexSearch index
  */
 async function searchIndex(
-  index: Document, 
+  index: Document<any, any, any>, 
   query: string, 
   limit: number = 10, 
   searchFields: string[] = ['text'],
@@ -129,25 +198,30 @@ async function searchIndex(
   
   if (matchAllFields) {
     // Search all fields and combine results
+    log.info('Searching all fields and combining results...');
     const resultsPromises = searchFields.map(field => 
-      index.search(query, {
+      index.searchAsync(query, {
         limit,
         suggest,
-        index: field
+        index: field,
+        enrich: true // Ensure documents are enriched
       })
     );
     
-    const results = await Promise.all(resultsPromises);
+    const fieldResultsArray = await Promise.all(resultsPromises);
     
     // Merge and deduplicate results
     const uniqueResults = new Map<string, SearchEntry>();
     
-    results.forEach(fieldResults => {
-      if (Array.isArray(fieldResults)) {
-        fieldResults.forEach(result => {
-          // Make sure the result is a SearchEntry and has an id
-          if (result && typeof result === 'object' && 'id' in result) {
-            uniqueResults.set(result.id as string, result as unknown as SearchEntry);
+    fieldResultsArray.forEach(fieldResultSet => {
+      if (Array.isArray(fieldResultSet)) {
+        fieldResultSet.forEach(perFieldResult => {
+          if (perFieldResult && Array.isArray(perFieldResult.result)) {
+            perFieldResult.result.forEach(hit => {
+              if (hit && hit.doc && typeof hit.id === 'string') {
+                uniqueResults.set(hit.id, hit.doc);
+              }
+            });
           }
         });
       }
@@ -156,17 +230,21 @@ async function searchIndex(
     searchResults = Array.from(uniqueResults.values());
   } else {
     // Search with the specified options
-    const results = await index.search(query, {
+    log.info('about to search for enriched results...', index.search, index.searchAsync, searchFields);
+    const enrichedResults = await index.search(query, {
       limit,
       suggest,
-      index: searchFields
+      index: searchFields,
+      enrich: true // Ensure documents are enriched
     });
     
+    console.log('enrichedResults', enrichedResults);
     // Convert the results to SearchEntry[]
-    if (Array.isArray(results)) {
-      searchResults = results
-        .filter(result => result && typeof result === 'object' && 'id' in result)
-        .map(result => result as unknown as SearchEntry);
+    if (Array.isArray(enrichedResults)) {
+      searchResults = enrichedResults
+        .flatMap(fieldResult => fieldResult.result || [])
+        .filter(hit => hit && hit.doc)
+        .map(hit => hit.doc);
     }
   }
   
