@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises'; // For local DB file operations
 import { Index, Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
-import Database from 'flexsearch/db/sqlite'; // Changed import path
+import Database from 'flexsearch/db/sqlite';
 import { log } from '../utils/logging.js';
 import { 
   fileExists, 
@@ -163,7 +163,6 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     db: sqlite3DB
   });
 
-  // Disabling the Document index for now, as it's not working as expected.
   const index = new Document({
     document: {
       id: 'id',
@@ -174,12 +173,8 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
       }],
       store: true, // Ensure documents (or specified fields) are stored for later enrichment.
     },
-    commit: false, // We don't make changes regularly to the index, so let's only explicitly commit when needed (at the end)
+    commit: false, 
   });
-  // const index = new Index({
-  //   tokenize: 'full',
-  //   context: true,
-  // });
 
   await index.mount(db);
   
@@ -189,31 +184,14 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   let lastLoggedPercentage = 0;
   const startTime = Date.now();
 
-  // // Temporary hardcoded maximum of 2000 entries to process
-  // // CURSOR-TODO: Remove this temporary limit after testing SQLite performance
-  // const TEMPORARY_MAX_ENTRIES_TO_PROCESS = 700;
-
-  // TEMP - logging the first 10 entries
-  const first10Entries = allSearchEntries.slice(0, 10);
-  log.info('TEMP - logging the first 10 entries', first10Entries);
-  
-  // // If we have more entries than the maximum, log a warning and truncate the array
-  // if (allSearchEntries.length > TEMPORARY_MAX_ENTRIES_TO_PROCESS) {
-  //   log.warn(`Limiting indexing to ${TEMPORARY_MAX_ENTRIES_TO_PROCESS} entries out of ${allSearchEntries.length} total entries (temporary restriction)`);
-  //   allSearchEntries = allSearchEntries.slice(0, TEMPORARY_MAX_ENTRIES_TO_PROCESS);
-  //   log.debug(`Proceeding with ${allSearchEntries.length} entries after applying limit`);
-  // }
-  
   for (const entry of allSearchEntries) {
-    // Using addAsync as operations with DB adapter are likely async
-    // await index.addAsync(entry);
     index.add(entry);
     processedCount++;
     
     // Calculate current percentage
     const currentPercentage = Math.floor((processedCount / totalEntries) * 100);
     
-    // Log at each 5% increment
+    // Log at each 2% increment
     if (currentPercentage >= lastLoggedPercentage + 2) {
       lastLoggedPercentage = Math.floor(currentPercentage / 2) * 2;
       const elapsedTime = (Date.now() - startTime) / 1000;
@@ -226,45 +204,10 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     const elapsedTime = (Date.now() - startTime) / 1000;
     log.info(`Indexing progress: 100% (${totalEntries}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
   }
-
-  // TEMP - checking if the index is being added to
-  // make a for loop, rather than forEach
-  for (const entry of first10Entries) {
-    const result = await index.contain(entry.id);
-    log.info('INDEX RESULT', entry.id, result);
-  }
-
-  const searchResult = await index.search('miss a second');
-  log.info('SEARCH RESULT', searchResult);
   
-  // Ensure the search index directory exists - This might not be needed if we save a single file.
-  // await createDirectory(SEARCH_INDEX_DIR_PREFIX); // Keeping for now, might remove.
-  
-  // Commit changes to the SQLite database
-  // The adapter might handle commits automatically on add, or might require an explicit commit.
-  // Refer to flexsearch-sqlite documentation if issues arise.
-  // For now, assuming addAsync handles writes or we need a final commit.
-  log.info('will commit FlexSearch index changes to local SQLite DB.');
+  log.info('Will commit FlexSearch index changes to local SQLite DB.');
   await index.commit(); // Explicitly commit if needed by the adapter.
   log.info('FlexSearch index changes committed to local SQLite DB.');
-
-  // TEMP - checking if the index is being added to
-  // make a for loop, rather than forEach
-  for (const entry of first10Entries) {
-    const result = await index.contain(entry.id);
-    log.info('INDEX RESULT', entry.id, result);
-  }
-
-  // let tableNames: string[] = [];
-  // log.info('Checking if the table exists...');
-  // sqlite3DB.all('SELECT name FROM sqlite_master WHERE type="table"', function(err, rows) {
-  //   if (err) {
-  //     log.warn('Error listing tables in SQLite DB:', err);
-  //   } else {
-  //     tableNames = rows.map((row: any) => row.name);
-  //     log.info('Tables in SQLite DB:', tableNames);
-  //   }
-  // });
 
   const tableNames = [
     'map_text',
@@ -273,7 +216,7 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     'tag_text',
     'cfg_text',
     'sqlite_stat1'
-  ]
+  ];
 
   if (tableNames.length > 0) {
     const tableQueries = tableNames.map(tableName => `SELECT '${tableName}' as table_name, COUNT(*) as count FROM ${tableName}`).join(' UNION ALL ');
@@ -288,11 +231,10 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     });
   }
 
-  // Wait 10 seconds
+  // Wait 5 seconds before uploading to S3 to allow DB operations to complete
   log.info('Waiting 5 seconds before uploading to S3...');
   await new Promise(resolve => setTimeout(resolve, 5000));
   
-
   // Upload the SQLite DB file to S3
   log.info(`Uploading SQLite DB from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
   const dbFileBuffer = await fs.readFile(LOCAL_DB_PATH);
@@ -344,7 +286,6 @@ async function getAllSearchEntries(): Promise<SearchEntry[]> {
 // Main handler function
 export async function handler(event: any = {}): Promise<any> {
   log.debug('Starting SRT to search index entries conversion at', new Date().toISOString());
-  log.debug('Event:', JSON.stringify(event));
   
   // Check if we should force processing all SRT files (debug mode)
   const forceReprocessAll = event.forceReprocessAll === true;
