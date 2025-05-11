@@ -1,0 +1,8 @@
+{
+    "name": "@listen-fair-play/utils",
+    "private": true,
+    "version": "1.0.0",
+    "description": "Utility functions, used by multiple packages",
+    "main": "index.js",
+    "type": "module"
+  }

@@ -1,21 +1,22 @@
 {
-    "name": "search",
-    "version": "1.0.0",
-    "description": "Search indexed podcast transcriptions",
-    "main": "index.js",
-    "type": "module",
-    "scripts": {
-      "build": "dotenvx run -f .env.dev -- tsc",
-      "test:local": "dotenvx run -f .env.local -- tsx local-test.ts"
-    },
-    "dependencies": {
-      "flexsearch": "^0.8.161"
-    },
-    "devDependencies": {
-      "typescript": "^5.3.3",
-      "tsx": "^4.7.0"
-    },
-    "engines": {
-      "node": ">=20.0.0"
-    }
+  "name": "@listen-fair-play/search",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Search indexed podcast transcriptions",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "dotenvx run -f .env.dev -- tsc",
+    "test:local": "dotenvx run -f .env.local -- tsx local-test.ts"
+  },
+  "dependencies": {
+    "flexsearch": "^0.8.161"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
+}

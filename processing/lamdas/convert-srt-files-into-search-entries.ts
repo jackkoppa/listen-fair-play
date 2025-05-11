@@ -7,6 +7,7 @@ import * as fs from 'fs/promises'; // For local DB file operations
 import { Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
 import Database from 'flexsearch/db/sqlite';
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, SQLITE_DB_NAME } from '@listen-fair-play/constants';
 import { log } from '../utils/logging.js';
 import { 
   fileExists, 
@@ -20,11 +21,7 @@ import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-sr
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
-const SEARCH_INDEX_DB_S3_KEY = 'search-index/flexsearch_index.db'; // Path for the SQLite DB file in S3
-const LOCAL_DB_PATH = '/tmp/flexsearch_index.db'; // Local path for SQLite DB in Lambda environment
 
-// TODO: Share this with /search lambda
-const SQLITE_DB_NAME = 'listen-fair-play-index';
 
 // Define search entry type to match the utility function's output
 // Use the same structure but add index signature needed for FlexSearch

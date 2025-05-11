@@ -71,6 +71,12 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(@types/node@22.13.11)(jsdom@26.0.0)
 
+  constants:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.7.3
+
   processing:
     dependencies:
       '@aws-sdk/client-s3':
@@ -104,6 +110,9 @@ importers:
         specifier: ^0.6.2
         version: 0.6.2
     devDependencies:
+      '@listen-fair-play/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@types/fluent-ffmpeg':
         specifier: ^2.1.24
         version: 2.1.27
@@ -141,6 +150,8 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.7.3
+
+  utils: {}
 
 packages:
 
