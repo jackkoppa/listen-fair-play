@@ -4,5 +4,15 @@
     "version": "1.0.0",
     "description": "Utility functions, used by multiple packages",
     "main": "index.js",
-    "type": "module"
+    "type": "module",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
   }

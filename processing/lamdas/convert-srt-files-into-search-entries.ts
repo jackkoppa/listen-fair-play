@@ -8,7 +8,7 @@ import { Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
 import Database from 'flexsearch/db/sqlite';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, SQLITE_DB_NAME } from '@listen-fair-play/constants';
-import { log } from '../utils/logging.js';
+import { log } from '@listen-fair-play/utils';
 import { 
   fileExists, 
   getFile, 

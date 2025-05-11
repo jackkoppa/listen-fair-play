@@ -1,5 +1,5 @@
 import SrtParser2 from "srt-parser-2";
-import { log } from "../logging.js";
+import { log } from '@listen-fair-play/utils';
 
 // Define the structure for a search index entry
 interface SearchEntry {

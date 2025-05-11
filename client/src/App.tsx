@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import fuzzysort from 'fuzzysort'
 import './App.css'
 
-import { log } from './utils/logging.js'
+import { log } from '@listen-fair-play/utils';
 
 // Import the parse transcript content function
 import parseTranscriptContent from './utils/parseTranscriptContent'

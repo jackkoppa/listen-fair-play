@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
+    "@listen-fair-play/utils": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.0.0",

@@ -4,6 +4,7 @@
   "private": true,
   "description": "A system for processing and analyzing podcast content",
   "scripts": {
+    "all:build": "pnpm --filter @listen-fair-play/* build",
     "client:build": "pnpm --filter client build",
     "client:dev": "pnpm --filter client dev",
     "client:lint": "pnpm --filter client lint",

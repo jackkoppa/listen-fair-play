@@ -6,20 +6,14 @@ import * as fs from 'fs/promises'; // For local DB file operations
 import { Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
 import Database from 'flexsearch/db/sqlite';
-import { log } from '../utils/logging.js';
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, SQLITE_DB_NAME } from '@listen-fair-play/constants';
+import { log } from '@listen-fair-play/utils';
 import { 
   getFile,
   // directoryExists, // No longer needed for a single DB file
   // listFiles // No longer needed for a single DB file
   fileExists // To check if the DB file exists in S3
 } from '../../processing/utils/s3/aws-s3-client.js';
-
-// Constants - S3 paths
-const SEARCH_INDEX_DB_S3_KEY = 'search-index/flexsearch_index.db'; // S3 key for the SQLite DB file
-const LOCAL_DB_PATH = '/tmp/flexsearch_index.db'; // Local path for SQLite DB in Lambda environment
-
-// CURSOR-TODO: Share this with /processing lambda
-const SQLITE_DB_NAME = 'listen-fair-play-index';
 
 // Keep the flexsearch index in memory for reuse between lambda invocations
 // The type for Document with a DB adapter might be just Document, or Document<..., ..., SqliteAdapter>

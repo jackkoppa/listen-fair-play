@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as path from 'path';
-import { log } from '../utils/logging.js';
+import { log } from '@listen-fair-play/utils';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '../utils/s3/aws-s3-client.js';
 
 // Types

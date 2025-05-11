@@ -267,9 +267,11 @@ async function processAudioFile(fileKey: string): Promise<void> {
   const srtChunks: string[] = [];
   for (const chunk of chunks) {
     log.debug(`Transcribing chunk: ${chunk.filePath}`);
-    // Since transcribeViaWhisper expects a Buffer, we read the chunk file
-    const chunkBuffer = await fs.readFile(chunk.filePath);
-    const srtContent = await transcribeViaWhisper(chunkBuffer, WHISPER_API_PROVIDER);
+    const srtContent = await transcribeViaWhisper({
+      filePath: chunk.filePath,
+      whisperApiProvider: WHISPER_API_PROVIDER,
+      responseFormat: 'srt'
+    });
     srtChunks.push(srtContent);
     // Clean up the individual chunk file
     await fs.remove(chunk.filePath); 
@@ -312,7 +314,7 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     // Fallback to original logic structure if event.audioFiles is not present
     // This part is a best guess reconstruction based on typical patterns
     log.debug('Scanning S3 for audio files as no specific files were provided in the event.');
-    const allPodcastDirs = await listFiles(AUDIO_DIR_PREFIX, { listDirectories: true });
+    const allPodcastDirs = await listFiles(AUDIO_DIR_PREFIX);
     log.debug(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
     for (const podcastDir of allPodcastDirs) {
       if (!podcastDir) continue; // Skip empty or undefined directory names
