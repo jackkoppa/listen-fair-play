@@ -1,5 +1,5 @@
 import { Document } from 'flexsearch';
-import { Database as Sqlite3Database } from 'sqlite3';
+import { Database as Sqlite3Database } from 'better-sqlite3';
 import { SearchEntry } from '@listen-fair-play/types';
 /** Name of the SQLite DB */
 const SQLITE_DB_NAME = 'flexsearch_index';

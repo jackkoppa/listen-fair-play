@@ -6,9 +6,10 @@ packages:
   - utils
   - types
 onlyBuiltDependencies:
-  - sqlite3
-
-
+  - better-sqlite3
+  - esbuild
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3
+  better-sqlite3: ^11.10.0
+  '@types/better-sqlite3': ^7.6.13

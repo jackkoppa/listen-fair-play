@@ -17,6 +17,7 @@
     "processing:run-search-conversion:local": "pnpm --filter processing run run-search-conversion:local",
     "processing:run-search-conversion:dev-s3": "pnpm --filter processing run run-search-conversion:dev-s3",
     "processing:test": "pnpm --filter processing test",
+    "search:dev:local": "pnpm --filter search dev:local",
     "search:test:local": "pnpm --filter search test:local"
   },
   "engines": {
@@ -25,8 +26,5 @@
   },
   "devDependencies": {
     "loglevel": "^1.9.2"
-  },
-  "dependencies": {
-    "sqlite3": "^5.1.7"
   }
 }
