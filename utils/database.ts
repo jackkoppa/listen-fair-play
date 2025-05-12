@@ -1,10 +1,11 @@
 import { Document } from 'flexsearch';
-import { Database as Sqlite3Database } from 'sqlite3';
+import Database from 'flexsearch/db/sqlite'
+import Sqlite3Database from 'sqlite3';
 import { SearchEntry } from '@listen-fair-play/types';
 /** Name of the SQLite DB */
 const SQLITE_DB_NAME = 'flexsearch_index';
 
-export async function createDocumentIndex(sqlite3DB: Sqlite3Database): Promise<Document<SearchEntry, true>> {
+export async function createDocumentIndex(sqlite3DB: Sqlite3Database.Database): Promise<Document<SearchEntry, true>> {
   // Create FlexSearch Document index with SQLite adapter
   const db = new Database({
     name: SQLITE_DB_NAME,

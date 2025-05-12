@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "build": "dotenvx run -f .env.dev -- tsc",
-    "test:local": "dotenvx run -f .env.local -- tsx local-test.ts"
+    "dev:local": "dotenvx run -f .env.local -- tsx dev-server.ts",
+    "test:local": "dotenvx run -f .env.local -- tsx simple-test-local.ts"
   },
   "dependencies": {
     "flexsearch": "catalog:"

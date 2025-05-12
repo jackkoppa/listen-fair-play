@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises'; // For local DB file operations
-import { Database as Sqlite3Database } from 'sqlite3';
+import Sqlite3Database from 'sqlite3';
 import { Document } from 'flexsearch';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
 import { SearchEntry } from '@listen-fair-play/types';
@@ -74,7 +74,7 @@ async function initializeFlexSearchIndex() {
     throw new Error(`Failed to download or save SQLite DB from S3: ${error}. Exiting.`);
   }
 
-  const sqlite3DB = new Sqlite3Database(LOCAL_DB_PATH);
+  const sqlite3DB = new Sqlite3Database.Database(LOCAL_DB_PATH);
   const index = await createDocumentIndex(sqlite3DB);
 
   log.debug(`FlexSearch index loaded from SQLite DB in ${Date.now() - startTime}ms`);

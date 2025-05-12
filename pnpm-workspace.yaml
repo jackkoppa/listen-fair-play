@@ -6,9 +6,8 @@ packages:
   - utils
   - types
 onlyBuiltDependencies:
+  - esbuild
   - sqlite3
-
-
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3
