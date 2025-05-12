@@ -1,56 +1,35 @@
 import React from 'react';
+import { ApiSearchResultHit } from '../App'; // Import the new type
 
-// Define the structure of a transcript entry
-export interface TranscriptEntry {
-  id: number;
-  startTime: string;
-  endTime: string;
-  speaker: string;
-  text: string;
-  fullText: string;
-  fileName: string;
-}
+// Utility function to format milliseconds to MM:SS
+const formatMillisecondsToMMSS = (ms: number): string => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
-// Define the structure of a search result with score and context
+// Define the props for SearchResult component using the new API hit structure
 export interface SearchResultProps {
-  result: TranscriptEntry;
-  score: number;
-  previousLine?: TranscriptEntry | null;
-  nextLine?: TranscriptEntry | null;
+  result: ApiSearchResultHit;
 }
 
-const SearchResult: React.FC<SearchResultProps> = ({ 
-  result, 
-  score, 
-  previousLine, 
-  nextLine 
-}) => {
+const SearchResult: React.FC<SearchResultProps> = ({ result }) => {
+  const formattedStartTime = formatMillisecondsToMMSS(result.startTimeMs);
+  const formattedEndTime = formatMillisecondsToMMSS(result.endTimeMs);
+
   return (
     <li className="result-item">
       <div className="result-header">
-        <span className="result-timestamp">{result.startTime.split(',')[0]}</span>
-        <span className="result-score">Score: {score.toFixed(2)}</span>
-        <span className="result-filename">{result.fileName}</span>
+        <span className="result-episode-title">{result.episodeTitle}</span>
+        <span className="result-timestamp-condensed">{formattedStartTime} - {formattedEndTime}</span>
       </div>
-      
-      {previousLine && (
-        <div className="result-context result-context-previous">
-          <span className="result-speaker">{previousLine.speaker}</span>
-          <span className="result-text">{previousLine.text}</span>
-        </div>
-      )}
-      
-      <div className="result-content">
-        <span className="result-speaker">{result.speaker}</span>
-        <span className="result-text">{result.text}</span>
-      </div>
-      
-      {nextLine && (
-        <div className="result-context result-context-next">
-          <span className="result-speaker">{nextLine.speaker}</span>
-          <span className="result-text">{nextLine.text}</span>
-        </div>
-      )}
+      <div 
+        className="result-highlighted-text"
+        dangerouslySetInnerHTML={{ __html: result.highlight }}
+      />
+      {/* <div className="result-full-text">{result.text}</div> */}
+      {/* Display full text if needed, or remove */}
     </li>
   );
 };

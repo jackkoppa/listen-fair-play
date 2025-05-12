@@ -1,26 +1,31 @@
 import { useState, useEffect } from 'react'
-import fuzzysort from 'fuzzysort'
+// import fuzzysort from 'fuzzysort' // Not needed anymore
 import './App.css'
 
 import { log } from '@listen-fair-play/utils';
 
 // Import the parse transcript content function
-import parseTranscriptContent from './utils/parseTranscriptContent'
+// import parseTranscriptContent from './utils/parseTranscriptContent' // This file was deleted
 
 // Import SearchResult component
-import SearchResult, { TranscriptEntry } from './components/SearchResult'
+import SearchResult from './components/SearchResult'
 
-// Define search result interface with score
-interface SearchResultWithContext {
-  result: TranscriptEntry;
-  score: number;
-  previousLine: TranscriptEntry | null;
-  nextLine: TranscriptEntry | null;
+// Define the structure for a single search hit from the API
+export interface ApiSearchResultHit {
+  id: string;
+  episodeId: number;
+  episodeTitle: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  text: string;
+  highlight: string; // This contains HTML with <b> tags for highlighting
 }
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResultWithContext[]>([]);
+  const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
+  const [isLoading, setIsLoading] = useState(false); // For API loading state
+  const [error, setError] = useState<string | null>(null); // For API errors
 
   // Load transcript files on component mount
   // useEffect(() => {
@@ -155,43 +160,47 @@ function App() {
       setSearchResults([]);
       return;
     }
-    
-    // if (transcripts.length === 0) {
-    //   return;
-    // }
-    
-    // Use fuzzysort to search through transcripts
-    // const results = fuzzysort.go(searchQuery, transcripts, {
-    //   keys: ['text'],
-    //   limit: 100,
-    //   threshold: 0.75 // Lower threshold allows more fuzzy matches
-    // });
-    
-    // Map results to transcript entries with context and score
-    // const searchResultsWithContext = results.map(result => {
-    //   const entry = result.obj;
-    //   const entryIndex = transcripts.findIndex(t => 
-    //     t.id === entry.id && t.fileName === entry.fileName
-    //   );
+
+    const fetchSearchResults = async () => {
+      setIsLoading(true);
+      setError(null);
       
-    //   // Get previous and next lines if they exist
-    //   const previousLine = entryIndex > 0 ? transcripts[entryIndex - 1] : null;
-    //   const nextLine = entryIndex < transcripts.length - 1 ? transcripts[entryIndex + 1] : null;
-      
-    //   // Calculate score - take the first score from the key scores array
-    //   // Higher scores are better in fuzzysort
-    //   const score = result.score || -10000;
-      
-    //   return {
-    //     result: entry,
-    //     score,
-    //     previousLine,
-    //     nextLine
-    //   };
-    // });
-    
-    // setSearchResults(searchResultsWithContext);
-  }, [searchQuery]); //, transcripts]);
+      // Determine API base URL based on environment
+      const isDev = import.meta.env.DEV;
+      // const SEARCH_API_BASE_URL = isDev ? 'http://localhost:3001' : 'DOMAIN_NAME_TBD'; // Using placeholder for prod
+      // For now, always use localhost:3001, as per instructions
+      const SEARCH_API_BASE_URL = 'http://localhost:3001';
+      const limit = 10; // Or make this configurable
+
+      try {
+        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(searchQuery)}&limit=${limit}`);
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const data = await response.json();
+        if (data && data.hits) {
+          setSearchResults(data.hits);
+        } else {
+          setSearchResults([]);
+          log.warn('[App.tsx] API response did not contain .hits array or was empty:', data);
+        }
+      } catch (e: any) {
+        log.error('[App.tsx] Failed to fetch search results:', e);
+        setError(e.message || 'Failed to fetch search results. Please try again.');
+        setSearchResults([]); // Clear results on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce the search or use a more sophisticated approach if needed
+    const debounceTimer = setTimeout(() => {
+      fetchSearchResults();
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(debounceTimer); // Cleanup timer on unmount or if query changes again
+
+  }, [searchQuery]);
 
   return (
     <div className="app-container">
@@ -210,25 +219,21 @@ function App() {
         />
       </div>
       
-      {/* {error && (
+      {error && (
         <div className="error-message">
           {error}
         </div>
-      )} */}
+      )}
       
       <div className="results-container">
-        {/* {isLoading ? (
-          <p className="loading-message">Loading transcripts...</p>
-        ) : searchResults.length > 0 ? ( */}
-        {searchResults.length > 0 ? (
+        {isLoading ? (
+          <p className="loading-message">Loading results...</p>
+        ) : searchResults.length > 0 ? (
           <ul className="results-list">
-            {searchResults.map((resultWithContext, index) => (
+            {searchResults.map((result) => (
               <SearchResult 
-                key={index}
-                result={resultWithContext.result}
-                score={resultWithContext.score}
-                previousLine={resultWithContext.previousLine}
-                nextLine={resultWithContext.nextLine}
+                key={result.id} // Use a unique key from the data, like hit.id
+                result={result}
               />
             ))}
           </ul>
