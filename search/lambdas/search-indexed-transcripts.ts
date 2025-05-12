@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises'; // For local DB file operations
-import Sqlite3Database from 'better-sqlite3';
+import { Database as Sqlite3Database } from 'sqlite3';
 import { Document } from 'flexsearch';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
 import { SearchEntry } from '@listen-fair-play/types';

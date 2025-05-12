@@ -1,5 +1,3 @@
-// TODO: This might be used for an additional search index, specifically for *EPISODE* details (not individual segments)
-// But we would need to start handling panelists, and episodeTypes
 export interface EpisodeDetails {
     /**
      * The numeric id of the episode - based on order episodes were retrieved & transcribed, roughly based on publication date in the RSS feed

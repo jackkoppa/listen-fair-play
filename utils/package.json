@@ -10,10 +10,8 @@
     },
     "devDependencies": {
         "@listen-fair-play/types": "workspace:*",
-        "@types/better-sqlite3": "catalog:",
-        "better-sqlite3": "catalog:",
-        "flexsearch": "catalog:",
-        "typescript": "catalog:"
+        "typescript": "catalog:",
+        "flexsearch": "catalog:"
     },
     "exports": {
         ".": "./dist/index.js"

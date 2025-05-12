@@ -1,6 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs/promises'; // For local DB file operations
-import Sqlite3Database from 'better-sqlite3';
+import { Document } from 'flexsearch';
+import sqlite3 from "sqlite3";
+import Database from 'flexsearch/db/sqlite';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
 import { createDocumentIndex, log } from '@listen-fair-play/utils';
 import { SearchEntry } from '@listen-fair-play/types';
@@ -133,7 +135,7 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
     }
   }
 
-  const sqlite3DB = new Sqlite3Database(LOCAL_DB_PATH);
+  const sqlite3DB = new sqlite3.Database(LOCAL_DB_PATH);
 
   const index = await createDocumentIndex(sqlite3DB);
   
@@ -174,6 +176,28 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   log.info('Will commit FlexSearch index changes to local SQLite DB.');
   await index.commit(); // Explicitly commit if needed by the adapter.
   log.info('FlexSearch index changes committed to local SQLite DB.');
+
+  const tableNames = [
+    'map_text',
+    'ctx_text',
+    'reg',
+    'tag_text',
+    'cfg_text',
+    'sqlite_stat1'
+  ];
+
+  if (tableNames.length > 0) {
+    const tableQueries = tableNames.map(tableName => `SELECT '${tableName}' as table_name, COUNT(*) as count FROM ${tableName}`).join(' UNION ALL ');
+    sqlite3DB.all(tableQueries, function(err, rows) {
+      if (err) {
+        log.warn('Error counting rows in tables:', err);
+      } else {
+        rows.forEach((row: any) => {
+          log.info(`Number of rows in ${row.table_name} table:`, row.count);
+        });
+      }
+    });
+  }
   
   // Upload the SQLite DB file to S3
   log.info(`Uploading SQLite DB from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
