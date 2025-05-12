@@ -156,8 +156,16 @@ function App() {
   
   // Search through transcripts when query changes
   useEffect(() => {
-    if (searchQuery.trim() === '') {
+    // Prevent new request if one is already in progress
+    if (isLoading) {
+      return;
+    }
+
+    const trimmedQuery = searchQuery.trim();
+
+    if (trimmedQuery.length < 2) {
       setSearchResults([]);
+      setError(null); // Clear previous errors if query is too short
       return;
     }
 
@@ -173,7 +181,7 @@ function App() {
       const limit = 10; // Or make this configurable
 
       try {
-        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(searchQuery)}&limit=${limit}`);
+        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(trimmedQuery)}&limit=${limit}`);
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
         }
@@ -209,14 +217,15 @@ function App() {
         <p>Search through podcast transcripts by typing below</p>
       </header>
       
-      <div className="search-container">
+      <div className="search-input-container">
         <input
           type="text"
-          placeholder="Search transcripts..."
+          placeholder="Search transcripts (min. 2 characters)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
         />
+        {isLoading && <div className="search-spinner"></div>}
       </div>
       
       {error && (
