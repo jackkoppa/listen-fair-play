@@ -3,9 +3,10 @@ import * as fs from 'fs/promises'; // For local DB file operations
 import { Document } from 'flexsearch';
 import sqlite3 from "sqlite3";
 import Database from 'flexsearch/db/sqlite';
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, SQLITE_DB_NAME } from '@listen-fair-play/constants';
-import { log } from '@listen-fair-play/utils';
-import { 
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
+import { createDocumentIndex, log } from '@listen-fair-play/utils';
+import { SearchEntry } from '@listen-fair-play/types';
+import {
   fileExists, 
   getFile, 
   saveFile, 
@@ -17,19 +18,6 @@ import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-sr
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
-
-
-// Define search entry type to match the utility function's output
-// Use the same structure but add index signature needed for FlexSearch
-interface SearchEntry {
-  id: string;
-  episodeId: number;
-  episodeTitle: string;
-  startTimeMs: number;
-  endTimeMs: number;
-  text: string;
-  [key: string]: string | number; // Add index signature for FlexSearch Document
-}
 
 // Function to check if search entries already exist for a transcript
 async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
@@ -148,26 +136,8 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
   }
 
   const sqlite3DB = new sqlite3.Database(LOCAL_DB_PATH);
-  // Create FlexSearch Document index with SQLite adapter
-  // The adapter will create/use the DB file at LOCAL_DB_PATH
-  const db = new Database(SQLITE_DB_NAME, {
-    db: sqlite3DB
-  });
 
-  const index = new Document({
-    document: {
-      id: 'id',
-      index: [{
-        field: 'text',
-        tokenize: 'full',
-        context: true,
-      }],
-      store: true, // Ensure documents (or specified fields) are stored for later enrichment.
-    },
-    commit: false, // We don't make changes regularly to the index, so let's only explicitly commit when needed (at the end)
-  });
-
-  await index.mount(db);
+  const index = await createDocumentIndex(sqlite3DB);
   
   // Add all search entries to the index
   const totalEntries = allSearchEntries.length;
@@ -177,16 +147,23 @@ async function createAndExportFlexSearchIndex(allSearchEntries: SearchEntry[]): 
 
   for (const entry of allSearchEntries) {
     index.add(entry);
+
+    log.info(`Added entry ${entry.id}, ${entry.episodeTitle} to index`);
+
     processedCount++;
     
     // Calculate current percentage
     const currentPercentage = Math.floor((processedCount / totalEntries) * 100);
     
-    // Log at each 2% increment
-    if (currentPercentage >= lastLoggedPercentage + 2) {
-      lastLoggedPercentage = Math.floor(currentPercentage / 2) * 2;
+    // Log at each 5% increment
+    if (currentPercentage >= lastLoggedPercentage + 5) {
+      lastLoggedPercentage = Math.floor(currentPercentage / 5) * 5;
       const elapsedTime = (Date.now() - startTime) / 1000;
       log.info(`Indexing progress: ${lastLoggedPercentage}% (${processedCount}/${totalEntries} entries) - Elapsed time: ${elapsedTime.toFixed(2)}s`);
+      const commitStart = Date.now();
+      log.info(`Committing index to DB...`);
+      await index.commit();
+      log.info(`Committed index to DB in ${((Date.now() - commitStart) / 1000).toFixed(2)}s`);
     }
   }
   

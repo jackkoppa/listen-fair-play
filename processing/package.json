@@ -21,7 +21,7 @@
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@dotenvx/dotenvx": "^1.39.0",
     "axios": "^1.6.7",
-    "flexsearch": "^0.8.161",
+    "flexsearch": "catalog:",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^11.2.0",
     "openai": "^4.28.0",
@@ -30,13 +30,14 @@
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/utils": "workspace:*",
+    "@listen-fair-play/types": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.0.0",
     "@types/xml2js": "^0.4.14",
     "srt-parser-2": "^1.2.3",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
+    "typescript": "catalog:",
     "vitest": "^1.6.1"
   },
   "engines": {

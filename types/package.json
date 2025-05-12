@@ -1,16 +1,15 @@
 {
-    "name": "@listen-fair-play/utils",
+    "name": "@listen-fair-play/types",
     "private": true,
     "version": "1.0.0",
-    "description": "Utility functions, used by multiple packages",
+    "description": "TypeScript types, used by multiple packages",
     "main": "index.js",
     "type": "module",
     "scripts": {
         "build": "tsc"
     },
     "devDependencies": {
-        "@listen-fair-play/types": "workspace:*",
-        "typescript": "catalog:",
+        "typescript": "^5.3.3",
         "flexsearch": "catalog:"
     },
     "exports": {

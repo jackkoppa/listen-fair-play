@@ -129,7 +129,6 @@ export const convertSrtFileIntoSearchEntryArray = ({
             log.debug(`  >>> FINALIZING CHUNK <<<`); // LOG: Finalizing
             log.debug(`    Final Chunk Start Time: ${chunkStartTimeMs}`);
             log.debug(`    Final Chunk End Time: ${chunkEndTimeMs}`);
-            log.debug(`    Final Chunk Text: "${chunkCombinedText.trim()}"`);
             const actualChunkStartTime = currentChunkLines[0].startTimeMs;
             searchEntries.push({
                 id: `${episodeId}_${actualChunkStartTime}`,

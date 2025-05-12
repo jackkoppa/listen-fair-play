@@ -10,12 +10,13 @@
     "test:local": "dotenvx run -f .env.local -- tsx local-test.ts"
   },
   "dependencies": {
-    "flexsearch": "^0.8.161"
+    "flexsearch": "catalog:"
   },
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/utils": "workspace:*",
-    "typescript": "^5.3.3",
+    "@listen-fair-play/types": "workspace:*",
+    "typescript": "catalog:",
     "tsx": "^4.7.0"
   },
   "engines": {

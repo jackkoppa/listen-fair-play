@@ -4,6 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    flexsearch:
+      specifier: ^0.8.161
+      version: 0.8.161
+    typescript:
+      specifier: ^5.3.3
+      version: 5.7.3
+
 importers:
 
   .:
@@ -62,7 +71,7 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.13.11)(typescript@5.7.3)
       typescript:
-        specifier: ~5.7.2
+        specifier: 'catalog:'
         version: 5.7.3
       typescript-eslint:
         specifier: ^8.24.1
@@ -77,7 +86,7 @@ importers:
   constants:
     devDependencies:
       typescript:
-        specifier: ^5.3.3
+        specifier: 'catalog:'
         version: 5.7.3
 
   processing:
@@ -98,7 +107,7 @@ importers:
         specifier: ^1.6.7
         version: 1.8.4
       flexsearch:
-        specifier: ^0.8.161
+        specifier: 'catalog:'
         version: 0.8.161
       fluent-ffmpeg:
         specifier: ^2.1.2
@@ -116,6 +125,9 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
       '@listen-fair-play/utils':
         specifier: workspace:*
         version: link:../utils
@@ -138,7 +150,7 @@ importers:
         specifier: ^4.7.0
         version: 4.19.3
       typescript:
-        specifier: ^5.3.3
+        specifier: 'catalog:'
         version: 5.7.3
       vitest:
         specifier: ^1.6.1
@@ -147,12 +159,15 @@ importers:
   search:
     dependencies:
       flexsearch:
-        specifier: ^0.8.161
+        specifier: 'catalog:'
         version: 0.8.161
     devDependencies:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
       '@listen-fair-play/utils':
         specifier: workspace:*
         version: link:../utils
@@ -160,13 +175,28 @@ importers:
         specifier: ^4.7.0
         version: 4.19.3
       typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
+  types:
+    devDependencies:
+      flexsearch:
+        specifier: 'catalog:'
+        version: 0.8.161
+      typescript:
         specifier: ^5.3.3
         version: 5.7.3
 
   utils:
     devDependencies:
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
+      flexsearch:
+        specifier: 'catalog:'
+        version: 0.8.161
       typescript:
-        specifier: ^5.3.3
+        specifier: 'catalog:'
         version: 5.7.3
 
 packages:

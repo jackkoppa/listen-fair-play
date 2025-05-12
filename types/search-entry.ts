@@ -1,0 +1,14 @@
+/**
+ * Output of processing SRT files
+ * Used for FlexSearch index
+ * Saved to S3
+ */
+export interface SearchEntry {
+    id: string;
+    episodeId: number;
+    episodeTitle: string;
+    startTimeMs: number;
+    endTimeMs: number;
+    text: string;
+    [key: string]: string | number; // Add index signature for FlexSearch Document
+  }

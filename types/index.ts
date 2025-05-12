@@ -1,0 +1,1 @@
+export { SearchEntry } from './search-entry.js';
