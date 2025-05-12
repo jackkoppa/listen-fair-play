@@ -1,18 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { convertSrtFileIntoSearchEntryArray } from './convert-srt-file-into-search-entry-array.js'; // Assuming the function is exported from here
-
-// Define the structure we expect the function to return
-// Note: If this type is defined elsewhere (e.g., a shared types file), import it instead.
-interface SearchEntry {
-  id: string;
-  episodeId: number;
-  episodeTitle: string;
-  startTimeMs: number;
-  endTimeMs: number;
-  text: string;
-}
+import { SearchEntry } from '@listen-fair-play/types';
+import { convertSrtFileIntoSearchEntryArray } from './convert-srt-file-into-search-entry-array.js';
 
 // Sample SRT content (Lines 22-43 from the example file)
 const sampleSrtContent = `

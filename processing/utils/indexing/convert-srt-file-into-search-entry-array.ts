@@ -1,15 +1,6 @@
 import SrtParser2 from "srt-parser-2";
 import { log } from '@listen-fair-play/utils';
-
-// Define the structure for a search index entry
-interface SearchEntry {
-    id: string;
-    episodeId: number;
-    episodeTitle: string;
-    startTimeMs: number;
-    endTimeMs: number;
-    text: string;
-}
+import { SearchEntry } from '@listen-fair-play/types';
 
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined
