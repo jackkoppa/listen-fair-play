@@ -1,19 +1,12 @@
 import { useState, useEffect } from 'react'
-import './App.css'
 
 import { log } from '@listen-fair-play/utils';
+import { ApiSearchResultHit } from '@listen-fair-play/types'
+
+import './App.css'
 
 import SearchResult from './components/SearchResult'
 
-export interface ApiSearchResultHit {
-  id: string;
-  episodeId: number;
-  episodeTitle: string;
-  startTimeMs: number;
-  endTimeMs: number;
-  text: string;
-  highlight: string;
-}
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');

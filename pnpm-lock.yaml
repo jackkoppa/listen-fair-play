@@ -40,6 +40,9 @@ importers:
       '@eslint/js':
         specifier: ^9.21.0
         version: 9.23.0
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
       '@listen-fair-play/utils':
         specifier: workspace:*
         version: link:../utils

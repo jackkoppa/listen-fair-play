@@ -1,1 +1,1 @@
-export { SearchEntry } from './search-entry.js';
+export { SearchEntry, ApiSearchResultHit } from './search.js';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ApiSearchResultHit } from '../App'; // Import the new type
+import { ApiSearchResultHit } from '@listen-fair-play/types'; // Import the new type
 
 // Utility function to format milliseconds to MM:SS
 const formatMillisecondsToMMSS = (ms: number): string => {

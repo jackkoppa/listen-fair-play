@@ -1,7 +1,7 @@
 {
     "name": "@listen-fair-play/constants",
     "private": true,
-    "version": "1.0.0",
+    "version": "0.0.1",
     "description": "Constant values, used by multiple packages",
     "main": "./dist/index.js",
     "type": "module",

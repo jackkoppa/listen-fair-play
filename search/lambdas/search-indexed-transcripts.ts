@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'; // For local DB file operations
 import Sqlite3Database from 'sqlite3';
 import { Document } from 'flexsearch';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
-import { SearchEntry } from '@listen-fair-play/types';
+import { ApiSearchResultHit, SearchEntry } from '@listen-fair-play/types';
 import { log, createDocumentIndex } from '@listen-fair-play/utils';
 import {
   getFile,
@@ -25,7 +25,7 @@ interface SearchRequest {
 
 // Define the search response structure
 interface SearchResponse {
-  hits: SearchEntry[];
+  hits: ApiSearchResultHit[];
   totalHits: number;
   processingTimeMs: number;
   query: string;
@@ -95,13 +95,13 @@ async function searchIndex(
   searchFields: string[] = ['text'],
   suggest: boolean = false,
   matchAllFields: boolean = false
-): Promise<SearchEntry[]> {
+): Promise<ApiSearchResultHit[]> {
 
   if (!query.trim()) {
     return [];
   }
 
-  let searchResults: SearchEntry[] = [];
+  let searchResults: ApiSearchResultHit[] = [];
 
   if (matchAllFields) {
     // Search all fields and combine results
@@ -118,7 +118,7 @@ async function searchIndex(
     const fieldResultsArray = await Promise.all(resultsPromises);
 
     // Merge and deduplicate results
-    const uniqueResults = new Map<string, SearchEntry>();
+    const uniqueResults = new Map<string, ApiSearchResultHit>();
 
     fieldResultsArray.forEach(fieldResultSet => {
       if (Array.isArray(fieldResultSet)) {
