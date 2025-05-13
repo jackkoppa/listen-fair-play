@@ -7,7 +7,7 @@ import { log, createDocumentIndex } from '@listen-fair-play/utils';
 import {
   getFile,
   fileExists // To check if the DB file exists in S3
-} from '@listen-fair-play/utils';
+} from '@listen-fair-play/s3-utils';
 
 // Keep the flexsearch index in memory for reuse between lambda invocations
 // The type for Document with a DB adapter might be just Document, or Document<..., ..., SqliteAdapter>

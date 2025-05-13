@@ -4,6 +4,7 @@ packages:
   - packages/search
   - packages/constants
   - packages/utils
+  - packages/s3-utils
   - packages/types
 onlyBuiltDependencies:
   - esbuild

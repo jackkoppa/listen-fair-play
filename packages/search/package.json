@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
+    "@listen-fair-play/s3-utils": "workspace:*",
     "@listen-fair-play/utils": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
     "typescript": "catalog:",

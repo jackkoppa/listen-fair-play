@@ -9,7 +9,7 @@ import {
   saveFile,
   listFiles,
   createDirectory,
-} from '@listen-fair-play/utils'
+} from '@listen-fair-play/s3-utils'
 import { transcribeViaWhisper, WhisperApiProvider } from '../utils/whisper/transcribe-via-whisper.js';
 
 // Constants - S3 paths

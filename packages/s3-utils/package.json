@@ -1,0 +1,25 @@
+{
+    "name": "@listen-fair-play/s3-utils",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Utility functions for interacting with S3 (or local file system during local dev), used by multiple packages",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "@listen-fair-play/types": "workspace:*",
+        "@listen-fair-play/utils": "workspace:*",
+        "@aws-sdk/client-s3": "catalog:",
+        "@aws-sdk/credential-provider-sso": "catalog:",
+        "@aws-sdk/s3-request-presigner": "catalog:",
+        "@types/fs-extra": "catalog:",
+        "fs-extra": "catalog:",
+        "typescript": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+  }

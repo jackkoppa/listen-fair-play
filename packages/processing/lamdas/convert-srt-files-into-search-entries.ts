@@ -12,7 +12,7 @@ import {
   saveFile, 
   listFiles,
   createDirectory
-} from '@listen-fair-play/utils'
+} from '@listen-fair-play/s3-utils'
 import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-srt-file-into-search-entry-array.js';
 
 // Constants - S3 paths

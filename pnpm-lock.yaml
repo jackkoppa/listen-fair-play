@@ -143,6 +143,9 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
+      '@listen-fair-play/s3-utils':
+        specifier: workspace:*
+        version: link:../s3-utils
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
@@ -174,6 +177,33 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(@types/node@20.17.25)(jsdom@26.0.0)
 
+  packages/s3-utils:
+    devDependencies:
+      '@aws-sdk/client-s3':
+        specifier: 'catalog:'
+        version: 3.787.0
+      '@aws-sdk/credential-provider-sso':
+        specifier: 'catalog:'
+        version: 3.787.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: 'catalog:'
+        version: 3.787.0
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
+      '@listen-fair-play/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@types/fs-extra':
+        specifier: 'catalog:'
+        version: 11.0.4
+      fs-extra:
+        specifier: 'catalog:'
+        version: 11.3.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
   packages/search:
     dependencies:
       flexsearch:
@@ -183,6 +213,9 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
+      '@listen-fair-play/s3-utils':
+        specifier: workspace:*
+        version: link:../s3-utils
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
@@ -207,27 +240,12 @@ importers:
 
   packages/utils:
     devDependencies:
-      '@aws-sdk/client-s3':
-        specifier: 'catalog:'
-        version: 3.787.0
-      '@aws-sdk/credential-provider-sso':
-        specifier: 'catalog:'
-        version: 3.787.0
-      '@aws-sdk/s3-request-presigner':
-        specifier: 'catalog:'
-        version: 3.787.0
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
-      '@types/fs-extra':
-        specifier: 'catalog:'
-        version: 11.0.4
       flexsearch:
         specifier: 'catalog:'
         version: 0.8.161
-      fs-extra:
-        specifier: 'catalog:'
-        version: 11.3.0
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
