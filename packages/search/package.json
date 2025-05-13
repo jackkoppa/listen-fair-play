@@ -6,9 +6,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "dotenvx run -f .env.local -- tsc",
-    "dev:local": "dotenvx run -f .env.local -- tsx dev-server.ts",
-    "test:local": "dotenvx run -f .env.local -- tsx simple-test-local.ts"
+    "build": "dotenvx run -f ../../.env.local -- tsc",
+    "dev:local": "dotenvx run -f ../../.env.local -- tsx dev-server.ts",
+    "test:local": "dotenvx run -f ../../.env.local -- tsx simple-test-local.ts"
   },
   "dependencies": {
     "flexsearch": "catalog:"

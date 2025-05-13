@@ -25,10 +25,8 @@ dist-ssr
 *.sw?
 
 # Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+!.env
 
 # Terraform
 **/.terraform/*
