@@ -237,10 +237,11 @@ export async function handler(event: any): Promise<SearchResponse> {
   }
 }
 
-// For local testing - ES modules compatible approach
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const testQuery = 'test query';
-  handler({ query: testQuery })
-    .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
-    .catch(err => log.error('Search failed with error:', err));
-}
+// CURSOR-TODO: Fix this for local dev (e.g. pnpm run search:test:local)
+// // For local testing - ES modules compatible approach
+// if (import.meta.url === `file://${process.argv[1]}`) {
+//   const testQuery = 'test query';
+//   handler({ query: testQuery })
+//     .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
+//     .catch(err => log.error('Search failed with error:', err));
+// }

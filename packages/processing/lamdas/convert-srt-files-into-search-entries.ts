@@ -306,10 +306,11 @@ export async function handler(event: any = {}): Promise<any> {
   }
 }
 
-// If running directly (ESM compatible approach)
-// In ESM, import.meta.url will be defined and can be compared to process.argv[1]
-if (import.meta.url === `file://${process.argv[1]}`) {
-  handler()
-    .then(result => log.debug('Completed with result:', result))
-    .catch(err => log.error('Failed with error:', err));
-}
+// CURSOR-TODO: Fix this for local dev (e.g. pnpm run processing:run-search-conversion:local)
+// // If running directly (ESM compatible approach)
+// // In ESM, import.meta.url will be defined and can be compared to process.argv[1]
+// if (import.meta.url === `file://${process.argv[1]}`) {
+//   handler()
+//     .then(result => log.debug('Completed with result:', result))
+//     .catch(err => log.error('Failed with error:', err));
+// }
