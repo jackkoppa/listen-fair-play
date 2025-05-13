@@ -71,4 +71,15 @@ aws sso login --profile YourProfileName
 ./scripts/deploy/destroy.sh dev
 ```
 
+## Testing/Triggering AWS functionality
+
+**non-exhaustive**
+
+```bash
+# Manually trigger the first of the Lambda functions
+./scripts/trigger-retrieve-rss-lambda.sh
+```
+
+## More Resources
+
 For more detailed deployment instructions, troubleshooting, and configuration options, see [scripts/deploy/README.md](./scripts/deploy/README.md).

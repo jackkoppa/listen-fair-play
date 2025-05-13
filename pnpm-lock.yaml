@@ -121,6 +121,12 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 'catalog:'
         version: 3.787.0
+      '@listen-fair-play/s3-utils':
+        specifier: workspace:*
+        version: link:../s3-utils
+      '@listen-fair-play/utils':
+        specifier: workspace:*
+        version: link:../utils
       axios:
         specifier: ^1.6.7
         version: 1.8.4
@@ -143,15 +149,9 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
-      '@listen-fair-play/s3-utils':
-        specifier: workspace:*
-        version: link:../s3-utils
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
-      '@listen-fair-play/utils':
-        specifier: workspace:*
-        version: link:../utils
       '@types/fluent-ffmpeg':
         specifier: ^2.1.24
         version: 2.1.27
