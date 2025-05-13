@@ -17,14 +17,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.787.0",
-    "@aws-sdk/credential-provider-sso": "^3.787.0",
-    "@aws-sdk/s3-request-presigner": "^3.787.0",
-    "@dotenvx/dotenvx": "^1.39.0",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/credential-provider-sso": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
     "axios": "^1.6.7",
     "flexsearch": "catalog:",
     "fluent-ffmpeg": "^2.1.2",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "catalog:",
     "openai": "^4.28.0",
     "xml2js": "^0.6.2"
   },
@@ -33,7 +32,7 @@
     "@listen-fair-play/utils": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",
-    "@types/fs-extra": "^11.0.4",
+    "@types/fs-extra": "catalog:",
     "@types/node": "^20.0.0",
     "@types/xml2js": "^0.4.14",
     "srt-parser-2": "^1.2.3",

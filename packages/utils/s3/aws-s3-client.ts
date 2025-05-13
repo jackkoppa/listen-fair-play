@@ -154,7 +154,9 @@ export async function listFiles(prefix: string): Promise<string[]> {
     
     try {
       if (await fs.pathExists(baseDir)) {
-        const files = await fs.readdir(baseDir, { recursive: true });
+        // @ts-expect-error - recursive is supported, but not in the types
+        // https://github.com/nodejs/node/blob/main/lib/internal/fs/promises.js#L939-L948
+        const files = await fs.promises.readdir(baseDir, { recursive: true });
         return files
           .filter(file => {
             // Convert any Buffer to string

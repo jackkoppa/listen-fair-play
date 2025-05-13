@@ -10,6 +10,11 @@
     },
     "devDependencies": {
         "@listen-fair-play/types": "workspace:*",
+        "@aws-sdk/client-s3": "catalog:",
+        "@aws-sdk/credential-provider-sso": "catalog:",
+        "@aws-sdk/s3-request-presigner": "catalog:",
+        "@types/fs-extra": "catalog:",
+        "fs-extra": "catalog:",
         "typescript": "catalog:",
         "flexsearch": "catalog:"
     },

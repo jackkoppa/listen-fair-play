@@ -6,9 +6,24 @@ settings:
 
 catalogs:
   default:
+    '@aws-sdk/client-s3':
+      specifier: ^3.787.0
+      version: 3.787.0
+    '@aws-sdk/credential-provider-sso':
+      specifier: ^3.787.0
+      version: 3.787.0
+    '@aws-sdk/s3-request-presigner':
+      specifier: ^3.787.0
+      version: 3.787.0
+    '@types/fs-extra':
+      specifier: ^11.0.4
+      version: 11.0.4
     flexsearch:
       specifier: ^0.8.161
       version: 0.8.161
+    fs-extra:
+      specifier: ^11.3.0
+      version: 11.3.0
     typescript:
       specifier: ^5.3.3
       version: 5.7.3
@@ -21,6 +36,9 @@ importers:
         specifier: ^5.1.7
         version: 5.1.7
     devDependencies:
+      '@dotenvx/dotenvx':
+        specifier: ^1.44.0
+        version: 1.44.0
       loglevel:
         specifier: ^1.9.2
         version: 1.9.2
@@ -95,17 +113,14 @@ importers:
   packages/processing:
     dependencies:
       '@aws-sdk/client-s3':
-        specifier: ^3.787.0
+        specifier: 'catalog:'
         version: 3.787.0
       '@aws-sdk/credential-provider-sso':
-        specifier: ^3.787.0
+        specifier: 'catalog:'
         version: 3.787.0
       '@aws-sdk/s3-request-presigner':
-        specifier: ^3.787.0
+        specifier: 'catalog:'
         version: 3.787.0
-      '@dotenvx/dotenvx':
-        specifier: ^1.39.0
-        version: 1.39.0
       axios:
         specifier: ^1.6.7
         version: 1.8.4
@@ -116,7 +131,7 @@ importers:
         specifier: ^2.1.2
         version: 2.1.3
       fs-extra:
-        specifier: ^11.2.0
+        specifier: 'catalog:'
         version: 11.3.0
       openai:
         specifier: ^4.28.0
@@ -138,7 +153,7 @@ importers:
         specifier: ^2.1.24
         version: 2.1.27
       '@types/fs-extra':
-        specifier: ^11.0.4
+        specifier: 'catalog:'
         version: 11.0.4
       '@types/node':
         specifier: ^20.0.0
@@ -192,12 +207,27 @@ importers:
 
   packages/utils:
     devDependencies:
+      '@aws-sdk/client-s3':
+        specifier: 'catalog:'
+        version: 3.787.0
+      '@aws-sdk/credential-provider-sso':
+        specifier: 'catalog:'
+        version: 3.787.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: 'catalog:'
+        version: 3.787.0
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
+      '@types/fs-extra':
+        specifier: 'catalog:'
+        version: 11.0.4
       flexsearch:
         specifier: 'catalog:'
         version: 0.8.161
+      fs-extra:
+        specifier: 'catalog:'
+        version: 11.3.0
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
@@ -481,8 +511,8 @@ packages:
     resolution: {integrity: sha512-UJnjoFsmxfKUdNYdWgOB0mWUypuLvAfQPH1+pyvRJs6euowbFkFC6P13w1l8mJyi3vxYMxc9kld5jZEGRQs6bw==}
     engines: {node: '>=18'}
 
-  '@dotenvx/dotenvx@1.39.0':
-    resolution: {integrity: sha512-qGfDpL/3S17MQYXpR3HkBS5xNQ7wiFlqLdpr+iIQzv17aMRcSlgL4EjMIsYFZ540Dq17J+y5FVElA1AkVoXiUA==}
+  '@dotenvx/dotenvx@1.44.0':
+    resolution: {integrity: sha512-18Aa+7KP/L2Kj9lxmT4EJZnsCq/xGIHgzU26rdzsKMhjpeT3YY+qin/dNAnIaVHPZnee7kXpZL55M9htd30r7Q==}
     hasBin: true
 
   '@ecies/ciphers@0.2.3':
@@ -1800,14 +1830,6 @@ packages:
 
   fastq@1.19.1:
     resolution: {integrity: sha512-GwLTyxkCXjXbxqIhTsMI2Nui8huMPtnxg7krajPJAjnEG/iiOS7i+zCtWGZR9G0NBKbXKh6X9m9UIsYX/N6vvQ==}
-
-  fdir@6.4.3:
-    resolution: {integrity: sha512-PMXmW2y1hDDfTSRc9gaXIuCCRpuoz3Kaz8cUelp3smouvfT632ozg2vrT6lJsHKKOF59YLbOGfAWGUcKEfRMQw==}
-    peerDependencies:
-      picomatch: ^3 || ^4
-    peerDependenciesMeta:
-      picomatch:
-        optional: true
 
   fdir@6.4.4:
     resolution: {integrity: sha512-1NZP+GK4GfuAv3PqKvxQRDMjdSRZjnkq7KfhlNrCNNlZ0ygQFpebfrnfnq/W7fpUnAv9aGWmY1zKx7FYL3gwhg==}
@@ -3680,13 +3702,13 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.3': {}
 
-  '@dotenvx/dotenvx@1.39.0':
+  '@dotenvx/dotenvx@1.44.0':
     dependencies:
       commander: 11.1.0
       dotenv: 16.4.7
       eciesjs: 0.4.14
       execa: 5.1.1
-      fdir: 6.4.3(picomatch@4.0.2)
+      fdir: 6.4.4(picomatch@4.0.2)
       ignore: 5.3.2
       object-treeify: 1.1.33
       picomatch: 4.0.2
@@ -5093,10 +5115,6 @@ snapshots:
   fastq@1.19.1:
     dependencies:
       reusify: 1.1.0
-
-  fdir@6.4.3(picomatch@4.0.2):
-    optionalDependencies:
-      picomatch: 4.0.2
 
   fdir@6.4.4(picomatch@4.0.2):
     optionalDependencies:

@@ -26,7 +26,7 @@ The following functions are provided:
 ## Example Usage
 
 ```typescript
-import { fileExists, getFile, saveFile, createDirectory } from '../utils/s3/aws-s3-client.js';
+import { fileExists, getFile, saveFile, createDirectory } from '@listen-fair-play/utils';
 
 export async function processAudioFile(key: string): Promise<void> {
   // Create output directory if it doesn't exist
