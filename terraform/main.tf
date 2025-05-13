@@ -97,6 +97,7 @@ module "rss_lambda" {
   source_dir           = "../packages/processing/dist/lamdas"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
+  lambda_architecture  = ["arm64"]
 }
 
 # Lambda for Whisper transcription
@@ -115,6 +116,7 @@ module "whisper_lambda" {
   source_dir           = "../packages/processing/dist/lamdas"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
+  lambda_architecture  = ["arm64"]
 }
 
 # EventBridge schedule for daily RSS processing
@@ -151,6 +153,7 @@ module "indexing_lambda" {
   source_dir           = "../packages/processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
+  lambda_architecture  = ["arm64"]
 }
 
 # IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)
@@ -178,6 +181,7 @@ module "search_lambda" {
   source_dir           = "../packages/search/dist/lambdas" # Assuming build output like processing lambdas
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
+  lambda_architecture  = ["arm64"]
 }
 
 # API Gateway for Search Lambda

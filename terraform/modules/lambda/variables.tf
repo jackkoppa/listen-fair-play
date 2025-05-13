@@ -43,6 +43,12 @@ variable "s3_bucket_name" {
 }
 
 variable "environment" {
-  description = "The environment name (dev or prod)"
+  description = "The deployment environment (e.g., dev, prod)"
   type        = string
+}
+
+variable "lambda_architecture" {
+  description = "Lambda function architecture (e.g., [\"x86_64\"] or [\"arm64\"])"
+  type        = list(string)
+  default     = ["arm64"] # Default to arm64 for decreased costs / better performance
 } 
