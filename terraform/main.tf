@@ -94,7 +94,7 @@ module "rss_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }
-  source_dir           = "../processing/dist/lamdas"
+  source_dir           = "../packages/processing/dist/lamdas"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
 }
@@ -112,7 +112,7 @@ module "whisper_lambda" {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     OPENAI_API_KEY     = var.openai_api_key
   }
-  source_dir           = "../processing/dist/lamdas"
+  source_dir           = "../packages/processing/dist/lamdas"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
 }
@@ -148,7 +148,7 @@ module "indexing_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }
-  source_dir           = "../processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
+  source_dir           = "../packages/processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
 }
@@ -175,7 +175,7 @@ module "search_lambda" {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     # Add any other ENV VARS needed by the search lambda
   }
-  source_dir           = "../search/dist/lambdas" # Assuming build output like processing lambdas
+  source_dir           = "../packages/search/dist/lambdas" # Assuming build output like processing lambdas
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
 }

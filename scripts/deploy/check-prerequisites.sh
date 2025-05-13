@@ -22,9 +22,9 @@ else
     echo "✅ AWS CLI v$AWS_VERSION installed"
 fi
 
-# Load environment variables from .env.local if it exists
-if [ -f ".env.local" ]; then
-    source .env.local
+# Load environment variables from .env.dev if it exists
+if [ -f ".env.dev" ]; then
+    source .env.dev
 fi
 
 # Check AWS SSO authentication
@@ -38,8 +38,8 @@ if [ -n "$AWS_PROFILE" ]; then
         echo "✅ AWS SSO authentication verified with profile: $AWS_PROFILE"
     fi
 else
-    echo "❌ AWS_PROFILE is not set in .env.local"
-    echo "  Please add AWS_PROFILE to .env.local for AWS SSO authentication"
+    echo "❌ AWS_PROFILE is not set in .env.dev"
+    echo "  Please add AWS_PROFILE to .env.dev for AWS SSO authentication"
     echo "  Run 'aws configure sso' to set up an SSO profile if needed"
     exit 1
 fi
@@ -74,21 +74,21 @@ else
     fi
 fi
 
-# Check if .env.local exists
-if [ ! -f ".env.local" ]; then
-    echo "❌ .env.local file not found. Please create it from .env.local.example"
+# Check if .env.dev exists
+if [ ! -f ".env.dev" ]; then
+    echo "❌ .env.dev file not found. Please create it from .env.dev.example"
     exit 1
 else
-    echo "✅ .env.local file exists"
+    echo "✅ .env.dev file exists"
     
-    # Check for required variables in .env.local
-    if ! grep -q "OPENAI_API_KEY" .env.local; then
-        echo "⚠️  Warning: OPENAI_API_KEY not found in .env.local"
+    # Check for required variables in .env.dev
+    if ! grep -q "OPENAI_API_KEY" .env.dev; then
+        echo "⚠️  Warning: OPENAI_API_KEY not found in .env.dev"
     fi
     
     # Check for AWS profile
-    if ! grep -q "AWS_PROFILE" .env.local; then
-        echo "⚠️  Warning: AWS_PROFILE not found in .env.local"
+    if ! grep -q "AWS_PROFILE" .env.dev; then
+        echo "⚠️  Warning: AWS_PROFILE not found in .env.dev"
     fi
 fi
 

@@ -6,7 +6,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build:local": "dotenvx run -f ../../.env.local -- tsc",
+    "build:dev": "dotenvx run -f ../../.env.dev -- tsc",
     "run-rss:local": "dotenvx run -f ../../.env.local -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run-rss:dev-s3": "dotenvx run -f ../../.env.dev -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run-whisper:local": "dotenvx run -f ../../.env.local -- tsx lamdas/process-new-audio-files-via-whisper.ts",

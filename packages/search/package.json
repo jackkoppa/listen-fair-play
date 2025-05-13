@@ -6,7 +6,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "dotenvx run -f ../../.env.local -- tsc",
+    "build:local": "dotenvx run -f ../../.env.local -- tsc",
+    "build:dev": "dotenvx run -f ../../.env.dev -- tsc",
     "dev:local": "dotenvx run -f ../../.env.local -- tsx dev-server.ts",
     "test:local": "dotenvx run -f ../../.env.local -- tsx simple-test-local.ts"
   },

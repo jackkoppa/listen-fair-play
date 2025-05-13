@@ -5,6 +5,8 @@
   "description": "A system for processing and analyzing podcast content",
   "scripts": {
     "all:build": "pnpm --filter @listen-fair-play/* build",
+    "all:build:local": "pnpm --filter @listen-fair-play/* build:local",
+    "all:build:dev": "pnpm --filter @listen-fair-play/* build:dev",
     "client:build": "pnpm --filter client build",
     "client:dev": "node scripts/check-search-server.js",
     "client:lint": "pnpm --filter client lint",

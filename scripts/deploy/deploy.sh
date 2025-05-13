@@ -12,19 +12,19 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Check if .env.local exists and source it
-if [ -f ".env.local" ]; then
-  echo "Loading environment variables from .env.local"
-  source .env.local
+# Check if .env.dev exists and source it
+if [ -f ".env.dev" ]; then
+  echo "Loading environment variables from .env.dev"
+  source .env.dev
 else
-  echo "Warning: .env.local file not found. Make sure to create it with necessary credentials."
+  echo "Warning: .env.dev file not found. Make sure to create it with necessary credentials."
   exit 1
 fi
 
 # Validate required environment variables
 if [ -z "$OPENAI_API_KEY" ]; then
   echo "Error: OpenAI API key is missing."
-  echo "Make sure .env.local contains:"
+  echo "Make sure .env.dev contains:"
   echo "  OPENAI_API_KEY=your_openai_api_key"
   exit 1
 fi
@@ -45,26 +45,12 @@ if [ -n "$AWS_PROFILE" ]; then
   fi
 fi
 
-# Build Lambda functions
-echo "Building Lambda functions..."
-cd processing
+echo "Building all packages for $ENV environment..."
 pnpm install
-pnpm build
-cd ..
-
-# Build search application
-echo "Building search application..."
-cd search # Assuming 'search' directory is at the project root
-pnpm install
-pnpm build
-cd ..
-
-# Build client application
-echo "Building client application..."
-cd client
-pnpm install
-pnpm run build
-cd ..
+# Build shared packages
+pnpm all:build
+# Build /packages/processing lambdas, /packages/search lambdas, and /packages/client UI app
+pnpm all:build:$ENV
 
 # Run Terraform deployment
 echo "Deploying to $ENV environment using Terraform..."
