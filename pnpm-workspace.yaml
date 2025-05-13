@@ -1,10 +1,10 @@
 packages:
-  - client
-  - processing
-  - search
-  - constants
-  - utils
-  - types
+  - packages/client
+  - packages/processing
+  - packages/search
+  - packages/constants
+  - packages/utils
+  - packages/types
 onlyBuiltDependencies:
   - esbuild
   - sqlite3
