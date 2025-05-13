@@ -134,4 +134,77 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
   function_name = module.whisper_lambda.lambda_function_name
   principal     = "lambda.amazonaws.com"
   source_arn    = module.rss_lambda.lambda_function_arn
+}
+
+# Lambda for SRT to Search Entries conversion
+module "indexing_lambda" {
+  source = "./modules/lambda"
+
+  function_name        = "convert-srt-files-into-search-entries"
+  handler              = "convert-srt-files-into-search-entries.handler"
+  runtime              = "nodejs20.x"
+  timeout              = 300 # Adjust as needed
+  memory_size          = 512 # Adjust as needed
+  environment_variables = {
+    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
+  }
+  source_dir           = "../processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
+  s3_bucket_name       = module.s3_bucket.bucket_name
+  environment          = var.environment
+}
+
+# IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)
+resource "aws_lambda_permission" "allow_lambda2_to_invoke_lambda3" {
+  statement_id  = "AllowExecutionFromLambda2"
+  action        = "lambda:InvokeFunction"
+  function_name = module.indexing_lambda.lambda_function_name
+  principal     = "lambda.amazonaws.com"
+  source_arn    = module.whisper_lambda.lambda_function_arn
+}
+
+# Lambda for Search
+module "search_lambda" {
+  source = "./modules/lambda"
+
+  function_name        = "search-indexed-transcripts"
+  handler              = "search-indexed-transcripts.handler" # As per search/README.md
+  runtime              = "nodejs20.x"
+  timeout              = 60  # Adjust as needed
+  memory_size          = 512 # Adjust as needed
+  environment_variables = {
+    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
+    # Add any other ENV VARS needed by the search lambda
+  }
+  source_dir           = "../search/dist/lambdas" # Assuming build output like processing lambdas
+  s3_bucket_name       = module.s3_bucket.bucket_name
+  environment          = var.environment
+}
+
+# API Gateway for Search Lambda
+resource "aws_apigatewayv2_api" "search_api" {
+  name          = "search-transcripts-api-${var.environment}"
+  protocol_type = "HTTP"
+  target        = module.search_lambda.lambda_function_arn
+}
+
+resource "aws_apigatewayv2_stage" "search_api_stage" {
+  api_id      = aws_apigatewayv2_api.search_api.id
+  name        = "$default" # Default stage
+  auto_deploy = true
+}
+
+# Implicit integration is created by setting `target` in aws_apigatewayv2_api for simple Lambda proxy.
+# For more complex routing or request/response transformations, explicit aws_apigatewayv2_integration and aws_apigatewayv2_route would be needed.
+
+# IAM permission for API Gateway to invoke Search Lambda
+resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.search_lambda.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+
+  # The source_arn should be specific to the API Gateway execution ARN for the route
+  # Example: arn:aws:execute-api:us-east-1:123456789012:abcdef123/*/*
+  # For HTTP APIs, a common approach is to allow any route on this API:
+  source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/*/*"
 } 

@@ -11,7 +11,10 @@ The infrastructure consists of the following components:
 3. **Lambda Functions**:
    - RSS feed retrieval and audio download
    - Whisper API transcription
-4. **EventBridge Scheduler**: Triggers the RSS Lambda function daily
+   - SRT to Search Entries conversion and indexing
+   - Search indexed transcripts
+4. **API Gateway**: Provides an HTTP endpoint for the search Lambda
+5. **EventBridge Scheduler**: Triggers the RSS Lambda function daily
 
 ## Environment Strategy
 
@@ -39,6 +42,9 @@ To minimize costs and match expected usage patterns:
    ```
    cd ../processing
    pnpm build
+   cd ../search # Assuming search is at the same level as processing
+   pnpm build
+   cd ../ # Return to project root or scripts directory
    ```
 
 ## Usage

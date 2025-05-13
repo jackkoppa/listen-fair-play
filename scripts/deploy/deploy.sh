@@ -52,6 +52,13 @@ pnpm install
 pnpm build
 cd ..
 
+# Build search application
+echo "Building search application..."
+cd search # Assuming 'search' directory is at the project root
+pnpm install
+pnpm build
+cd ..
+
 # Build client application
 echo "Building client application..."
 cd client
