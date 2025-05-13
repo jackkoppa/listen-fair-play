@@ -189,7 +189,7 @@ resource "aws_apigatewayv2_api" "search_api" {
 
 resource "aws_apigatewayv2_stage" "search_api_stage" {
   api_id      = aws_apigatewayv2_api.search_api.id
-  name        = "$default" # Default stage
+  name        = var.environment
   auto_deploy = true
 }
 
@@ -203,8 +203,6 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
   function_name = module.search_lambda.lambda_function_name
   principal     = "apigateway.amazonaws.com"
 
-  # The source_arn should be specific to the API Gateway execution ARN for the route
-  # Example: arn:aws:execute-api:us-east-1:123456789012:abcdef123/*/*
-  # For HTTP APIs, a common approach is to allow any route on this API:
-  source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/*/*"
+  # The source_arn should be specific to the API Gateway execution ARN for the route and stage
+  source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/${var.environment}/*"
 } 
