@@ -94,7 +94,7 @@ module "rss_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }
-  source_dir           = "../packages/processing/dist/lamdas"
+  source_dir           = "../packages/ingestion/rss-retrieval-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
