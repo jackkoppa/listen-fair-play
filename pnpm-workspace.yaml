@@ -6,9 +6,6 @@ packages:
   - packages/utils
   - packages/s3-utils
   - packages/types
-onlyBuiltDependencies:
-  - esbuild
-  - sqlite3
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3
@@ -17,3 +14,9 @@ catalog:
   '@aws-sdk/s3-request-presigner': ^3.787.0
   fs-extra: ^11.3.0
   '@types/fs-extra': ^11.0.4
+
+
+injectWorkspacePackages: true
+onlyBuiltDependencies:
+  - esbuild
+  - sqlite3
