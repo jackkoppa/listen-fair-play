@@ -94,7 +94,7 @@ module "rss_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }
-  source_dir           = "../packages/processing/dist/lamdas"
+  source_dir           = "../packages/processing/aws-dist/lambda-1"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
@@ -113,7 +113,7 @@ module "whisper_lambda" {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     OPENAI_API_KEY     = var.openai_api_key
   }
-  source_dir           = "../packages/processing/dist/lamdas"
+  source_dir           = "../packages/processing/aws-dist/lambda-2"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
@@ -150,7 +150,7 @@ module "indexing_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }
-  source_dir           = "../packages/processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
+  source_dir           = "../packages/processing/aws-dist/lambda-3"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
@@ -173,12 +173,12 @@ module "search_lambda" {
   handler              = "search-indexed-transcripts.handler" # As per search/README.md
   runtime              = "nodejs20.x"
   timeout              = 60  # Adjust as needed
-  memory_size          = 512 # Adjust as needed
+  memory_size          = 2048 # Adjust as needed
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     # Add any other ENV VARS needed by the search lambda
   }
-  source_dir           = "../packages/search/dist/lambdas" # Assuming build output like processing lambdas
+  source_dir           = "../packages/search/aws-dist/lambda-4"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]

@@ -1,3 +1,5 @@
 # Environment variables
 .env*
 !.env
+
+aws-dist/

@@ -6,20 +6,27 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build:local": "dotenvx run -f ../../.env.local -- tsc",
-    "build:dev": "dotenvx run -f ../../.env.dev -- tsc",
+    "build:dev": "dotenvx run -f ../../.env.dev -- rm -rf aws-dist && rollup -c && tsx ./deploy/copy-externalized-deps-into-aws-dist.ts",
     "dev:local": "dotenvx run -f ../../.env.local -- tsx dev-server.ts",
     "test:local": "dotenvx run -f ../../.env.local -- tsx simple-test-local.ts"
   },
   "dependencies": {
-    "flexsearch": "catalog:"
-  },
-  "devDependencies": {
+    "flexsearch": "catalog:",
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/s3-utils": "workspace:*",
-    "@listen-fair-play/utils": "workspace:*",
+    "@listen-fair-play/utils": "workspace:*"
+  },
+  "devDependencies": {
     "@listen-fair-play/types": "workspace:*",
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/fs-extra": "catalog:",
+    "rollup": "4.40.2",
     "typescript": "catalog:",
+    "fs-extra": "catalog:",
     "tsx": "^4.7.0"
   },
   "engines": {
