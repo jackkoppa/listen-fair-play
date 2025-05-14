@@ -4,7 +4,7 @@
 
 import http from 'http';
 import { URL } from 'url';
-import { handler as searchHandler } from './lambdas/search-indexed-transcripts.js';
+import { handler as searchHandler } from './lambdas/lambda-4/search-indexed-transcripts.js';
 import { log } from '@listen-fair-play/utils';
 
 const PORT = process.env.SEARCH_DEV_SERVER_PORT || 3001;

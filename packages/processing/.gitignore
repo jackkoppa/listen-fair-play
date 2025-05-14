@@ -6,7 +6,7 @@ pnpm-lock.yaml
 .pnpm-store/
 
 # Distribution files
-dist/
+aws-dist/
 
 # Audio files (large MP3s)
 audio/**/*.mp3

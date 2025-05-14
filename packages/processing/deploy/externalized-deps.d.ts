@@ -1,0 +1,1 @@
+export const EXTERNALIZED_DEPS: string[]
