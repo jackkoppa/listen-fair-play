@@ -2,14 +2,14 @@ import * as path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 import {
   fileExists,
   getFile,
   saveFile,
   listFiles,
   createDirectory,
-} from '@listen-fair-play/s3-utils'
+} from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from '../utils/whisper/transcribe-via-whisper.js';
 
 // Constants - S3 paths

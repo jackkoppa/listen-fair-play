@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 import { ApiSearchResultHit } from '@listen-fair-play/types'
 
 import './App.css'

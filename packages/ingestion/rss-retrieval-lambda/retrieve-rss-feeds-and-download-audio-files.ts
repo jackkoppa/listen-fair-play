@@ -1,8 +1,8 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as path from 'path';
-import { log } from '@listen-fair-play/utils';
-import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3-utils';
+import { log } from '@listen-fair-play/logging';
+import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
 
 // Types
 interface RSSFeedConfig {

@@ -1,5 +1,5 @@
 import SrtParser2 from "srt-parser-2";
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 import { SearchEntry } from '@listen-fair-play/types';
 
 interface ConvertSrtFileIntoSearchEntryArrayProps {

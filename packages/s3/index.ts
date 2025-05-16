@@ -3,7 +3,7 @@ import path from 'path';
 import { getSignedUrl as createSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 
 // Configuration constants
 const LOCAL_S3_PATH = path.join(process.cwd(), '../aws-local-dev/s3');

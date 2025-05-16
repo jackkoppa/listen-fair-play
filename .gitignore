@@ -12,6 +12,7 @@ node_modules
 dist
 dist-ssr
 *.local
+temp-dist
 aws-dist
 
 # Editor directories and files

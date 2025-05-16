@@ -21,14 +21,16 @@
     "@aws-sdk/credential-provider-sso": "catalog:",
     "@aws-sdk/s3-request-presigner": "catalog:",
     "@listen-fair-play/constants": "workspace:*",
-    "@listen-fair-play/s3-utils": "workspace:*",
-    "@listen-fair-play/utils": "workspace:*",
+    "@listen-fair-play/s3": "workspace:*",
+    "@listen-fair-play/logging": "workspace:*",
+    "@listen-fair-play/database": "workspace:*",
     "axios": "^1.6.7",
     "flexsearch": "catalog:",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
     "srt-parser-2": "^1.2.3",
+    "sqlite3": "catalog:",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

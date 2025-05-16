@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/s3-utils",
+    "name": "@listen-fair-play/s3",
     "private": true,
     "version": "0.0.1",
     "description": "Utility functions for interacting with S3 (or local file system during local dev), used by multiple packages",
@@ -10,7 +10,8 @@
     },
     "devDependencies": {
         "@listen-fair-play/types": "workspace:*",
-        "@listen-fair-play/utils": "workspace:*",
+        "@listen-fair-play/logging": "workspace:*",
+        "@listen-fair-play/database": "workspace:*",
         "@aws-sdk/client-s3": "catalog:",
         "@aws-sdk/credential-provider-sso": "catalog:",
         "@aws-sdk/s3-request-presigner": "catalog:",

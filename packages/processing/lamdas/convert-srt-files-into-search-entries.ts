@@ -1,10 +1,9 @@
 import * as path from 'path';
-import * as fs from 'fs/promises'; // For local DB file operations
-import { Document } from 'flexsearch';
+import * as fs from 'fs/promises';
 import sqlite3 from "sqlite3";
-import Database from 'flexsearch/db/sqlite';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
-import { createDocumentIndex, log } from '@listen-fair-play/utils';
+import { createDocumentIndex } from '@listen-fair-play/database';
+import { log } from '@listen-fair-play/logging';
 import { SearchEntry } from '@listen-fair-play/types';
 import {
   fileExists, 
@@ -12,7 +11,7 @@ import {
   saveFile, 
   listFiles,
   createDirectory
-} from '@listen-fair-play/s3-utils'
+} from '@listen-fair-play/s3'
 import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-srt-file-into-search-entry-array.js';
 
 // Constants - S3 paths

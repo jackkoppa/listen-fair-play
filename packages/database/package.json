@@ -1,0 +1,23 @@
+{
+    "name": "@listen-fair-play/database",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Database utility, used by multiple packages",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "sqlite3": "catalog:",
+        "flexsearch": "catalog:"
+    },
+    "devDependencies": {
+        "@listen-fair-play/types": "workspace:*",
+        "typescript": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+}

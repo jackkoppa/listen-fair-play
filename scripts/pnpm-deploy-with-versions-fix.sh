@@ -26,5 +26,8 @@ pnpm --filter $PACKAGE_NAME deploy --prod aws-dist \
 	&& tar -zxvf *.tgz package/package.json \
 	&& rm aws-dist/package.json \
 	&& mv package/package.json aws-dist/package.json \
+	&& mv aws-dist/temp-dist/* aws-dist/ \
+	&& rm -rf aws-dist/temp-dist \
+	&& rm -rf temp-dist \
 	&& rm *.tgz \
 	&& rm -rf package

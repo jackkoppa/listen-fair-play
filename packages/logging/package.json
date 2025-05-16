@@ -1,18 +1,19 @@
 {
-    "name": "@listen-fair-play/utils",
+    "name": "@listen-fair-play/logging",
     "private": true,
     "version": "0.0.1",
-    "description": "Utility functions, used by multiple packages",
+    "description": "Logging utility, used by multiple packages",
     "main": "index.js",
     "type": "module",
     "scripts": {
         "build": "tsc"
     },
+    "dependencies": {
+        "loglevel": "catalog:"
+    },
     "devDependencies": {
-        "loglevel": "^1.9.2",
         "@listen-fair-play/types": "workspace:*",
-        "typescript": "catalog:",
-        "flexsearch": "catalog:"
+        "typescript": "catalog:"
     },
     "exports": {
         ".": "./dist/index.js"

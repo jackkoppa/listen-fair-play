@@ -3,8 +3,9 @@ packages:
   - packages/processing
   - packages/search
   - packages/constants
-  - packages/utils
-  - packages/s3-utils
+  - packages/logging
+  - packages/database
+  - packages/s3
   - packages/types
   - packages/ingestion/rss-retrieval-lambda
 catalog:
@@ -15,6 +16,8 @@ catalog:
   '@aws-sdk/s3-request-presigner': ^3.787.0
   fs-extra: ^11.3.0
   '@types/fs-extra': ^11.0.4
+  loglevel: ^1.9.2
+  sqlite3: ^5.1.7
 
 
 onlyBuiltDependencies:

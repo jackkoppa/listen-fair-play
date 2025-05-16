@@ -5,7 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import type { ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 
 // Define a custom plugin to serve transcript files
 function transcriptServerPlugin() {

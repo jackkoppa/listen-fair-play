@@ -12,12 +12,14 @@
     "test:local": "dotenvx run -f ../../.env.local -- tsx simple-test-local.ts"
   },
   "dependencies": {
-    "flexsearch": "catalog:"
+    "flexsearch": "catalog:",
+    "sqlite3": "catalog:"
   },
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
-    "@listen-fair-play/s3-utils": "workspace:*",
-    "@listen-fair-play/utils": "workspace:*",
+    "@listen-fair-play/s3": "workspace:*",
+    "@listen-fair-play/logging": "workspace:*",
+    "@listen-fair-play/database": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
     "typescript": "catalog:",
     "tsx": "^4.7.0"

@@ -1,5 +1,5 @@
 import { handler } from './lambdas/search-indexed-transcripts.js';
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 
 async function runTest() {
   // Example: Simulating an API Gateway GET request

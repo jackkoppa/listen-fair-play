@@ -25,6 +25,12 @@ catalogs:
     fs-extra:
       specifier: ^11.3.0
       version: 11.3.0
+    loglevel:
+      specifier: ^1.9.2
+      version: 1.9.2
+    sqlite3:
+      specifier: ^5.1.7
+      version: 5.1.7
     typescript:
       specifier: ^5.3.3
       version: 5.7.3
@@ -32,10 +38,6 @@ catalogs:
 importers:
 
   .:
-    dependencies:
-      sqlite3:
-        specifier: ^5.1.7
-        version: 5.1.7
     devDependencies:
       '@dotenvx/dotenvx':
         specifier: ^1.44.0
@@ -56,12 +58,12 @@ importers:
       '@eslint/js':
         specifier: ^9.21.0
         version: 9.23.0
+      '@listen-fair-play/logging':
+        specifier: workspace:*
+        version: link:../logging
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
-      '@listen-fair-play/utils':
-        specifier: workspace:*
-        version: link:../utils
       '@types/react':
         specifier: ^19.0.10
         version: 19.0.12
@@ -108,6 +110,22 @@ importers:
         specifier: 'catalog:'
         version: 5.7.3
 
+  packages/database:
+    dependencies:
+      flexsearch:
+        specifier: 'catalog:'
+        version: 0.8.161
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
+    devDependencies:
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
   packages/ingestion/rss-retrieval-lambda:
     dependencies:
       '@aws-sdk/client-s3':
@@ -122,12 +140,15 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../../constants
-      '@listen-fair-play/s3-utils':
+      '@listen-fair-play/database':
         specifier: workspace:*
-        version: link:../../s3-utils
-      '@listen-fair-play/utils':
+        version: link:../../database
+      '@listen-fair-play/logging':
         specifier: workspace:*
-        version: link:../../utils
+        version: link:../../logging
+      '@listen-fair-play/s3':
+        specifier: workspace:*
+        version: link:../../s3
       axios:
         specifier: ^1.6.7
         version: 1.8.4
@@ -140,9 +161,15 @@ importers:
       fs-extra:
         specifier: 'catalog:'
         version: 11.3.0
+      loglevel:
+        specifier: 'catalog:'
+        version: 1.9.2
       openai:
         specifier: ^4.28.0
         version: 4.89.0(encoding@0.1.13)(ws@8.18.1)
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
       srt-parser-2:
         specifier: ^1.2.3
         version: 1.2.3
@@ -175,6 +202,19 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(@types/node@20.17.25)(jsdom@26.0.0)
 
+  packages/logging:
+    dependencies:
+      loglevel:
+        specifier: 'catalog:'
+        version: 1.9.2
+    devDependencies:
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../types
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
   packages/processing:
     dependencies:
       '@aws-sdk/client-s3':
@@ -189,12 +229,15 @@ importers:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
-      '@listen-fair-play/s3-utils':
+      '@listen-fair-play/database':
         specifier: workspace:*
-        version: link:../s3-utils
-      '@listen-fair-play/utils':
+        version: link:../database
+      '@listen-fair-play/logging':
         specifier: workspace:*
-        version: link:../utils
+        version: link:../logging
+      '@listen-fair-play/s3':
+        specifier: workspace:*
+        version: link:../s3
       axios:
         specifier: ^1.6.7
         version: 1.8.4
@@ -210,6 +253,9 @@ importers:
       openai:
         specifier: ^4.28.0
         version: 4.89.0(encoding@0.1.13)(ws@8.18.1)
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
       srt-parser-2:
         specifier: ^1.2.3
         version: 1.2.3
@@ -242,7 +288,7 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(@types/node@20.17.25)(jsdom@26.0.0)
 
-  packages/s3-utils:
+  packages/s3:
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
@@ -253,12 +299,15 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 'catalog:'
         version: 3.787.0
+      '@listen-fair-play/database':
+        specifier: workspace:*
+        version: link:../database
+      '@listen-fair-play/logging':
+        specifier: workspace:*
+        version: link:../logging
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
-      '@listen-fair-play/utils':
-        specifier: workspace:*
-        version: link:../utils
       '@types/fs-extra':
         specifier: 'catalog:'
         version: 11.0.4
@@ -274,19 +323,25 @@ importers:
       flexsearch:
         specifier: 'catalog:'
         version: 0.8.161
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
     devDependencies:
       '@listen-fair-play/constants':
         specifier: workspace:*
         version: link:../constants
-      '@listen-fair-play/s3-utils':
+      '@listen-fair-play/database':
         specifier: workspace:*
-        version: link:../s3-utils
+        version: link:../database
+      '@listen-fair-play/logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@listen-fair-play/s3':
+        specifier: workspace:*
+        version: link:../s3
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
-      '@listen-fair-play/utils':
-        specifier: workspace:*
-        version: link:../utils
       tsx:
         specifier: ^4.7.0
         version: 4.19.3
@@ -301,21 +356,6 @@ importers:
         version: 0.8.161
       typescript:
         specifier: ^5.3.3
-        version: 5.7.3
-
-  packages/utils:
-    devDependencies:
-      '@listen-fair-play/types':
-        specifier: workspace:*
-        version: link:../types
-      flexsearch:
-        specifier: 'catalog:'
-        version: 0.8.161
-      loglevel:
-        specifier: ^1.9.2
-        version: 1.9.2
-      typescript:
-        specifier: 'catalog:'
         version: 5.7.3
 
 packages:

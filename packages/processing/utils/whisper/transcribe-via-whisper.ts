@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { log } from '@listen-fair-play/utils';
+import { log } from '@listen-fair-play/logging';
 /**
  * `openai` has been confirmed to work
  * `replicate` partially works, but the response format likely needs tweaking

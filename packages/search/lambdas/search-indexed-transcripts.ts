@@ -3,11 +3,12 @@ import Sqlite3Database from 'sqlite3';
 import { Document } from 'flexsearch';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
 import { ApiSearchResultHit, SearchEntry } from '@listen-fair-play/types';
-import { log, createDocumentIndex } from '@listen-fair-play/utils';
+import { createDocumentIndex } from '@listen-fair-play/database';
+import { log } from '@listen-fair-play/logging';
 import {
   getFile,
   fileExists // To check if the DB file exists in S3
-} from '@listen-fair-play/s3-utils';
+} from '@listen-fair-play/s3';
 
 // Keep the flexsearch index in memory for reuse between lambda invocations
 // The type for Document with a DB adapter might be just Document, or Document<..., ..., SqliteAdapter>

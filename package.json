@@ -28,8 +28,5 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.44.0"
-  },
-  "dependencies": {
-    "sqlite3": "^5.1.7"
   }
 }

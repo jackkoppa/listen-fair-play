@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@listen-fair-play/types": "workspace:*",
-    "@listen-fair-play/utils": "workspace:*",
+    "@listen-fair-play/logging": "workspace:*",
     "@eslint/js": "^9.21.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
