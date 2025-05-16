@@ -74,12 +74,12 @@ compare_tf_states() {
        rm "$_TF_STATE_DOWNLOAD_TEMP_NAME"
     fi
   else
-    echo "Could not download Terraform state backup from $S3_TFSTATE_URI."
-    echo "This could be the first deployment for this environment, or the S3 object may not exist yet."
+    echo "⚠️ Could not download Terraform state backup from $S3_TFSTATE_URI."
+    echo "    This could be the first deployment for this environment, or the S3 object may not exist yet."
     if [ ! -f "$TF_STATE_FILENAME" ]; then
-      echo "No local state file ($TF_STATE_FILENAME) found in $(pwd) either. Terraform will likely create a new state."
+      echo "    ➡️ No local state file ($TF_STATE_FILENAME) found in $(pwd) either. Terraform will likely create a new state."
     else
-      echo "Proceeding with existing local state file ($TF_STATE_FILENAME)."
+      echo "    ➡️ Proceeding with existing local state file ($TF_STATE_FILENAME). This local state will be backed up to S3 if deployment is successful."
     fi
   fi
   echo "----------------------------------------"
