@@ -18,16 +18,10 @@ fi
 # Store package name from command line argument
 PACKAGE_NAME="$1"
 
-# Clean up any existing aws-dist directory
-rm -rf aws-dist
-
-pnpm --filter $PACKAGE_NAME deploy --prod aws-dist \
+pnpm --filter $PACKAGE_NAME deploy --prod temp-packed-dist \
 	&& pnpm pack \
 	&& tar -zxvf *.tgz package/package.json \
-	&& rm aws-dist/package.json \
 	&& mv package/package.json aws-dist/package.json \
-	&& mv aws-dist/temp-dist/* aws-dist/ \
-	&& rm -rf aws-dist/temp-dist \
-	&& rm -rf temp-dist \
+	&& rm -rf temp-packed-dist \
 	&& rm *.tgz \
 	&& rm -rf package

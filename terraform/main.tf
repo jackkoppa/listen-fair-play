@@ -90,7 +90,7 @@ module "rss_lambda" {
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
   runtime              = "nodejs20.x"
   timeout              = 300
-  memory_size          = 512
+  memory_size          = 2560
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
   }

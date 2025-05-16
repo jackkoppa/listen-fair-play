@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as path from 'path';
 import { log } from '@listen-fair-play/logging';
@@ -70,8 +69,11 @@ async function readRSSConfig(): Promise<RSSFeedConfig> {
 // Fetch RSS feed
 async function fetchRSSFeed(url: string): Promise<string> {
   try {
-    const response = await axios.get(url);
-    return response.data;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.text();
   } catch (error) {
     log.error(`Error fetching RSS feed from ${url}:`, error);
     throw error;
@@ -165,14 +167,14 @@ async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig[
   
   try {
     log.debug(`Downloading episode: ${episode.title}`);
-    const response = await axios({
-      method: 'GET',
-      url,
-      responseType: 'arraybuffer'
-    });
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
+    const arrayBuffer = await response.arrayBuffer();
     // Save the audio file directly to S3 or local storage
-    await saveFile(podcastAudioKey, Buffer.from(response.data));
+    await saveFile(podcastAudioKey, Buffer.from(arrayBuffer));
     log.debug(`Successfully downloaded: ${filename}`);
     
     return podcastAudioKey;

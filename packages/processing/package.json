@@ -24,7 +24,6 @@
     "@listen-fair-play/s3": "workspace:*",
     "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/database": "workspace:*",
-    "axios": "^1.6.7",
     "flexsearch": "catalog:",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",

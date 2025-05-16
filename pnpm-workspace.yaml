@@ -18,9 +18,8 @@ catalog:
   '@types/fs-extra': ^11.0.4
   loglevel: ^1.9.2
   sqlite3: ^5.1.7
-
-
 onlyBuiltDependencies:
   - esbuild
+  - rolldown
   - sqlite3
 injectWorkspacePackages: true

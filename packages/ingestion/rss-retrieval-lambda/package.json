@@ -5,40 +5,36 @@
   "main": "retrieve-rss-feeds-and-download-audio-files.js",
   "module": "retrieve-rss-feeds-and-download-audio-files.js",
   "type": "module",
-  "files": [
-    "temp-dist"
-  ],
+  "files": [],
   "scripts": {
-    "build:dev": "dotenvx run -f ../../../.env.dev -- tsc && pnpm __prepare-for-aws",
+    "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "dotenvx run -f ../../../.env.local -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "test": "vitest run",
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/rss-retrieval-lambda"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@smithy/shared-ini-file-loader": "^4.0.2",
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/credential-provider-sso": "catalog:",
     "@aws-sdk/s3-request-presigner": "catalog:",
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/s3": "workspace:*",
     "@listen-fair-play/logging": "workspace:*",
-    "@listen-fair-play/database": "workspace:*",
-    "axios": "^1.6.7",
-    "flexsearch": "catalog:",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",
     "loglevel": "catalog:",
     "openai": "^4.28.0",
+    "sax": "^1.4.1",
     "srt-parser-2": "^1.2.3",
-    "sqlite3": "catalog:",
-    "xml2js": "^0.6.2"
-  },
-  "devDependencies": {
+    "xml2js": "^0.6.2",
+    "xmlbuilder": "^15.1.1",
     "@listen-fair-play/types": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/fs-extra": "catalog:",
     "@types/node": "^20.0.0",
     "@types/xml2js": "^0.4.14",
+    "rolldown": "1.0.0-beta.8",
     "tsx": "^4.7.0",
     "typescript": "catalog:",
     "vitest": "^1.6.1"

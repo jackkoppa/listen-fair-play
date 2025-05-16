@@ -10,13 +10,17 @@ const LOCAL_S3_PATH = path.join(process.cwd(), '../aws-local-dev/s3');
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
-const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV;
+// IMPORTANT!!! CURSOR-TODO: This needs to be set at build time (rolldown) when building for Lambda deployment
+const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'dev-s3';
+
+
 const AWS_PROFILE = process.env.AWS_PROFILE;
 
 // Initialize S3 client for AWS environments
 const s3 = new S3({
   region: process.env.AWS_REGION || 'us-east-1',
-  credentials: FILE_STORAGE_ENV !== 'local' ? fromSSO({ profile: AWS_PROFILE }) : undefined,
+  // Conditionally set credentials only for local development
+  credentials: FILE_STORAGE_ENV === 'local' ? fromSSO({ profile: AWS_PROFILE }) : undefined,
 });
 
 /**
