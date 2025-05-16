@@ -14,6 +14,7 @@
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/srt-indexing-lambda"
   },
   "devDependencies": {
+    "@aws-sdk/client-lambda": "catalog:",
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/database": "workspace:*",
     "@listen-fair-play/logging": "workspace:*",
@@ -21,6 +22,7 @@
     "@listen-fair-play/types": "workspace:*",
     "sqlite3": "catalog:",
     "srt-parser-2": "^1.2.3",
+    "rolldown": "catalog:",
     "vitest": "^1.6.1",
     "tsx": "catalog:"
   },

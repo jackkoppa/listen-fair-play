@@ -13,6 +13,7 @@ packages:
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3
+  '@aws-sdk/client-lambda': ^3.787.0
   '@aws-sdk/client-s3': ^3.787.0
   '@aws-sdk/credential-provider-sso': ^3.787.0
   '@aws-sdk/s3-request-presigner': ^3.787.0

@@ -93,6 +93,7 @@ module "rss_lambda" {
   memory_size          = 2560
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
+    LOG_LEVEL          = var.log_level
   }
   source_dir           = "../packages/ingestion/rss-retrieval-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
@@ -112,6 +113,7 @@ module "whisper_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     OPENAI_API_KEY     = var.openai_api_key
+    LOG_LEVEL          = var.log_level
   }
   source_dir           = "../packages/ingestion/process-audio-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
@@ -145,12 +147,13 @@ module "indexing_lambda" {
   function_name        = "convert-srt-files-into-indexed-search-entries"
   handler              = "convert-srt-files-into-indexed-search-entries.handler"
   runtime              = "nodejs20.x"
-  timeout              = 300 # Adjust as needed
-  memory_size          = 512 # Adjust as needed
+  timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srt-files-into-indexed-search-entries.ts
+  memory_size          = 2048 # Adjust as needed
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
+    LOG_LEVEL          = var.log_level
   }
-  source_dir           = "../packages/processing/dist/lamdas" # Assuming it's in the same dir as other processing lambdas
+  source_dir           = "../packages/ingestion/srt-indexing-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
@@ -176,7 +179,7 @@ module "search_lambda" {
   memory_size          = 512 # Adjust as needed
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
-    # Add any other ENV VARS needed by the search lambda
+    LOG_LEVEL          = var.log_level
   }
   source_dir           = "../packages/search/dist/lambdas" # Assuming build output like processing lambdas
   s3_bucket_name       = module.s3_bucket.bucket_name

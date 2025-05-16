@@ -1,9 +1,9 @@
 import { defineConfig } from 'rolldown';
 
 export default defineConfig({
-  input: './retrieve-rss-feeds-and-download-audio-files.ts',
+  input: './convert-srt-files-into-indexed-search-entries.ts',
   output: {
-    file: 'aws-dist/retrieve-rss-feeds-and-download-audio-files.js',
+    dir: 'aws-dist',
   },
   platform: 'node',
   resolve: {

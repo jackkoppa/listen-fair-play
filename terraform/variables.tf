@@ -27,4 +27,11 @@ variable "openai_api_key" {
   type        = string
   sensitive   = true
   default     = ""
-} 
+}
+
+variable "log_level" {
+  description = "log level (trace, debug, info, warn, or error)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

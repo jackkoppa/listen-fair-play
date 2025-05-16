@@ -1,1 +1,1 @@
-export { createDocumentIndex } from './database.js';
+export { createDocumentIndex, logRowCountsForSQLiteTables } from './database.js';

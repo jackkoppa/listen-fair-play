@@ -14,6 +14,7 @@
     },
     "devDependencies": {
         "@listen-fair-play/types": "workspace:*",
+        "@listen-fair-play/logging": "workspace:*",
         "typescript": "catalog:"
     },
     "exports": {

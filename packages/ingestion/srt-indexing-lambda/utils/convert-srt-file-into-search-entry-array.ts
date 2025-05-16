@@ -74,11 +74,11 @@ export const convertSrtFileIntoSearchEntryArray = ({
         const line = parsedLines[i];
         const isLastLineOverall = i === parsedLines.length - 1;
 
-        log.debug(`\n[Loop Iteration i=${i}, Line Index=${line.index}]`); // LOG: Loop start
+        log.trace(`\n[Loop Iteration i=${i}, Line Index=${line.index}]`); // LOG: Loop start
 
         if (currentChunkLines.length === 0) {
             chunkStartTimeMs = line.startTimeMs;
-            log.debug(`  New Chunk Start: startTimeMs=${chunkStartTimeMs}`); // LOG: New chunk
+            log.trace(`  New Chunk Start: startTimeMs=${chunkStartTimeMs}`); // LOG: New chunk
         }
 
         currentChunkLines.push(line);
@@ -87,9 +87,9 @@ export const convertSrtFileIntoSearchEntryArray = ({
 
         const actualChunkStartTimeForDuration = currentChunkLines.length > 0 ? currentChunkLines[0].startTimeMs : line.startTimeMs; // Fallback to current line if it's the first
         const currentDuration = chunkEndTimeMs - actualChunkStartTimeForDuration;
-        log.debug(`  Added Line ${line.index}: text="${line.text}"`); // LOG: Line added
-        log.debug(`  Current Chunk End Time: ${chunkEndTimeMs}`);
-        log.debug(`  Current Chunk Duration: ${currentDuration}ms (Start: ${actualChunkStartTimeForDuration}, End: ${chunkEndTimeMs})`); // LOG: Duration
+        log.trace(`  Added Line ${line.index}: text="${line.text}"`); // LOG: Line added
+        log.trace(`  Current Chunk End Time: ${chunkEndTimeMs}`);
+        log.trace(`  Current Chunk Duration: ${currentDuration}ms (Start: ${actualChunkStartTimeForDuration}, End: ${chunkEndTimeMs})`); // LOG: Duration
 
         let finalizeChunk = false;
         const durationMet = currentDuration >= MIN_CHUNK_DURATION_MS;

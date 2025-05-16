@@ -241,7 +241,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
 
   let chunks: TranscriptionChunk[] = [];
   if (fileSizeMB > MAX_FILE_SIZE_MB) {
-    log.debug(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
+    log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
     chunks = await splitAudioFile(fileKey);
   } else {
     // For small files, we still need to download them to a temp location for ffmpeg
@@ -283,7 +283,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   // Save the combined SRT file to S3
   await saveFile(transcriptKey, Buffer.from(finalSrt));
 
-  log.debug(`Transcription complete for ${fileKey}. SRT saved to ${transcriptKey}`);
+  log.info(`Transcription complete for ${fileKey}. SRT saved to ${transcriptKey}`);
 
   // Clean up the temporary directory (original file and its parent directory in /tmp)
   const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
@@ -301,14 +301,14 @@ async function processAudioFile(fileKey: string): Promise<void> {
  * @param event - The event object, which can optionally contain a list of audio files to process.
  */
 export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
-  log.debug('Starting transcription process...');
-  log.debug(`Whisper API Provider: ${WHISPER_API_PROVIDER}`);
+  log.info('Starting transcription process...');
+  log.info(`Whisper API Provider: ${WHISPER_API_PROVIDER}`);
 
   let filesToProcess: string[] = [];
 
   if (event.audioFiles && event.audioFiles.length > 0) {
     filesToProcess = event.audioFiles;
-    log.debug(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
+    log.info(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
   } else {
     // Fallback to original logic structure if event.audioFiles is not present
     // This part is a best guess reconstruction based on typical patterns
@@ -320,11 +320,11 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
       const mp3Files = await getMp3Files(podcastDir); // podcastDir should be the full prefix like 'audio/podcast_name/'
       filesToProcess.push(...mp3Files);
     }
-    log.debug(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
+    log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
   }
 
   if (filesToProcess.length === 0) {
-    log.debug("No audio files found to process.");
+    log.info("No audio files found to process.");
     return;
   }
 
@@ -337,16 +337,16 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
       // Continue with next file even if one fails (original behavior)
     }
   }
-  log.debug('Transcription process finished.');
+  log.info('Transcription process finished.');
 }
 
 // Run the handler if this file is executed directly
 // In ES modules, this is the standard way to detect if a file is being run directly
 const scriptPath = path.resolve(process.argv[1]);
 if (import.meta.url === `file://${scriptPath}`) {
-  log.debug('Starting audio processing via Whisper directly...');
+  log.info('Starting audio processing via Whisper directly...');
   handler()
-    .then(() => log.debug('Processing completed successfully (direct run)'))
+    .then(() => log.info('Processing completed successfully (direct run)'))
     .catch(error => {
       log.error('Processing failed (direct run):', error);
       process.exit(1);
