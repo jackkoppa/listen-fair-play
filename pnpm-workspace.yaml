@@ -8,6 +8,7 @@ packages:
   - packages/s3
   - packages/types
   - packages/ingestion/rss-retrieval-lambda
+  - packages/ingestion/process-audio-lambda
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3
@@ -18,6 +19,8 @@ catalog:
   '@types/fs-extra': ^11.0.4
   loglevel: ^1.9.2
   sqlite3: ^5.1.7
+  rolldown: ^1.0.0-beta.8
+  tsx: ^4.7.0
 onlyBuiltDependencies:
   - esbuild
   - rolldown

@@ -6,15 +6,15 @@ import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@listen-fair-play/logging';
 
 // Configuration constants
-const LOCAL_S3_PATH = path.join(process.cwd(), '../../aws-local-dev/s3');
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
+// CURSOR-TODO: Can we set this relative to where this file currently is, rather than the running process?
+// Currently, this breaks if the package importing this file moves
+const LOCAL_S3_PATH = path.join(process.cwd(), '../../../aws-local-dev/s3');
+
 // IMPORTANT!!! CURSOR-TODO: This needs to be set at build time (rolldown) when building for Lambda deployment
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'dev-s3';
-
-
-log.info('FILE_STORAGE_ENV', FILE_STORAGE_ENV);
 
 
 const AWS_PROFILE = process.env.AWS_PROFILE;
@@ -158,13 +158,11 @@ export async function listFiles(prefix: string): Promise<string[]> {
   if (FILE_STORAGE_ENV === 'local') {
     const localPath = getLocalFilePath(prefix);
     const baseDir = path.dirname(localPath);
-    log.debug('listFiles baseDir', baseDir);
     try {
       if (await fs.pathExists(baseDir)) {
         // @ts-expect-error - recursive is supported, but not in the types
         // https://github.com/nodejs/node/blob/main/lib/internal/fs/promises.js#L939-L948
         const files = await fs.promises.readdir(baseDir, { recursive: true });
-        log.debug('listFiles files', files);
         return files
           .filter(file => {
             // Convert any Buffer to string

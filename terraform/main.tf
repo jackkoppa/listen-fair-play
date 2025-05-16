@@ -113,7 +113,7 @@ module "whisper_lambda" {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     OPENAI_API_KEY     = var.openai_api_key
   }
-  source_dir           = "../packages/processing/dist/lamdas"
+  source_dir           = "../packages/ingestion/process-audio-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]

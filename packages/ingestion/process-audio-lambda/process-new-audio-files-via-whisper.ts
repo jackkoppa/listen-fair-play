@@ -10,7 +10,7 @@ import {
   listFiles,
   createDirectory,
 } from '@listen-fair-play/s3'
-import { transcribeViaWhisper, WhisperApiProvider } from '../utils/whisper/transcribe-via-whisper.js';
+import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 
 // Constants - S3 paths
 const AUDIO_DIR_PREFIX = 'audio/';
