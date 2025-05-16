@@ -8,8 +8,6 @@
   "scripts": {
     "build:local": "dotenvx run -f ../../.env.local -- tsc",
     "build:dev": "dotenvx run -f ../../.env.dev -- tsc",
-    "run-rss:local": "dotenvx run -f ../../.env.local -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
-    "run-rss:dev-s3": "dotenvx run -f ../../.env.dev -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run-whisper:local": "dotenvx run -f ../../.env.local -- tsx lamdas/process-new-audio-files-via-whisper.ts",
     "run-whisper:dev-s3": "dotenvx run -f ../../.env.dev -- tsx lamdas/process-new-audio-files-via-whisper.ts",
     "run-search-conversion:local": "NODE_OPTIONS=--max_old_space_size=8192 dotenvx run -f ../../.env.local -- tsx lamdas/convert-srt-files-into-search-entries.ts",

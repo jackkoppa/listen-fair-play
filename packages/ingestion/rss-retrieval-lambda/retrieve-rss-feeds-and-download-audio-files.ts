@@ -269,14 +269,14 @@ export async function handler(): Promise<void> {
 }
 
 // CURSOR-TODO: Fix this for local dev (e.g. pnpm run processing:run-rss:local) 
-// // For local development, call the handler directly
-// // ES modules don't have require.main === module, so check if this is the entry point by checking import.meta.url
-// if (import.meta.url === `file://${process.argv[1]}`) {
-//   log.debug('Starting podcast RSS feed retrieval - running via pnpm...');
-//   handler()
-//     .then(() => log.debug('Processing completed successfully'))
-//     .catch(error => {
-//       log.error('Processing failed:', error);
-//       process.exit(1);
-//     });
-// } 
+// For local development, call the handler directly
+// ES modules don't have require.main === module, so check if this is the entry point by checking import.meta.url
+if (import.meta.url === `file://${process.argv[1]}`) {
+  log.debug('Starting podcast RSS feed retrieval - running via pnpm...');
+  handler()
+    .then(() => log.debug('Processing completed successfully'))
+    .catch(error => {
+      log.error('Processing failed:', error);
+      process.exit(1);
+    });
+} 

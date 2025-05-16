@@ -340,15 +340,15 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   log.debug('Transcription process finished.');
 }
 
-// CURSOR-TODO: Fix this for local dev (e.g. pnpm run processing:run-whisper:local)
-// // Run the handler if this file is executed directly
-// // In ES modules, this is the standard way to detect if a file is being run directly
-// if (import.meta.url === `file://${process.argv[1]}`) {
-//   log.debug('Starting audio processing via Whisper directly...');
-//   handler()
-//     .then(() => log.debug('Processing completed successfully (direct run)'))
-//     .catch(error => {
-//       log.error('Processing failed (direct run):', error);
-//       process.exit(1);
-//     });
-// }
+// Run the handler if this file is executed directly
+// In ES modules, this is the standard way to detect if a file is being run directly
+const scriptPath = path.resolve(process.argv[1]);
+if (import.meta.url === `file://${scriptPath}`) {
+  log.debug('Starting audio processing via Whisper directly...');
+  handler()
+    .then(() => log.debug('Processing completed successfully (direct run)'))
+    .catch(error => {
+      log.error('Processing failed (direct run):', error);
+      process.exit(1);
+    });
+}
