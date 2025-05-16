@@ -209,4 +209,88 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
 
   # The source_arn should be specific to the API Gateway execution ARN for the route and stage
   source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/${var.environment}/*"
+}
+
+# --- S3 Bucket for Terraform State ---
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "listen-fair-play-terraform-state-${var.environment}" # Ensuring unique bucket name per environment
+
+  tags = {
+    Name        = "Terraform State Storage"
+    Environment = var.environment
+    Project     = "Listen Fair Play"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_encryption" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "terraform_state_public_access_block" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# It's generally better to manage permissions via IAM roles/policies attached to the entity (user/role)
+# performing the Terraform operations, rather than a bucket policy.
+# However, if a bucket policy is strictly needed, here's an example.
+# Replace AWS_ACCOUNT_ID and IAM_USER_OR_ROLE_NAME with actual values.
+# This part might need adjustment based on how your AWS CLI is authenticated (IAM user vs. IAM role).
+# For SSO, the role name is usually something like "AWSReservedSSO_YourPermissionSet_RandomString"
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_s3_bucket_policy" "terraform_state_bucket_policy" {
+  bucket = aws_s3_bucket.terraform_state.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" # Restrict further if possible
+        },
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject" # For state locking and deletion
+        ],
+        Resource = [
+          "${aws_s3_bucket.terraform_state.arn}/terraform.tfstate",
+          "${aws_s3_bucket.terraform_state.arn}/terraform.tfstate-lock" # If using state locking
+        ]
+      },
+      {
+        Effect = "Allow",
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" # Restrict further if possible
+        },
+        Action = "s3:ListBucket",
+        Resource = aws_s3_bucket.terraform_state.arn,
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["terraform.tfstate-lock*", "terraform.tfstate"]
+          }
+        }
+      }
+    ]
+  })
 } 

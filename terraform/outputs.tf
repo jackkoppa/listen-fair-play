@@ -21,4 +21,9 @@ output "whisper_lambda_function_name" {
 output "search_api_invoke_url" {
   description = "The invoke URL for the Search API Gateway"
   value       = aws_apigatewayv2_stage.search_api_stage.invoke_url
+}
+
+output "terraform_state_bucket_name" {
+  description = "The name of the S3 bucket used for storing Terraform state."
+  value       = aws_s3_bucket.terraform_state.bucket
 } 
