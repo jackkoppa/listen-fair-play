@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { SearchEntry } from '@listen-fair-play/types';
-import { convertSrtFileIntoSearchEntryArray } from '../../../processing/utils/indexing/convert-srt-file-into-search-entry-array.js';
+import { convertSrtFileIntoSearchEntryArray } from './convert-srt-file-into-search-entry-array.js';
 
 // Sample SRT content (Lines 22-43 from the example file)
 const sampleSrtContent = `

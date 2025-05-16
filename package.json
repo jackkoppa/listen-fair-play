@@ -15,9 +15,9 @@
     "rss-retrieval-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/rss-retrieval-lambda run run:dev-s3",
     "process-audio-lambda:run:local": "pnpm --filter @listen-fair-play/process-audio-lambda run run:local",
     "process-audio-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/process-audio-lambda run run:dev-s3",
-    "processing:run-search-conversion:local": "pnpm --filter processing run run-search-conversion:local",
-    "processing:run-search-conversion:dev-s3": "pnpm --filter processing run run-search-conversion:dev-s3",
-    "processing:test": "pnpm --filter processing test",
+    "srt-indexing-lambda:run:local": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:local",
+    "srt-indexing-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:dev-s3",
+    "srt-indexing-lambda:test": "pnpm --filter @listen-fair-play/srt-indexing-lambda test",
     "search:dev:local": "pnpm --filter search dev:local",
     "search:test:local": "pnpm --filter search test:local"
   },
