@@ -1,0 +1,28 @@
+{
+  "name": "@listen-fair-play/srt-indexing-lambda",
+  "version": "0.0.1",
+  "description": "Index SRT files into a search index",
+  "main": "convert-srt-files-into-indexed-search-entries.js",
+  "module": "convert-srt-files-into-indexed-search-entries.js",
+  "type": "module",
+  "files": [],
+  "scripts": {
+    "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
+    "run:local": "dotenvx run -f ../../../.env.local -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
+    "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
+    "test": "vitest run",
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/rss-retrieval-lambda"
+  },
+  "devDependencies": {
+    "@listen-fair-play/constants": "workspace:*",
+    "@listen-fair-play/database": "workspace:*",
+    "@listen-fair-play/logging": "workspace:*",
+    "@listen-fair-play/s3": "workspace:*",
+    "@listen-fair-play/types": "workspace:*",
+    "sqlite3": "catalog:",
+    "srt-parser-2": "^1.2.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

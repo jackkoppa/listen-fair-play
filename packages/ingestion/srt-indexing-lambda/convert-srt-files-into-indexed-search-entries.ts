@@ -12,7 +12,7 @@ import {
   listFiles,
   createDirectory
 } from '@listen-fair-play/s3'
-import { convertSrtFileIntoSearchEntryArray } from '../utils/indexing/convert-srt-file-into-search-entry-array.js';
+import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';

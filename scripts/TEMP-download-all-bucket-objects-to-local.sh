@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Usage:
+# ./scripts/TEMP-download-all-bucket-objects-to-local.sh
+#
+# Options:
+#   --excludeExtensions=ext1,ext2,...   Comma-separated list of file extensions to exclude from download.
+#                                       Example: --excludeExtensions=mp3,json
+#
+# This script downloads all objects from a specified S3 bucket to a local directory.
+# It checks for AWS CLI installation, AWS authentication (profile or default),
+# and creates the local destination directory if it doesn't exist.
+# It will prompt for confirmation before proceeding.
+
 set -e
 
 echo "WARNING: In normal development, downloading all objects from the S3 bucket is not required."
@@ -17,7 +29,28 @@ echo "Proceeding with S3 bucket download..."
 
 # Define S3 bucket and local destination
 S3_BUCKET_URI="s3://listen-fair-play-s3-dev"
-LOCAL_DESTINATION_DIR="./aws-local-dev" # Using path relative to home directory
+LOCAL_DESTINATION_DIR="./aws-local-dev-TEMP" # Using path relative to home directory
+
+# Initialize EXCLUDE_PARAMS
+EXCLUDE_PARAMS=""
+
+# Parse command-line arguments
+for arg in "$@"
+do
+    case $arg in
+        --excludeExtensions=*)
+        EXTENSIONS_CSV="${arg#*=}"
+        IFS=',' read -ra EXT_ARRAY <<< "$EXTENSIONS_CSV"
+        for ext in "${EXT_ARRAY[@]}"; do
+            EXCLUDE_PARAMS="$EXCLUDE_PARAMS --exclude "*.$ext""
+        done
+        shift # Remove --excludeExtensions=... from processing
+        ;;
+        *)
+        # Unknown option
+        ;;
+    esac
+done
 
 # Check if AWS CLI is installed
 if ! command -v aws &> /dev/null; then
@@ -76,9 +109,10 @@ echo "✅ Local destination directory ensured."
 echo "Downloading all objects from $S3_BUCKET_URI to $LOCAL_DESTINATION_DIR..."
 
 if [ -n "$AWS_PROFILE" ]; then
-    aws s3 sync "$S3_BUCKET_URI" "$LOCAL_DESTINATION_DIR" --profile "$AWS_PROFILE"
+    # Use eval to correctly interpret the EXCLUDE_PARAMS string with spaces and quotes
+    eval aws s3 sync "$S3_BUCKET_URI" "$LOCAL_DESTINATION_DIR" --profile "$AWS_PROFILE" $EXCLUDE_PARAMS
 else
-    aws s3 sync "$S3_BUCKET_URI" "$LOCAL_DESTINATION_DIR"
+    eval aws s3 sync "$S3_BUCKET_URI" "$LOCAL_DESTINATION_DIR" $EXCLUDE_PARAMS
 fi
 
 if [ $? -eq 0 ]; then

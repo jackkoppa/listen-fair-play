@@ -1,7 +1,0 @@
-{
-  "extends": "../../tsconfig.base.lambdas.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./",
-  },
-} 

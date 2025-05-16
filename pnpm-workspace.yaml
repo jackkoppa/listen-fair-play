@@ -9,6 +9,7 @@ packages:
   - packages/types
   - packages/ingestion/rss-retrieval-lambda
   - packages/ingestion/process-audio-lambda
+  - packages/ingestion/srt-indexing-lambda
 catalog:
   flexsearch: ^0.8.161
   typescript: ^5.3.3

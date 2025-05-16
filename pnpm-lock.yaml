@@ -237,6 +237,30 @@ importers:
         specifier: ^0.6.2
         version: 0.6.2
 
+  packages/ingestion/srt-indexing-lambda:
+    devDependencies:
+      '@listen-fair-play/constants':
+        specifier: workspace:*
+        version: link:../../constants
+      '@listen-fair-play/database':
+        specifier: workspace:*
+        version: link:../../database
+      '@listen-fair-play/logging':
+        specifier: workspace:*
+        version: link:../../logging
+      '@listen-fair-play/s3':
+        specifier: workspace:*
+        version: link:../../s3
+      '@listen-fair-play/types':
+        specifier: workspace:*
+        version: link:../../types
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
+      srt-parser-2:
+        specifier: ^1.2.3
+        version: 1.2.3
+
   packages/logging:
     dependencies:
       loglevel:
@@ -249,76 +273,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
-
-  packages/processing:
-    dependencies:
-      '@aws-sdk/client-s3':
-        specifier: 'catalog:'
-        version: 3.787.0
-      '@aws-sdk/credential-provider-sso':
-        specifier: 'catalog:'
-        version: 3.787.0
-      '@aws-sdk/s3-request-presigner':
-        specifier: 'catalog:'
-        version: 3.787.0
-      '@listen-fair-play/constants':
-        specifier: workspace:*
-        version: link:../constants
-      '@listen-fair-play/database':
-        specifier: workspace:*
-        version: link:../database
-      '@listen-fair-play/logging':
-        specifier: workspace:*
-        version: link:../logging
-      '@listen-fair-play/s3':
-        specifier: workspace:*
-        version: link:../s3
-      flexsearch:
-        specifier: 'catalog:'
-        version: 0.8.161
-      fluent-ffmpeg:
-        specifier: ^2.1.2
-        version: 2.1.3
-      fs-extra:
-        specifier: 'catalog:'
-        version: 11.3.0
-      openai:
-        specifier: ^4.28.0
-        version: 4.89.0(encoding@0.1.13)(ws@8.18.1)
-      sqlite3:
-        specifier: 'catalog:'
-        version: 5.1.7
-      srt-parser-2:
-        specifier: ^1.2.3
-        version: 1.2.3
-      xml2js:
-        specifier: ^0.6.2
-        version: 0.6.2
-    devDependencies:
-      '@listen-fair-play/types':
-        specifier: workspace:*
-        version: link:../types
-      '@types/fluent-ffmpeg':
-        specifier: ^2.1.24
-        version: 2.1.27
-      '@types/fs-extra':
-        specifier: 'catalog:'
-        version: 11.0.4
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.17.25
-      '@types/xml2js':
-        specifier: ^0.4.14
-        version: 0.4.14
-      tsx:
-        specifier: ^4.7.0
-        version: 4.19.3
-      typescript:
-        specifier: 'catalog:'
-        version: 5.7.3
-      vitest:
-        specifier: ^1.6.1
-        version: 1.6.1(@types/node@20.17.25)(jsdom@26.0.0)
 
   packages/s3:
     devDependencies:

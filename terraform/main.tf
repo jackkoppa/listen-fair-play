@@ -142,8 +142,8 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
 module "indexing_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "convert-srt-files-into-search-entries"
-  handler              = "convert-srt-files-into-search-entries.handler"
+  function_name        = "convert-srt-files-into-indexed-search-entries"
+  handler              = "convert-srt-files-into-indexed-search-entries.handler"
   runtime              = "nodejs20.x"
   timeout              = 300 # Adjust as needed
   memory_size          = 512 # Adjust as needed
