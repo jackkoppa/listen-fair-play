@@ -2,7 +2,7 @@ import * as path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
-import log from 'loglevel';
+import { log } from '@listen-fair-play/utils';
 import {
   fileExists,
   getFile,

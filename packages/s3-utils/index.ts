@@ -7,8 +7,8 @@ import { log } from '@listen-fair-play/utils';
 
 // Configuration constants
 const LOCAL_S3_PATH = path.join(process.cwd(), '../aws-local-dev/s3');
-const DEV_BUCKET_NAME = 'listen-fair-play-dev';
-const PROD_BUCKET_NAME = 'listen-fair-play-prod';
+const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
+const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV;
 const AWS_PROFILE = process.env.AWS_PROFILE;

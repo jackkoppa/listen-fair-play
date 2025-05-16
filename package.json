@@ -27,7 +27,6 @@
     "pnpm": ">=10.0.0"
   },
   "devDependencies": {
-    "loglevel": "^1.9.2",
     "@dotenvx/dotenvx": "^1.44.0"
   },
   "dependencies": {

@@ -2,16 +2,18 @@
   "name": "@listen-fair-play/rss-retrieval-lambda",
   "version": "0.0.1",
   "description": "Retrieve RSS feeds and download audio files",
-  "main": "index.js",
+  "main": "dist/retrieve-rss-feeds-and-download-audio-files.js",
+  "module": "dist/retrieve-rss-feeds-and-download-audio-files.js",
   "type": "module",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build:dev": "dotenvx run -f ../../../.env.dev -- tsc",
+    "build:dev": "dotenvx run -f ../../../.env.dev -- tsc && pnpm __prepare-for-aws",
     "run:local": "dotenvx run -f ../../../.env.local -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx lamdas/retrieve-rss-feeds-and-download-audio-files.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/rss-retrieval-lambda"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",

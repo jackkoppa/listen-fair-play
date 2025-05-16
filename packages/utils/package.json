@@ -9,6 +9,7 @@
         "build": "tsc"
     },
     "devDependencies": {
+        "loglevel": "^1.9.2",
         "@listen-fair-play/types": "workspace:*",
         "typescript": "catalog:",
         "flexsearch": "catalog:"
@@ -17,4 +18,4 @@
         ".": "./dist/index.js"
     },
     "types": "./dist/index.d.ts"
-  }
+}
