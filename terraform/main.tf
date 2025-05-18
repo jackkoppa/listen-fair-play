@@ -185,14 +185,14 @@ module "search_lambda" {
   function_name        = "search-indexed-transcripts"
   handler              = "search-indexed-transcripts.handler" # As per search/README.md
   runtime              = "nodejs20.x"
-  timeout              = 10 # Any search requests taking longer than ~10 seconds are going to feel too long to the client anyway
-  memory_size          = 3008 # Trying to allow the search to be performed as quickly as possible (3308 is current max)
+  timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the SQLite DB file
+  memory_size          = 3008 # Trying to allow the search to be performed as quickly as possible (3008 is current max)
   ephemeral_storage    = 2048 # Trying to have enough space for the sqlite3 DB
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
   }
-  source_dir           = "../packages/search/dist/lambdas" # Assuming build output like processing lambdas
+  source_dir           = "../packages/search/search-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]

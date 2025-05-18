@@ -18,8 +18,8 @@
     "srt-indexing-lambda:run:local": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:local",
     "srt-indexing-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:dev-s3",
     "srt-indexing-lambda:test": "pnpm --filter @listen-fair-play/srt-indexing-lambda test",
-    "search:dev:local": "pnpm --filter search dev:local",
-    "search:test:local": "pnpm --filter search test:local"
+    "search-lambda:dev:local": "pnpm --filter @listen-fair-play/search-lambda dev:local",
+    "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local"
   },
   "engines": {
     "node": ">=20.0.0",

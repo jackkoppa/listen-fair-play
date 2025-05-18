@@ -1,4 +1,4 @@
-import { handler } from './lambdas/search-indexed-transcripts.js';
+import { handler } from './search-indexed-transcripts.js';
 import { log } from '@listen-fair-play/logging';
 
 async function runTest() {

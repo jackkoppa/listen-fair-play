@@ -1,3 +1,4 @@
+import path from 'path';
 import * as fs from 'fs/promises'; // For local DB file operations
 import Sqlite3Database from 'sqlite3';
 import { Document } from 'flexsearch';
@@ -40,7 +41,7 @@ async function initializeFlexSearchIndex() {
     return flexSearchIndex;
   }
 
-  log.debug('Initializing FlexSearch index from S3 SQLite database...');
+  log.info('Initializing FlexSearch index from S3 SQLite database...');
   const startTime = Date.now();
 
   // Ensure the local /tmp/ directory is available
@@ -49,7 +50,7 @@ async function initializeFlexSearchIndex() {
   } catch (error) {
     log.warn("Local /tmp directory is not accessible, attempting to create.", error);
     await fs.mkdir('/tmp', { recursive: true });
-    log.info("Created /tmp directory.");
+    log.debug("Created /tmp directory.");
   }
 
   // Check if the index DB file exists in S3
@@ -59,7 +60,7 @@ async function initializeFlexSearchIndex() {
   }
 
   // Download the SQLite DB file from S3 to the local /tmp path
-  log.debug(`Downloading SQLite DB from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
+  log.info(`Downloading SQLite DB from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
   try {
     const dbFileBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
     await fs.writeFile(LOCAL_DB_PATH, dbFileBuffer);
@@ -78,7 +79,7 @@ async function initializeFlexSearchIndex() {
   const sqlite3DB = new Sqlite3Database.Database(LOCAL_DB_PATH);
   const index = await createDocumentIndex(sqlite3DB);
 
-  log.debug(`FlexSearch index loaded from SQLite DB in ${Date.now() - startTime}ms`);
+  log.info(`FlexSearch index loaded from SQLite DB in ${Date.now() - startTime}ms`);
 
   // Cache the index for future invocations
   flexSearchIndex = index;
@@ -138,7 +139,6 @@ async function searchIndex(
     searchResults = Array.from(uniqueResults.values());
   } else {
     // Search with the specified options
-    log.info('about to search for enriched results...', index.search, index.searchAsync, searchFields);
     const enrichedResults = await index.search(query, {
       limit,
       suggest,
@@ -147,7 +147,6 @@ async function searchIndex(
       highlight: "<b>$1</b>"
     });
 
-    console.log('enrichedResults', enrichedResults);
     // Convert the results to SearchEntry[]
     if (Array.isArray(enrichedResults)) {
       searchResults = enrichedResults
@@ -163,6 +162,7 @@ async function searchIndex(
   return searchResults;
 }
 
+
 /**
  * Main Lambda handler function
  */
@@ -171,7 +171,6 @@ export async function handler(event: any): Promise<SearchResponse> {
   const startTime = Date.now();
 
   try {
-    // Initialize the index if needed
     const index = await initializeFlexSearchIndex();
 
     // Extract search parameters from the event
@@ -238,11 +237,12 @@ export async function handler(event: any): Promise<SearchResponse> {
   }
 }
 
-// CURSOR-TODO: Fix this for local dev (e.g. pnpm run search:test:local)
-// // For local testing - ES modules compatible approach
-// if (import.meta.url === `file://${process.argv[1]}`) {
-//   const testQuery = 'test query';
-//   handler({ query: testQuery })
-//     .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
-//     .catch(err => log.error('Search failed with error:', err));
-// }
+// In ESM, import.meta.url will be defined and can be compared to process.argv[1]
+const scriptPath = path.resolve(process.argv[1]);
+// Check if the module is being run directly
+if (import.meta.url === `file://${scriptPath}`) {
+  const testQuery = 'test query';
+  handler({ query: testQuery })
+    .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
+    .catch(err => log.error('Search failed with error:', err));
+}

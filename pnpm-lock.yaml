@@ -328,30 +328,33 @@ importers:
         specifier: 'catalog:'
         version: 5.7.3
 
-  packages/search:
+  packages/search/search-lambda:
     dependencies:
       flexsearch:
         specifier: 'catalog:'
         version: 0.8.161
-      sqlite3:
-        specifier: 'catalog:'
-        version: 5.1.7
     devDependencies:
       '@listen-fair-play/constants':
         specifier: workspace:*
-        version: link:../constants
+        version: link:../../constants
       '@listen-fair-play/database':
         specifier: workspace:*
-        version: link:../database
+        version: link:../../database
       '@listen-fair-play/logging':
         specifier: workspace:*
-        version: link:../logging
+        version: link:../../logging
       '@listen-fair-play/s3':
         specifier: workspace:*
-        version: link:../s3
+        version: link:../../s3
       '@listen-fair-play/types':
         specifier: workspace:*
-        version: link:../types
+        version: link:../../types
+      rolldown:
+        specifier: 'catalog:'
+        version: 1.0.0-beta.8(typescript@5.7.3)
+      sqlite3:
+        specifier: 'catalog:'
+        version: 5.1.7
       tsx:
         specifier: ^4.7.0
         version: 4.19.3

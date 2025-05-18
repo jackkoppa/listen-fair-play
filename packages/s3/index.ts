@@ -147,7 +147,7 @@ export async function getFile(key: string): Promise<Buffer> {
     for await (const chunk of response.Body as any) {
       chunks.push(chunk);
     }
-    
+
     return Buffer.concat(chunks);
   }
 }
