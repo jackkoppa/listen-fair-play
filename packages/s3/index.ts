@@ -157,19 +157,13 @@ export async function getFile(key: string): Promise<Buffer> {
 export async function listFiles(prefix: string): Promise<string[]> {
   if (FILE_STORAGE_ENV === 'local') {
     const localPath = getLocalFilePath(prefix);
-    const baseDir = path.dirname(localPath);
     try {
-      if (await fs.pathExists(baseDir)) {
-        // @ts-expect-error - recursive is supported, but not in the types
-        // https://github.com/nodejs/node/blob/main/lib/internal/fs/promises.js#L939-L948
-        const files = await fs.promises.readdir(baseDir, { recursive: true });
+      if (await fs.pathExists(localPath)) {
+        // Get all files in the directory
+        const files = await fs.promises.readdir(localPath);
         return files
-          .filter(file => {
-            // Convert any Buffer to string
-            const fileName = file.toString();
-            return fileName.startsWith(path.basename(prefix));
-          })
-          .map(file => path.join(path.dirname(prefix), file.toString()));
+          .filter(file => file !== '.DS_Store') // Filter out .DS_Store
+          .map(file => path.join(prefix, file));
       }
       return [];
     } catch (error) {
@@ -186,10 +180,55 @@ export async function listFiles(prefix: string): Promise<string[]> {
       
       return (response.Contents || [])
         .map(item => item.Key || '')
-        .filter(key => key !== '');
+        .filter(key => key !== '' && !key.endsWith('.DS_Store'));
     } catch (error) {
       log.error('Error listing S3 files:', error);
       return [];
+    }
+  }
+}
+
+/**
+ * Get total size of all files in a directory
+ */
+export async function getDirectorySize(prefix: string): Promise<number> {
+  if (FILE_STORAGE_ENV === 'local') {
+    const localPath = getLocalFilePath(prefix);
+    try {
+      if (await fs.pathExists(localPath)) {
+        const files = await fs.promises.readdir(localPath);
+        let totalSize = 0;
+        
+        for (const file of files) {
+          if (file === '.DS_Store') continue; // Skip .DS_Store
+          const filePath = path.join(localPath, file);
+          const stats = await fs.stat(filePath);
+          if (stats.isFile()) {
+            totalSize += stats.size;
+          }
+        }
+        
+        return totalSize;
+      }
+      return 0;
+    } catch (error) {
+      log.error('Error getting directory size:', error);
+      return 0;
+    }
+  } else {
+    const bucketName = getBucketName();
+    try {
+      const response = await s3.listObjectsV2({
+        Bucket: bucketName,
+        Prefix: prefix,
+      });
+      
+      return (response.Contents || [])
+        .filter(item => !item.Key?.endsWith('.DS_Store'))
+        .reduce((total, item) => total + (item.Size || 0), 0);
+    } catch (error) {
+      log.error('Error getting directory size:', error);
+      return 0;
     }
   }
 }

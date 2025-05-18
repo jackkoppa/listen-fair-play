@@ -261,7 +261,26 @@ export async function handler(): Promise<void> {
       log.debug('☑️  No new episodes were downloaded');
     }
     
-    log.debug('✅ Finished processing RSS feeds at', new Date().toISOString());
+    // Group new audio files by podcast
+    const podcastStats = new Map<string, number>();
+    for (const file of newAudioFiles) {
+      const podcastName = path.basename(path.dirname(file));
+      podcastStats.set(podcastName, (podcastStats.get(podcastName) || 0) + 1);
+    }
+
+    log.info('\n📊 RSS Feed Processing Summary:');
+    log.info(`\n📡 Active Feeds Processed: ${activeFeeds.length}`);
+    log.info(`\n🎙️  New Episodes Downloaded: ${newAudioFiles.length}`);
+    
+    if (newAudioFiles.length > 0) {
+      log.info('\n📂 Breakdown by Podcast:');
+      for (const [podcast, count] of podcastStats) {
+        log.info(`\n🎧 ${podcast}:`);
+        log.info(`   📥 New Episodes: ${count}`);
+      }
+    }
+    
+    log.info('\n✨ RSS feed processing completed successfully');
   } catch (error) {
     log.error('❌ Error in RSS feed processing:', error);
     throw error;

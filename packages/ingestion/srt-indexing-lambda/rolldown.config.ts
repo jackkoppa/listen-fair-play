@@ -9,4 +9,8 @@ export default defineConfig({
   resolve: {
     symlinks: true,
   },
+  external: [
+    '@aws-sdk/client-lambda', // provided by AWS runtime
+    'sqlite3', // provided by the sqlite3 Lambda Layer, see terraform/lambda-layers/README.md
+  ]
 });

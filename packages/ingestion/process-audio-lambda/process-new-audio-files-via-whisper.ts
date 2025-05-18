@@ -9,6 +9,7 @@ import {
   saveFile,
   listFiles,
   createDirectory,
+  getDirectorySize,
 } from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 
@@ -49,7 +50,7 @@ interface FfprobeMetadata {
 // Helper function to get all MP3 files in a directory
 async function getMp3Files(dirKey: string): Promise<string[]> {
   const files = await listFiles(dirKey);
-  return files.filter(file => file.endsWith('.mp3'));
+  return files.filter(file => file.endsWith('.mp3') && !file.endsWith('.DS_Store'));
 }
 
 // Helper function to check if transcription exists
@@ -283,7 +284,10 @@ async function processAudioFile(fileKey: string): Promise<void> {
   // Save the combined SRT file to S3
   await saveFile(transcriptKey, Buffer.from(finalSrt));
 
-  log.info(`Transcription complete for ${fileKey}. SRT saved to ${transcriptKey}`);
+  log.info(
+    `\n✅ Transcription complete for ${fileKey}.` + 
+    `\n💾 SRT saved to ${transcriptKey}\n`
+  );
 
   // Clean up the temporary directory (original file and its parent directory in /tmp)
   const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
@@ -304,6 +308,14 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   log.info('Starting transcription process...');
   log.info(`Whisper API Provider: ${WHISPER_API_PROVIDER}`);
 
+  const startTime = Date.now();
+  const stats = {
+    totalFiles: 0,
+    skippedFiles: 0,
+    processedFiles: 0,
+    podcastStats: new Map<string, { total: number; skipped: number; processed: number; sizeBytes: number }>()
+  };
+
   let filesToProcess: string[] = [];
 
   if (event.audioFiles && event.audioFiles.length > 0) {
@@ -311,14 +323,31 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     log.info(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
   } else {
     // Fallback to original logic structure if event.audioFiles is not present
-    // This part is a best guess reconstruction based on typical patterns
     log.debug('Scanning S3 for audio files as no specific files were provided in the event.');
     const allPodcastDirs = await listFiles(AUDIO_DIR_PREFIX);
     log.debug(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
+    
+    // Process each podcast directory
     for (const podcastDir of allPodcastDirs) {
-      if (!podcastDir) continue; // Skip empty or undefined directory names
-      const mp3Files = await getMp3Files(podcastDir); // podcastDir should be the full prefix like 'audio/podcast_name/'
+      if (!podcastDir || podcastDir.endsWith('.DS_Store')) continue; // Skip empty, undefined, or .DS_Store directories
+      
+      // Get all MP3 files in this podcast directory
+      const mp3Files = await getMp3Files(podcastDir);
       filesToProcess.push(...mp3Files);
+      
+      // Get total size for this podcast directory
+      const podcastName = path.basename(podcastDir);
+      const dirSize = await getDirectorySize(podcastDir);
+      
+      // Initialize podcast stats
+      stats.podcastStats.set(podcastName, {
+        total: mp3Files.length,
+        skipped: 0,
+        processed: 0,
+        sizeBytes: dirSize
+      });
+      
+      stats.totalFiles += mp3Files.length;
     }
     log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
   }
@@ -331,13 +360,48 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   for (const fileKey of filesToProcess) {
     try {
       log.debug(`Processing file: ${fileKey}`);
+      const podcastName = path.basename(path.dirname(fileKey));
+      
+      // Check if transcription exists
+      if (await transcriptExists(fileKey)) {
+        stats.skippedFiles++;
+        stats.podcastStats.get(podcastName)!.skipped++;
+        log.debug(`Transcript already exists for ${fileKey}, skipping`);
+        continue;
+      }
+
       await processAudioFile(fileKey);
+      stats.processedFiles++;
+      stats.podcastStats.get(podcastName)!.processed++;
     } catch (error) {
       log.error(`Error processing file ${fileKey}:`, error);
       // Continue with next file even if one fails (original behavior)
     }
   }
-  log.info('Transcription process finished.');
+
+  const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+
+  // Log summary with emojis and formatting
+  log.info('\n📊 Transcription Process Summary:');
+  log.info(`\n⏱️  Total Duration: ${duration.toFixed(2)} seconds`);
+  log.info(`\n📁 Total Files Found: ${stats.totalFiles}`);
+  log.info(`✅ Successfully Processed: ${stats.processedFiles}`);
+  log.info(`⏭️  Skipped (Already Transcribed): ${stats.skippedFiles}`);
+  
+  log.info('\n📂 Breakdown by Podcast:');
+  for (const [podcast, podcastStats] of stats.podcastStats) {
+    const podcastSizeMB = podcastStats.sizeBytes / (1024 * 1024);
+    const podcastSizeDisplay = podcastSizeMB >= 1024 
+      ? `${(podcastSizeMB / 1024).toFixed(2)} GB`
+      : `${podcastSizeMB.toFixed(2)} MB`;
+
+    log.info(`\n🎙️  ${podcast}:`);
+    log.info(`   📁 Total Files: ${podcastStats.total}`);
+    log.info(`   📦 Total Size: ${podcastSizeDisplay}`);
+    log.info(`   ✅ Processed: ${podcastStats.processed}`);
+    log.info(`   ⏭️  Skipped: ${podcastStats.skipped}`);
+  }
+  log.info('\n✨ Transcription process finished.');
 }
 
 // Run the handler if this file is executed directly

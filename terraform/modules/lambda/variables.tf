@@ -51,4 +51,10 @@ variable "lambda_architecture" {
   description = "Lambda function architecture (e.g., [\"x86_64\"] or [\"arm64\"])"
   type        = list(string)
   default     = ["arm64"] # Default to arm64 for decreased costs / better performance
+}
+
+variable "layers" {
+  description = "List of Lambda layer ARNs to attach to the function"
+  type        = list(string)
+  default     = []
 } 

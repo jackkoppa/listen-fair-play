@@ -140,6 +140,14 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
   source_arn    = module.rss_lambda.lambda_function_arn
 }
 
+# Lambda Layer for SQLite3
+resource "aws_lambda_layer_version" "sqlite3_layer" {
+  layer_name          = "sqlite3-layer-${var.environment}"
+  description         = "sqlite3 npm package - layer for Lambda functions"
+  filename           = "${path.module}/lambda-layers/sqlite3-layer.zip"
+  compatible_runtimes = ["nodejs20.x"]
+}
+
 # Lambda for SRT to Search Entries conversion
 module "indexing_lambda" {
   source = "./modules/lambda"
@@ -157,6 +165,7 @@ module "indexing_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
+  layers              = [aws_lambda_layer_version.sqlite3_layer.arn]
 }
 
 # IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)

@@ -14,6 +14,7 @@ resource "aws_lambda_function" "lambda" {
   timeout          = var.timeout
   role             = aws_iam_role.lambda_exec.arn
   architectures    = var.lambda_architecture
+  layers           = var.layers
 
   environment {
     variables = var.environment_variables

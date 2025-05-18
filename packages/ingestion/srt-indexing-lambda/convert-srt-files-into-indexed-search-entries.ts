@@ -1,3 +1,19 @@
+// Add error handlers at the very top of the file
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    cause: error.cause
+  });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // CURSOR-TODO: This file will often take a long time to run, and risks being > the 10 minute limit for AWS Lambda.
 // The approach we should take:
 // 1. On every run of this file, make sure we're iterating through every single .srt file in S3 /transcripts/
@@ -150,7 +166,7 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
 // Main handler function
 export async function handler(event: { previousRunsCount?: number; forceReprocessAll?: boolean } = {}): Promise<any> {
   const lambdaStartTime = Date.now();
-  log.debug('Starting SRT to search index entries conversion at', new Date().toISOString(), 'Event:', event);
+  log.info('Starting SRT to search index entries conversion at', new Date().toISOString(), 'Event:', event);
 
   const currentRunCount = event.previousRunsCount || 0;
   if (currentRunCount > MAX_RETRIGGER_COUNT) {
@@ -400,7 +416,22 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
     (retriggered ? "Stopped early, re-triggered." : (srtFilesProcessedCount < totalSrtFiles ? "Stopped early, max retriggers reached or failed to retrigger." : "Completed at time limit."))
     : "Completed successfully.";
 
-  log.info(`Handler execution finished in ${totalLambdaTime.toFixed(2)}s. ${statusMessage} Processed ${srtFilesProcessedCount}/${totalSrtFiles} SRTs. Added ${newEntriesAddedInThisRun} new entries.`);
+  log.info('\n📊 SRT Processing Summary:');
+  log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
+  log.info(`\n📁 Total SRT Files Found: ${totalSrtFiles}`);
+  log.info(`✅ Successfully Processed: ${srtFilesProcessedCount}`);
+  log.info(`📝 New Search Entries Added: ${newEntriesAddedInThisRun}`);
+  
+  if (timeLimitReached) {
+    log.info(`\n⚠️  Time Limit Reached: ${PROCESSING_TIME_LIMIT_MINUTES} minutes`);
+    if (retriggered) {
+      log.info(`🔄 Lambda Re-triggered: Run #${currentRunCount + 1} of ${MAX_RETRIGGER_COUNT}`);
+    } else if (srtFilesProcessedCount < totalSrtFiles) {
+      log.info(`❌ Max Re-triggers Reached: ${totalSrtFiles - srtFilesProcessedCount} files remaining`);
+    }
+  }
+
+  log.info(`\n✨ ${statusMessage}`);
 
   return {
     status: timeLimitReached && srtFilesProcessedCount < totalSrtFiles && !retriggered ? 'error_incomplete' : 'success',

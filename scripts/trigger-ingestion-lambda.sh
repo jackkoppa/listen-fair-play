@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to trigger the retrieve-rss-feeds-and-download-audio-files Lambda function
+# Script to trigger any of the ingestion Lambda functions
 
 # Load environment variables from .env.dev if it exists
 if [ -f ".env.dev" ]; then
@@ -11,9 +11,38 @@ else
 fi
 
 # Configuration
-LAMBDA_FUNCTION_NAME="retrieve-rss-feeds-and-download-audio-files" # defined in /terraform/main.tf, "Lambda for RSS feed processing"
 AWS_REGION="${AWS_REGION:-$(aws configure get region)}" # Use AWS_REGION from .env.dev if set, otherwise get from aws config
 OUTPUT_FILE="lambda_invoke_output.json"
+
+# Define available Lambda functions
+declare -A LAMBDA_FUNCTIONS=(
+    [1]="retrieve-rss-feeds-and-download-audio-files"
+    [2]="process-new-audio-files-via-whisper"
+    [3]="convert-srt-files-into-indexed-search-entries"
+)
+
+# Display menu and get user choice
+echo "Please select which Lambda function to trigger:"
+echo "1) RSS Feed Retrieval and Audio Download"
+echo "2) Whisper Audio Processing"
+echo "3) SRT to Search Index Conversion"
+echo "q) Quit"
+
+read -p "Enter your choice (1-3 or q): " choice
+
+# Validate choice
+if [[ "$choice" == "q" ]]; then
+    echo "Exiting..."
+    exit 0
+fi
+
+if ! [[ "$choice" =~ ^[1-3]$ ]]; then
+    echo "❌ Invalid choice. Please select 1, 2, 3, or q."
+    exit 1
+fi
+
+# Set the selected Lambda function name
+LAMBDA_FUNCTION_NAME="${LAMBDA_FUNCTIONS[$choice]}"
 
 # Check if AWS CLI is installed
 if ! command -v aws &> /dev/null
@@ -40,13 +69,11 @@ else
     exit 1
 fi
 
-
 # Check if a function name is provided (should always be set by default now)
 if [ "$LAMBDA_FUNCTION_NAME" == "YOUR_LAMBDA_FUNCTION_NAME" ] || [ -z "$LAMBDA_FUNCTION_NAME" ]; then
     echo "Error: LAMBDA_FUNCTION_NAME is not correctly set in the script." # Should not happen
     exit 1
 fi
-
 
 echo "Attempting to invoke Lambda function: $LAMBDA_FUNCTION_NAME in region: $AWS_REGION using profile: $AWS_PROFILE..."
 
