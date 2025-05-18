@@ -92,7 +92,6 @@ fi
 terraform plan \
   -var-file=environments/$ENV.tfvars \
   -var="openai_api_key=$OPENAI_API_KEY" \
-  -var="log_level=$LOG_LEVEL" \
   $TERRAFORM_PROFILE_FLAG \
   -out=tfplan
 

@@ -5,16 +5,20 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_function" "lambda" {
-  function_name    = var.function_name
-  filename         = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  handler          = var.handler
-  runtime          = var.runtime
-  memory_size      = var.memory_size
-  timeout          = var.timeout
-  role             = aws_iam_role.lambda_exec.arn
-  architectures    = var.lambda_architecture
-  layers           = var.layers
+  function_name     = var.function_name
+  filename          = data.archive_file.lambda_zip.output_path
+  source_code_hash  = data.archive_file.lambda_zip.output_base64sha256
+  handler           = var.handler
+  runtime           = var.runtime
+  memory_size       = var.memory_size
+  timeout           = var.timeout
+  role              = aws_iam_role.lambda_exec.arn
+  architectures     = var.lambda_architecture
+  layers            = var.layers
+
+  ephemeral_storage {
+    size = var.ephemeral_storage
+  }
 
   environment {
     variables = var.environment_variables

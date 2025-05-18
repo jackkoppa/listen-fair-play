@@ -13,6 +13,8 @@ import {
 } from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 
+log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
+
 // Constants - S3 paths
 const AUDIO_DIR_PREFIX = 'audio/';
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
@@ -21,9 +23,7 @@ const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 // Which Whisper API provider to use (can be configured via environment variable)
 const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
 
-// Initialize loglevel
-const loggingLevel = process.env.LOGGING_LEVEL || 'warn';
-log.setLevel(loggingLevel as log.LogLevelDesc);
+
 
 // Types
 interface TranscriptionChunk {
@@ -305,10 +305,12 @@ async function processAudioFile(fileKey: string): Promise<void> {
  * @param event - The event object, which can optionally contain a list of audio files to process.
  */
 export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
-  log.info('Starting transcription process...');
-  log.info(`Whisper API Provider: ${WHISPER_API_PROVIDER}`);
+  log.info(`🟢 Starting process-new-audio-files-via-whisper > handler, with logging level: ${log.getLevel()}`);
+  const lambdaStartTime = Date.now();
+  log.info('⏱️ Starting at', new Date().toISOString());
+  log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
+  log.info('🔍 Event:', event);
 
-  const startTime = Date.now();
   const stats = {
     totalFiles: 0,
     skippedFiles: 0,
@@ -379,11 +381,11 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     }
   }
 
-  const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+  const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000; // Convert to seconds
 
   // Log summary with emojis and formatting
   log.info('\n📊 Transcription Process Summary:');
-  log.info(`\n⏱️  Total Duration: ${duration.toFixed(2)} seconds`);
+  log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
   log.info(`\n📁 Total Files Found: ${stats.totalFiles}`);
   log.info(`✅ Successfully Processed: ${stats.processedFiles}`);
   log.info(`⏭️  Skipped (Already Transcribed): ${stats.skippedFiles}`);

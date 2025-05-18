@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { getSignedUrl as createSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@listen-fair-play/logging';
 
@@ -245,11 +246,26 @@ export async function saveFile(key: string, content: Buffer | string): Promise<v
     await fs.writeFile(localPath, content);
   } else {
     const bucketName = getBucketName();
-    await s3.putObject({
-      Bucket: bucketName,
-      Key: key,
-      Body: content,
+
+    const parallelUpload = new Upload({
+      client: s3,
+      params: {
+        Bucket: bucketName,
+        Key: key,
+        Body: content,
+      },
+      partSize: 20 * 1024 * 1024, // 20MB parts
+      queueSize: 4, // 4 concurrent uploads
     });
+
+    parallelUpload.on('httpUploadProgress', (progress) => {
+      if (progress.total && progress.loaded && progress.part) {
+        const percentage = (progress.loaded / progress.total) * 100;
+        log.info(`Upload progress: ${percentage.toFixed(2)}%, for part ${progress.part}`);
+      }
+    });
+
+    await parallelUpload.done();
   }
 }
 

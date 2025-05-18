@@ -3,6 +3,8 @@ import * as path from 'path';
 import { log } from '@listen-fair-play/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
 
+log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
+
 // Types
 interface RSSFeedConfig {
   'rssFeeds': Array<{
@@ -194,9 +196,10 @@ async function triggerTranscriptionLambda(newAudioFiles: string[]): Promise<void
 
 // Main handler function
 export async function handler(): Promise<void> {
+  log.info(`🟢 Starting retrieve-rss-feeds-and-download-audio-files > handler, with logging level: ${log.getLevel()}`);
+  const lambdaStartTime = Date.now();
+  log.info('⏱️ Starting at', new Date().toISOString());
   try {
-    log.debug('Starting RSS feed processing at', new Date().toISOString());
-    
     // Ensure directories exist
     await createDirectory(RSS_DIR_PREFIX);
     await createDirectory(AUDIO_DIR_PREFIX);
@@ -268,7 +271,10 @@ export async function handler(): Promise<void> {
       podcastStats.set(podcastName, (podcastStats.get(podcastName) || 0) + 1);
     }
 
-    log.info('\n📊 RSS Feed Processing Summary:');
+    const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;
+    
+    log.info('\n📊 RSS Feed Processing Summary:');  
+    log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
     log.info(`\n📡 Active Feeds Processed: ${activeFeeds.length}`);
     log.info(`\n🎙️  New Episodes Downloaded: ${newAudioFiles.length}`);
     

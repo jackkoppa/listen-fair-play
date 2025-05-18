@@ -1,34 +1,3 @@
-// Add error handlers at the very top of the file
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', {
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
-    cause: error.cause
-  });
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
-
-// CURSOR-TODO: This file will often take a long time to run, and risks being > the 10 minute limit for AWS Lambda.
-// The approach we should take:
-// 1. On every run of this file, make sure we're iterating through every single .srt file in S3 /transcripts/
-// 2. If the file doesn't yet have an equivalent .json file in S3 /search-entries/, then we should create one, using the existing logic. (this part is fast regardless)
-// 3. If the file already has an equivalent .json file in S3 /search-entries/, then we can skip creating that.
-// 4. Immediately after, for each file, attempt to index that file into the FlexSearch index.
-// 5. For each entry in the .json file, check if entry.id is already in the FlexSearch index. If so, skip it. If not, add it. (this is the part that can slow down)
-// (IMPORTANT: We need to re-use the existing SQLite DB file, if it exists - not create it totally fresh)
-// 6. Commit the index to the local SQLite DB every 5%
-// 7. IF AT ANY POINT, we hit 7 minutes (make this configurable), we should stop the process.
-//       8. If we've stopped, then finish creating the index, and save it to the file that we currently do.
-//       9. If we've needed to stop, then log the fact that we stopped early, and after saving the index file, TRIGGER A NEW RUN of this same Lambda.
-// 10. Once a run is able to fully finish under 7 minutes, then we don't need to re-trigger the Lambda.
-
-
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import sqlite3 from "sqlite3";
@@ -45,6 +14,8 @@ import {
 } from '@listen-fair-play/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { Lambda } from "@aws-sdk/client-lambda"; // Added for re-triggering
+
+log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
 
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
@@ -163,10 +134,16 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
   return false;
 }
 
+// CURSOR-TODO: Let's add the work of fetching the sqliteDB file from S3, to a local temp file, to a function here
+// And then let's call it *before* the handler, in the init phase,
+// So that it's available if multiple runs are made (so we don't have to re-download the file every time from S3)
+
 // Main handler function
 export async function handler(event: { previousRunsCount?: number; forceReprocessAll?: boolean } = {}): Promise<any> {
+  log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
-  log.info('Starting SRT to search index entries conversion at', new Date().toISOString(), 'Event:', event);
+  log.info('⏱️ Starting at', new Date().toISOString())
+  log.info('🔍 Event:', event)
 
   const currentRunCount = event.previousRunsCount || 0;
   if (currentRunCount > MAX_RETRIGGER_COUNT) {
