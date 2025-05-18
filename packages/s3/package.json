@@ -15,6 +15,7 @@
         "@aws-sdk/client-s3": "catalog:",
         "@aws-sdk/credential-provider-sso": "catalog:",
         "@aws-sdk/s3-request-presigner": "catalog:",
+        "@aws-sdk/lib-storage": "catalog:",
         "@types/fs-extra": "catalog:",
         "fs-extra": "catalog:",
         "typescript": "catalog:"
