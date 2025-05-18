@@ -156,7 +156,7 @@ module "indexing_lambda" {
   handler              = "convert-srt-files-into-indexed-search-entries.handler"
   runtime              = "nodejs20.x"
   timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srt-files-into-indexed-search-entries.ts
-  memory_size          = 2048 # Adjust as needed
+  memory_size          = 3008 # Trying to have enough space for the sqlite3 DB
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
@@ -186,6 +186,7 @@ module "search_lambda" {
   runtime              = "nodejs20.x"
   timeout              = 60  # Adjust as needed
   memory_size          = 512 # Adjust as needed
+  ephemeral_storage    = 2048 # Min 512 MB and the Max 10240 MB
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
