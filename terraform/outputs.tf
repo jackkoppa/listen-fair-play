@@ -8,6 +8,11 @@ output "cloudfront_distribution_domain_name" {
   value       = module.cloudfront.cloudfront_domain_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.cloudfront.cloudfront_id
+}
+
 output "rss_lambda_function_name" {
   description = "Name of the RSS processing Lambda function"
   value       = module.rss_lambda.lambda_function_name

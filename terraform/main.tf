@@ -183,7 +183,7 @@ module "search_lambda" {
   source = "./modules/lambda"
 
   function_name        = "search-indexed-transcripts"
-  handler              = "search-indexed-transcripts.handler" # As per search/README.md
+  handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
   timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the SQLite DB file
   memory_size          = 3008 # Trying to allow the search to be performed as quickly as possible (3008 is current max)
@@ -196,6 +196,7 @@ module "search_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
+  layers               = [aws_lambda_layer_version.sqlite3_layer.arn]
 }
 
 # API Gateway for Search Lambda
@@ -203,6 +204,13 @@ resource "aws_apigatewayv2_api" "search_api" {
   name          = "search-transcripts-api-${var.environment}"
   protocol_type = "HTTP"
   target        = module.search_lambda.lambda_function_arn
+
+  cors_configuration {
+    allow_origins = ["https://${module.cloudfront.cloudfront_domain_name}"]
+    allow_methods = ["GET", "OPTIONS"]
+    allow_headers = ["Content-Type", "Authorization"]
+    max_age       = 300
+  }
 }
 
 resource "aws_apigatewayv2_stage" "search_api_stage" {

@@ -7,6 +7,8 @@ import './App.css'
 
 import SearchResult from './components/SearchResult'
 
+// Get the search API URL from environment variable, fallback to localhost for development
+const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,7 +33,6 @@ function App() {
       setIsLoading(true);
       setError(null);
       
-      const SEARCH_API_BASE_URL = 'http://localhost:3001';
       const limit = 10;
 
       try {

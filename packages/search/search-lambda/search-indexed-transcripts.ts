@@ -167,7 +167,7 @@ async function searchIndex(
  * Main Lambda handler function
  */
 export async function handler(event: any): Promise<SearchResponse> {
-  log.debug('Search request received:', JSON.stringify(event));
+  log.info('Search request received:', JSON.stringify(event));
   const startTime = Date.now();
 
   try {
@@ -180,15 +180,30 @@ export async function handler(event: any): Promise<SearchResponse> {
     let suggest: boolean = false;
     let matchAllFields: boolean = false;
 
-    // Handle both GET requests with query parameters and POST requests with a JSON body
-    if (event.httpMethod === 'GET') {
-      // For API Gateway GET requests
-      const queryParams = event.queryStringParameters || {};
-      query = queryParams.query || '';
-      limit = parseInt(queryParams.limit || '10', 10);
-      searchFields = queryParams.fields ? queryParams.fields.split(',') : ['text'];
-      suggest = queryParams.suggest === 'true';
-      matchAllFields = queryParams.matchAllFields === 'true';
+    // Check if this is an API Gateway v2 event
+    if (event.requestContext?.http?.method) {
+      const method = event.requestContext.http.method;
+      
+      if (method === 'GET') {
+        // For API Gateway GET requests
+        const queryParams = event.queryStringParameters || {};
+        query = queryParams.query || '';
+        limit = parseInt(queryParams.limit || '10', 10);
+        searchFields = queryParams.fields ? queryParams.fields.split(',') : ['text'];
+        suggest = queryParams.suggest === 'true';
+        matchAllFields = queryParams.matchAllFields === 'true';
+      } else if (method === 'POST' && event.body) {
+        // For POST requests with a body
+        const body: SearchRequest = typeof event.body === 'string'
+          ? JSON.parse(event.body)
+          : event.body;
+
+        query = body.query || '';
+        limit = body.limit || 10;
+        searchFields = body.searchFields || ['text'];
+        suggest = body.suggest || false;
+        matchAllFields = body.matchAllFields || false;
+      }
     } else if (event.body) {
       // For direct invocations or POST requests with a body
       const body: SearchRequest = typeof event.body === 'string'

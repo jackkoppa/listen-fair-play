@@ -5,6 +5,8 @@ set -e
 # Default environment is dev
 ENV=${1:-dev}
 
+
+
 # Terraform configuration
 TF_DIR="terraform"
 TF_STATE_FILENAME="terraform.tfstate" # Basename of the state file, e.g., terraform.tfstate
@@ -108,11 +110,26 @@ if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
   # Display outputs
   echo "======= Deployment Complete ======="
   terraform output
+
+  # Return to the project root before running upload script
+  cd ..
+  echo "Returned to $(pwd)" 
+  
+  echo ""
+  echo "=== Optional: Upload client files to S3 ==="
+  echo ""
+
+  # Ask if user wants to upload client files
+  read -p "Do you want to upload the client files to S3? (y/N): " upload_confirm
+  if [[ $upload_confirm == [yY] || $upload_confirm == [yY][eE][sS] ]]; then
+    echo "Uploading client files..."
+    ./scripts/deploy/upload-client.sh "$ENV"
+  else
+    echo "Skipping client upload. You can run it later with: ./scripts/deploy/upload-client.sh $ENV"
+  fi
 else
   echo "Deployment cancelled."
+  cd ..
+  echo "Returned to $(pwd)" 
   # If deployment is cancelled, no state change, so no need to upload state.
 fi
-
-# Return to the original directory
-cd ..
-echo "Returned to $(pwd)" 

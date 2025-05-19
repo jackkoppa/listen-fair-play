@@ -1,4 +1,4 @@
-This directory contains the AWS Lambda function responsible for searching indexed podcast transcripts.
+This package contains the AWS Lambda function responsible for searching indexed podcast transcripts.
 
 ## How it Works
 
