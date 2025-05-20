@@ -1,6 +1,6 @@
+import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
 import fs from 'fs'
 import path from 'path'
 import type { ViteDevServer } from 'vite'
@@ -91,6 +91,7 @@ function findSrtFiles(dir: string): string[] {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     react(),
     transcriptServerPlugin()
   ],
@@ -101,7 +102,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, 'src'),
     },
   }
 })

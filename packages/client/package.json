@@ -15,10 +15,13 @@
   "dependencies": {
     "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
+    "@tailwindcss/vite": "^4.1.7",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
