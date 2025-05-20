@@ -12,6 +12,8 @@ import SearchResult from './components/SearchResult'
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
+const SEARCH_LIMIT = 50;
+
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
@@ -34,11 +36,9 @@ function App() {
     const fetchSearchResults = async () => {
       setIsLoading(true);
       setError(null);
-      
-      const limit = 10;
 
       try {
-        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(trimmedQuery)}&limit=${limit}`);
+        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(trimmedQuery)}&limit=${SEARCH_LIMIT}`);
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
         }
