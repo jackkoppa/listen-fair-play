@@ -11,7 +11,12 @@ const stat = promisify(fs.stat);
 
 // Directory containing transcript files
 const TRANSCRIPTS_DIR = path.resolve(__dirname, "../../aws-local-dev/s3/transcripts");
-const sentenceEndRegex = /[.!?]$/;
+
+// We don't care about the punctuation being at the end of a given .srt item - just that there *is* sentence-ending punctuation within the target duration
+const sentenceEndRegex = /[.!?]/;
+
+// If we don't find any punctuation within 45 seconds, we consider it a lint issue
+const DURATION_REQUIRING_PUNCTUATION_SECONDS = 45;
 
 // Interface for SRT items from the parser
 interface SrtItem {
@@ -64,12 +69,12 @@ async function lintFile(filePath: string): Promise<{ passes: boolean; failingTex
   try {
     const fileContent = await readFile(filePath, "utf-8");
     const parser = new SrtParser();
-    const data = parser.fromSrt(fileContent);
+    const srtItems = parser.fromSrt(fileContent);
     
     let lastPunctuatedItem: SrtItem | null = null;
     
-    for (let i = 0; i < data.length; i++) {
-      const currentItem = data[i];
+    for (let i = 0; i < srtItems.length; i++) {
+      const currentItem = srtItems[i];
       const currentText = currentItem.text.trim();
       
       // Check if the current item ends with sentence-ending punctuation
@@ -87,11 +92,11 @@ async function lintFile(filePath: string): Promise<{ passes: boolean; failingTex
       const lastPunctuatedTime = getTimeInSeconds(lastPunctuatedItem.startTime);
       const currentEndTime = getTimeInSeconds(currentItem.endTime);
       
-      // If the gap is >= 30 seconds, this file fails the lint check
-      if (currentEndTime - lastPunctuatedTime >= 30) {
+      // If the gap is >= 45 seconds, this file fails the lint check
+      if (currentEndTime - lastPunctuatedTime >= DURATION_REQUIRING_PUNCTUATION_SECONDS) {
         // Collect text from the last punctuated item to the current item for the example
-        const startIndex = data.findIndex(item => item.id === lastPunctuatedItem!.id);
-        const failingText = data.slice(startIndex, i + 1)
+        const startIndex = srtItems.findIndex(item => item.id === lastPunctuatedItem!.id);
+        const failingText = srtItems.slice(startIndex, i + 1)
           .map(item => item.text)
           .join(" ");
         
