@@ -2,7 +2,7 @@
 // Used as a local process, to test the client against 
 // (rather than the client making requests to AWS Lambda)
 
-import http from 'http';
+import * as http from 'http';
 import { URL } from 'url';
 import { handler as searchHandler } from './search-indexed-transcripts.js';
 import { log } from '@listen-fair-play/logging';
@@ -36,15 +36,30 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (method === 'GET') {
-      event.httpMethod = 'GET';
-      event.queryStringParameters = {};
+      event.httpMethod = 'GET'; // Keep for logging or other potential uses, though handler doesn't strictly need it this way
+      // Adjust to place parameters directly on event, as expected by the handler's fallback
       parsedUrl.searchParams.forEach((value, key) => {
-        event.queryStringParameters[key] = value;
+        // Convert known numeric/boolean params, default others to string
+        if (key === 'limit') {
+          event[key] = parseInt(value, 10);
+        } else if (key === 'suggest' || key === 'matchAllFields') {
+          event[key] = value === 'true';
+        } else if (key === 'fields') {
+          event[key] = value.split(',');
+        } else {
+          event[key] = value;
+        }
       });
       // Ensure 'query' parameter exists, even if empty, for the handler
-      if (!event.queryStringParameters.query) {
-          event.queryStringParameters.query = '';
+      if (event.query === undefined) {
+        event.query = '';
       }
+      // Default other parameters if not provided
+      if (event.limit === undefined) event.limit = 10;
+      if (event.fields === undefined) event.fields = ['text'];
+      if (event.suggest === undefined) event.suggest = false;
+      if (event.matchAllFields === undefined) event.matchAllFields = false;
+
     } else if (method === 'POST') {
       event.httpMethod = 'POST';
       let body = '';
