@@ -1,5 +1,12 @@
 import React from 'react';
 import { ApiSearchResultHit } from '@listen-fair-play/types'; // Import the new type
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 // Utility function to format milliseconds to MM:SS
 const formatMillisecondsToMMSS = (ms: number): string => {
@@ -18,18 +25,20 @@ const SearchResult: React.FC<SearchResultProps> = ({ result }) => {
   const formattedEndTime = formatMillisecondsToMMSS(result.endTimeMs);
 
   return (
-    <li className="result-item">
-      <div className="result-header">
-        <span className="result-episode-title">{result.episodeTitle}</span>
-        <span className="result-timestamp-condensed">{formattedStartTime} - {formattedEndTime}</span>
-      </div>
-      <div 
-        className="result-highlighted-text"
-        dangerouslySetInnerHTML={{ __html: result.highlight }}
-      />
-      {/* <div className="result-full-text">{result.text}</div> */}
-      {/* Display full text if needed, or remove */}
-    </li>
+    <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">{result.episodeTitle}</CardTitle>
+        <CardDescription className="text-sm text-gray-600">
+          {formattedStartTime} - {formattedEndTime}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div
+          className="result-highlighted-text text-sm"
+          dangerouslySetInnerHTML={{ __html: result.highlight }}
+        />
+      </CardContent>
+    </Card>
   );
 };
 

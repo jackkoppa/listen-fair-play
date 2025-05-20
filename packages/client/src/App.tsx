@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-import { Button } from "@/components/ui/button"
+// import { Button } from "@/components/ui/button" // No longer using Button here
 
 import { log } from '@listen-fair-play/logging';
 import { ApiSearchResultHit } from '@listen-fair-play/types'
@@ -67,47 +67,52 @@ function App() {
   }, [searchQuery]);
 
   return (
-    <div className="app-container">
-      <header>
-        <h1>Football Cliches Transcript Search</h1>
-        <p>Search through podcast transcripts by typing below</p>
+    <div className="app-container max-w-3xl mx-auto p-4 font-mono">
+      <header className="text-center mb-8">
+        <h1 className="text-4xl font-bold mb-2">Football Clichés</h1>
+        <p className="text-lg text-gray-700">Transcript Search</p>
       </header>
-      
-      <div className="search-input-container"> 
+
+      <div className="search-input-container mb-8 relative flex items-center">
         <input
           type="text"
           placeholder="Search transcripts (min. 2 characters)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
+          className="search-input w-full p-3 border-black border-2 text-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none"
         />
-        {isLoading && <div className="search-spinner"></div>}
+        {isLoading && (
+          <div className="search-spinner absolute right-3 top-1/2 transform -translate-y-1/2 border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-4 h-6 w-6"></div>
+        )}
       </div>
-      
+
       {error && (
-        <div className="error-message">
-          {error}
+        <div className="error-message text-red-600 bg-red-100 border-red-600 border-2 p-4 mb-6 shadow-[4px_4px_0px_#ef4444] rounded-none">
+          <p className="font-semibold">Error:</p>
+          <p>{error}</p>
         </div>
       )}
-      
+
       <div className="results-container">
-        {isLoading ? (
-          <p className="loading-message">Loading results...</p>
+        {isLoading && !error ? (
+          <p className="loading-message text-lg text-gray-600 text-center">Loading results...</p>
         ) : searchResults.length > 0 ? (
-          <ul className="results-list">
+          <ul className="results-list space-y-6">
             {searchResults.map((result) => (
-              <SearchResult 
+              <SearchResult
                 key={result.id}
                 result={result}
               />
             ))}
           </ul>
-        ) : searchQuery.trim().length >=2 && !error ? (
-          <p className="no-results">No results found for "{searchQuery}"</p>
+        ) : searchQuery.trim().length >= 2 && !error ? (
+          <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+            No results found for "{searchQuery}". Try a different term, perhaps something more pedantic?
+          </p>
         ) : null}
       </div>
 
-      <Button>TEST - Click me</Button>
+      {/* Removed Test Button */}
     </div>
   )
 }
