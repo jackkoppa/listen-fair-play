@@ -9,7 +9,6 @@ const formatMillisecondsToMMSS = (ms: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Define the props for SearchResult component using the new API hit structure
 export interface SearchResultProps {
   result: ApiSearchResultHit;
 }

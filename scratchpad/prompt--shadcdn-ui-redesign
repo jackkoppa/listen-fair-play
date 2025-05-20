@@ -1,0 +1,99 @@
+# Requirements
+
+* We will be re-designing different screens for the app (will refer to listen-fair-play) as "LFP" throughout. Now that the full functionality of retrieving/indexing/searching is working on AWS, along with the current simple React client, we can start implementing actual designs
+* I'll describe some things about LFP - some of this you can also find in the READMEs
+* LFP is mobile-first
+* The primary functionality is searching for key phrases from the past 5+ years of episodes, along with filtering by things like panelists & episode type, as well as sorting by relevance vs. date
+* For each result, the user will be able to see their search terms highlighted in the result, and when clicked, see that segment of the transcript in context of the full episode transcript. They will be able to press "play" on an audio player, and it will start from that segment of the podcast (if the user scrubs to a different portion of the podcast, the transcript will scroll down or up to that moment)
+* As bonus functionality, users will see a small graphical representation of search results over time (likely a bar chart, with time on the X axis). If the user clicks on that chart, they will be taken to an expanded view, that shows the chart rather than a list of search results. It's possible to toggle between these two views, but the search bar + filters should always stay visible, and the search results page is the default / primary focus. The graphical/chart view is lower priority
+* There is currently no settings page or profile for LFP - just GET requests, no user-provided data that we need to save. We can link a small "About" sheet somewhere in the top nav or footer, and it will briefly explain LFP + link to the repo. 
+* LFP is mobile-first, but let's consider the desktop view as well for every screen that we work on
+
+
+
+# Inspiration
+
+* Attached are screenshots of content provided by Footbal Cliches / Adam Hurrey (the primary host)
+* More about the content of the podcast can be found by reading here: https://podcasts.apple.com/us/podcast/football-cliches/id1711046479
+  * or here, in this summary of Adam's recent book:
+  
+```
+Does language evolve? Yes, it does.
+
+Will it ever be acceptable for a football commentator to call a shot that bounces before it goes in 'a screamer'? No, it will not.
+
+As the self-appointed world expert on the subject, Adam Hurrey sets off to define the definitive rules of the language of football.
+
+He will answer the big questions such as: is it acceptable to say a player is 'breaking their silence' (it's complicated), can headers can be 'lashed' (anatomically impossible), whether a penalty shootout could ever be described as 'late drama' (truly abhorrent), how many games constitute a 'bumper' day of Premier League action (minimum of eight) and just how big a deficit constitutes 'a mountain to climb' (certainly not Liverpool going 1-0 down at home to Wolves in the third minute, Sky Sports).
+
+Along the way, Hurrey examines some case studies of how the football media has reached saturation point - the transfer rumour mill, the futile art of big-match previewing, the rise of (and backlash against) football jargon - and how its language has evolved to keep the machine going.
+
+Have we let the football lexicon spiral out of control? In finding out, this book will be exactly as gloriously pedantic as it sounds.
+```
+
+* Words that would describe the vibe LFP should have: 
+   * restrained
+   * witty
+   * tongue-in-cheek
+   * classy
+   * not-taking-itself-too-seriously
+   * visually straightforward
+   * sufficient whitespace 
+
+
+* I have already picked the theme we'll be using, for maximum maintainability:
+https://tweakcn.com/editor/theme?theme=neo-brutalism
+* Screenshots are attached
+* This should mostly match the vibe above, and I like the yellow/red/blue highlight colors
+* We'll rely on components from Shad CDN: https://ui.shadcn.com/docs/components/sheet
+   * the example, "Sheet", linked there, is one such component we'll be using
+
+* Some helpful examples of shadcdn-powered UI can be found here: 
+https://github.com/jnsahaj/tweakcn/tree/main/components/examples/cards
+
+
+Per the shadcdn docs, when we decide to use a shadcdn component, we'll first have to run a command to install it, before importing that component. e.g. I know we'll need `Card` components, for the search results. 
+docs: https://ui.shadcn.com/docs/components/card
+We would do something like this:
+
+```shell
+cd packages/client && pnpm dlx shadcn@latest add card
+```
+
+Then in one of our `.tsx` files
+
+```tsx
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+...
+<Card>
+  <CardHeader>
+    <CardTitle>Card Title</CardTitle>
+    <CardDescription>Card Description</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p>Card Content</p>
+  </CardContent>
+  <CardFooter>
+    <p>Card Footer</p>
+  </CardFooter>
+</Card>
+```
+
+Both shadcdn & the theme are already installed; see client/App.tsx for an example usage of <Button/> - the only component I've installed so far.
+
+
+We'll eventually work on each of these 3 screens we have planned:
+1. Home page - search UI + search results
+2. Episode sheet - "Sheet" that loads episode transcript, scrollable, and audio player
+3. Data visualization - search UI, but instead of listed search results, a chart showing when results occurred
+
+But for the foreseeable future, we're only going to work on 1. Home page - search UI + search results. I've attached one initial mockup of how this can look, but that mockup can be improved. And we should be using shadcdn + relying on the neo brutalist theme that's already installed to get the look of clean, sharp lines, plenty of whitespace, tongue-in-cheek - while matching some of the attached Football Clichés screenshots.
+
+You can go ahead & get started on 1. Home page - search UI + search results

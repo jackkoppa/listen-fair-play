@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+import { Button } from "@/components/ui/button"
+
 import { log } from '@listen-fair-play/logging';
 import { ApiSearchResultHit } from '@listen-fair-play/types'
 
@@ -104,6 +106,8 @@ function App() {
           <p className="no-results">No results found for "{searchQuery}"</p>
         ) : null}
       </div>
+
+      <Button>TEST - Click me</Button>
     </div>
   )
 }
