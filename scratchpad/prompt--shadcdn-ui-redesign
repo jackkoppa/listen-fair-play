@@ -48,11 +48,11 @@ https://tweakcn.com/editor/theme?theme=neo-brutalism
 * We'll rely on components from Shad CDN: https://ui.shadcn.com/docs/components/sheet
    * the example, "Sheet", linked there, is one such component we'll be using
 
-* Some helpful examples of shadcdn-powered UI can be found here: 
+* Some helpful examples of shadcn-powered UI can be found here: 
 https://github.com/jnsahaj/tweakcn/tree/main/components/examples/cards
 
 
-Per the shadcdn docs, when we decide to use a shadcdn component, we'll first have to run a command to install it, before importing that component. e.g. I know we'll need `Card` components, for the search results. 
+Per the shadcn docs, when we decide to use a shadcn component, we'll first have to run a command to install it, before importing that component. e.g. I know we'll need `Card` components, for the search results. 
 docs: https://ui.shadcn.com/docs/components/card
 We would do something like this:
 
@@ -86,7 +86,7 @@ import {
 </Card>
 ```
 
-Both shadcdn & the theme are already installed; see client/App.tsx for an example usage of <Button/> - the only component I've installed so far.
+Both shadcn & the theme are already installed; see client/App.tsx for an example usage of <Button/> - the only component I've installed so far.
 
 
 We'll eventually work on each of these 3 screens we have planned:
@@ -94,6 +94,6 @@ We'll eventually work on each of these 3 screens we have planned:
 2. Episode sheet - "Sheet" that loads episode transcript, scrollable, and audio player
 3. Data visualization - search UI, but instead of listed search results, a chart showing when results occurred
 
-But for the foreseeable future, we're only going to work on 1. Home page - search UI + search results. I've attached one initial mockup of how this can look, but that mockup can be improved. And we should be using shadcdn + relying on the neo brutalist theme that's already installed to get the look of clean, sharp lines, plenty of whitespace, tongue-in-cheek - while matching some of the attached Football Clichés screenshots.
+But for the foreseeable future, we're only going to work on 1. Home page - search UI + search results. I've attached one initial mockup of how this can look, but that mockup can be improved. And we should be using shadcn + relying on the neo brutalist theme that's already installed to get the look of clean, sharp lines, plenty of whitespace, tongue-in-cheek - while matching some of the attached Football Clichés screenshots.
 
 You can go ahead & get started on 1. Home page - search UI + search results

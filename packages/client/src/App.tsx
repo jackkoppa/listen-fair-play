@@ -67,11 +67,16 @@ function App() {
   }, [searchQuery]);
 
   return (
-    <div className="app-container max-w-3xl mx-auto p-4 font-mono">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2">Football Clichés</h1>
-        <p className="text-lg text-gray-700">Transcript Search</p>
+    <div className="app-container max-w-3xl mx-auto p-4 font-mono pt-28">
+      <header className="fixed top-0 left-0 right-0 z-10 bg-secondary border-b-2 border-black shadow-[0px_4px_0px_rgba(0,0,0,1)]">
+        <div className="max-w-3xl mx-auto p-6 text-center">
+          <h1 className="text-3xl font-bold mb-1 text-black">Listen, Fair Play</h1>
+          <p className="text-sm text-black italic">search the Football Clichés record books</p>
+        </div>
       </header>
+
+      {/* Header spacer */}
+      <div className="d-block h-10"></div>
 
       <div className="search-input-container mb-8 relative flex items-center">
         <input
