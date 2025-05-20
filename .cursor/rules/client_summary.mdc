@@ -1,0 +1,18 @@
+---
+description: 
+globs: packages/client/**
+alwaysApply: false
+---
+# Client Package (@client) Key Info
+
+- **Framework**: React with Vite ([main.tsx](mdc:packages/client/src/main.tsx), [App.tsx](mdc:packages/client/src/App.tsx))
+- **Styling**: Tailwind CSS ([tailwind.config.js](mdc:packages/client/tailwind.config.js))
+- **UI Components**: `shadcn/ui` ([components.json](mdc:packages/client/components.json))
+  - Components are typically added to [src/components/ui](mdc:packages/client/src/components/ui)
+  - Utilities: [src/lib/utils.ts](mdc:packages/client/src/lib/utils.ts)
+- **Theme**: Neo-brutalism (from tweakcn.com)
+  - CSS variables defined in [src/index.css](mdc:packages/client/src/index.css)
+- **Routing**: `react-router-dom` used in [main.tsx](mdc:packages/client/src/main.tsx)
+  - New UI at `/`, legacy UI at `/legacy` ([LegacyApp.tsx](mdc:packages/client/src/LegacyApp.tsx))
+- **Path Alias**: `@/*` maps to `src/*` (see [tsconfig.json](mdc:packages/client/tsconfig.json), [vite.config.ts](mdc:packages/client/vite.config.ts))
+- **Primary Goal**: Redesigning UI based on [prompt--initial-ui-designs](mdc:scratchpad/prompt--initial-ui-designs)

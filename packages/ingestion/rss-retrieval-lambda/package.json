@@ -33,7 +33,7 @@
     "rolldown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^1.6.1"
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=20.0.0"

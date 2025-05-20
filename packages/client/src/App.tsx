@@ -1,111 +1,115 @@
-import { useState, useEffect } from 'react'
-
-import { log } from '@listen-fair-play/logging';
-import { ApiSearchResultHit } from '@listen-fair-play/types'
-
-import './App.css'
-
-import SearchResult from './components/SearchResult'
-
-// Get the search API URL from environment variable, fallback to localhost for development
-const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
+import React, { useState } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button"; // Assuming button component will be added or is available
 
 function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const trimmedQuery = searchQuery.trim();
-
-    if (trimmedQuery.length < 2) {
-      setSearchResults([]);
-      setError(null);
-      return;
-    }
-
-    const fetchSearchResults = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      const limit = 10;
-
-      try {
-        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(trimmedQuery)}&limit=${limit}`);
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-        const data = await response.json();
-        if (data && data.hits) {
-          setSearchResults(data.hits);
-        } else {
-          setSearchResults([]);
-          log.warn('[App.tsx] API response did not contain .hits array or was empty:', data);
-        }
-      } catch (e: any) {
-        log.error('[App.tsx] Failed to fetch search results:', e);
-        setError(e.message || 'Failed to fetch search results. Please try again.');
-        setSearchResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(() => {
-      fetchSearchResults();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-
-  }, [searchQuery]);
+  const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
 
   return (
-    <div className="app-container">
-      <header>
-        <h1>Football Cliches Transcript Search</h1>
-        <p>Search through podcast transcripts by typing below</p>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 md:p-8">
+      {/* Header / Title */}
+      <header className="w-full max-w-3xl mb-8 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Listen, Fair Play</h1>
+        <p className="text-lg text-gray-600 mt-2">The Football Clichés Podcast Archive</p>
       </header>
-      
-      <div className="search-input-container"> 
-        <input
-          type="text"
-          placeholder="Search transcripts (min. 2 characters)..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
-        {isLoading && <div className="search-spinner"></div>}
-      </div>
-      
-      {error && (
-        <div className="error-message">
-          {error}
+
+      {/* Search Bar and Filters Area */}
+      <main className="w-full max-w-3xl bg-white p-6 md:p-8 shadow-lg rounded-md border-2 border-black">
+        {/* Search Input */}
+        <div className="mb-6">
+          <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search episodes</label>
+          <input 
+            type="text" 
+            name="search" 
+            id="search" 
+            className="w-full p-3 border-2 border-black rounded-md focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none"
+            placeholder="e.g., 'late drama', 'metatarsal', 'bumper day'"
+          />
         </div>
-      )}
-      
-      <div className="results-container">
-        {isLoading ? (
-          <p className="loading-message">Loading results...</p>
-        ) : searchResults.length > 0 ? (
-          <ul className="results-list">
-            {searchResults.map((result) => (
-              <SearchResult 
-                key={result.id}
-                result={result}
-              />
-            ))}
-          </ul>
-        ) : searchQuery.trim().length >=2 && !error ? (
-          <p className="no-results">No results found for "{searchQuery}"</p>
-        ) : null}
-      </div>
+
+        {/* Filters and Sorting Placeholder */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label htmlFor="filter-panelists" className="block text-sm font-medium text-gray-700 mb-1">Panelists</label>
+            <select 
+              id="filter-panelists" 
+              name="filter-panelists" 
+              className="w-full p-3 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none"
+            >
+              <option>All Panelists</option>
+              {/* TODO: Add panelist options */}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="filter-episode-type" className="block text-sm font-medium text-gray-700 mb-1">Episode Type</label>
+            <select 
+              id="filter-episode-type" 
+              name="filter-episode-type" 
+              className="w-full p-3 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none"
+            >
+              <option>All Types</option>
+              {/* TODO: Add episode type options */}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="sort-by" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <select 
+              id="sort-by" 
+              name="sort-by" 
+              className="w-full p-3 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Search Button (optional, search could be on type) */}
+        {/* <button 
+            className="w-full p-3 bg-yellow-400 text-black font-bold rounded-md border-2 border-black hover:bg-yellow-500 focus:ring-2 focus:ring-yellow-300 outline-none"
+        >
+          Search
+        </button> */}
+      </main>
+
+      {/* Footer with About Link */}
+      <footer className="w-full max-w-3xl mt-8 text-center">
+        <Sheet open={isAboutSheetOpen} onOpenChange={setIsAboutSheetOpen}>
+          <SheetTrigger asChild>
+            <button className="text-sm text-gray-600 hover:text-gray-800 hover:underline">
+              About Listen, Fair Play
+            </button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>About Listen, Fair Play (LFP)</SheetTitle>
+              <SheetDescription>
+                LFP is an application for searching the archives of the Football Clichés podcast. 
+                Find your favorite moments, panelists, and classic footballing phrases.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="py-4">
+              <p>This project is open source. You can find the repository <a href="https://github.com/jackkoppa/listen-fair-play" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">here</a>.</p>
+            </div>
+            <SheetFooter>
+              <SheetClose asChild>
+                <Button type="button" variant="outline">Close</Button>
+              </SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      </footer>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

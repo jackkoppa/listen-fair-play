@@ -14,11 +14,11 @@ const checkServer = () => {
         process.exit(1);
       });
     } else {
-      console.error(`Search dev server at ${searchServerUrl} responded with status ${res.statusCode}. Please ensure it's running correctly and accessible, then try again. You may need to run \`pnpm search:dev:local\` first.`);
+      console.error(`Search dev server at ${searchServerUrl} responded with status ${res.statusCode}. Please ensure it's running correctly and accessible, then try again. You may need to run \`pnpm search-lambda:dev:local\` first.`);
       process.exit(1);
     }
   }).on('error', (err) => {
-    console.error(`Search dev server not running or unreachable at ${searchServerUrl}. Please run \`pnpm search:dev:local\` in a separate terminal. Error: ${err.message}`);
+    console.error(`Search dev server not running or unreachable at ${searchServerUrl}. Please run \`pnpm search-lambda:dev:local\` in a separate terminal. Error: ${err.message}`);
     process.exit(1);
   });
 };

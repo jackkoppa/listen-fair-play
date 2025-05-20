@@ -15,7 +15,7 @@
 set -e
 
 echo "WARNING: In normal development, downloading all objects from the S3 bucket is not required."
-echo "It may also overwrite local files in ./aws-local-dev"
+echo "It may also overwrite local files in ./aws-local-dev--backup"
 read -p "Are you sure you want to continue? (yes/no): " confirmation
 
 CONFIRMATION_LOWER=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
@@ -29,7 +29,7 @@ echo "Proceeding with S3 bucket download..."
 
 # Define S3 bucket and local destination
 S3_BUCKET_URI="s3://listen-fair-play-s3-dev"
-LOCAL_DESTINATION_DIR="./aws-local-dev-TEMP" # Using path relative to home directory
+LOCAL_DESTINATION_DIR="./aws-local-dev--backup" # Using path relative to home directory
 
 # Initialize EXCLUDE_PARAMS
 EXCLUDE_PARAMS=""

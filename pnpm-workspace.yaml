@@ -5,6 +5,7 @@ packages:
   - packages/database
   - packages/s3
   - packages/types
+  - packages/linting
   - packages/ingestion/rss-retrieval-lambda
   - packages/ingestion/process-audio-lambda
   - packages/ingestion/srt-indexing-lambda
@@ -23,7 +24,9 @@ catalog:
   sqlite3: ^5.1.7
   rolldown: ^1.0.0-beta.8
   tsx: ^4.7.0
+  vitest: ^1.6.1
 onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
   - esbuild
   - rolldown
   - sqlite3

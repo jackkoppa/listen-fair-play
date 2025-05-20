@@ -55,3 +55,7 @@ terraform/**/*.zip
 
 # Client build
 /client/public
+
+
+# See /scripts/TEMP-download-all-bucket-ojbects.sh
+aws-local-dev--backup

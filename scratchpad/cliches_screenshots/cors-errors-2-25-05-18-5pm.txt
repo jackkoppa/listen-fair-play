@@ -1,0 +1,62 @@
+Access to fetch at 'https://xbxyrsmrk3.execute-api.us-east-1.amazonaws.com/dev/?query=listen&limit=10' from origin 'https://drvuopx7zxbrt.cloudfront.net' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+index-Bjr-Acis.js:40 
+            
+            
+           GET https://xbxyrsmrk3.execute-api.us-east-1.amazonaws.com/dev/?query=listen&limit=10 net::ERR_FAILED 200 (OK)
+f @ index-Bjr-Acis.js:40
+(anonymous) @ index-Bjr-Acis.js:40
+setTimeout
+(anonymous) @ index-Bjr-Acis.js:40
+cl @ index-Bjr-Acis.js:40
+qt @ index-Bjr-Acis.js:40
+Ed @ index-Bjr-Acis.js:40
+kt @ index-Bjr-Acis.js:40
+Ai @ index-Bjr-Acis.js:40
+yt @ index-Bjr-Acis.js:38
+Rt @ index-Bjr-Acis.js:40
+Es @ index-Bjr-Acis.js:37
+Dl @ index-Bjr-Acis.js:37
+to @ index-Bjr-Acis.js:37
+uf @ index-Bjr-Acis.js:37Understand this error
+index-Bjr-Acis.js:40 [App.tsx] Failed to fetch search results: TypeError: Failed to fetch
+    at f (index-Bjr-Acis.js:40:61568)
+    at index-Bjr-Acis.js:40:61997
+f @ index-Bjr-Acis.js:40
+await in f
+(anonymous) @ index-Bjr-Acis.js:40
+setTimeout
+(anonymous) @ index-Bjr-Acis.js:40
+cl @ index-Bjr-Acis.js:40
+qt @ index-Bjr-Acis.js:40
+Ed @ index-Bjr-Acis.js:40
+kt @ index-Bjr-Acis.js:40
+Ai @ index-Bjr-Acis.js:40
+yt @ index-Bjr-Acis.js:38
+Rt @ index-Bjr-Acis.js:40
+Es @ index-Bjr-Acis.js:37
+Dl @ index-Bjr-Acis.js:37
+to @ index-Bjr-Acis.js:37
+uf @ index-Bjr-Acis.js:37Understand this error
+drvuopx7zxbrt.cloudfront.net/:1 Access to fetch at 'https://xbxyrsmrk3.execute-api.us-east-1.amazonaws.com/dev/?query=listen%20fair&limit=10' from origin 'https://drvuopx7zxbrt.cloudfront.net' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+index-Bjr-Acis.js:40 
+            
+            
+           GET https://xbxyrsmrk3.execute-api.us-east-1.amazonaws.com/dev/?query=listen%20fair&limit=10 net::ERR_FAILED 200 (OK)
+f @ index-Bjr-Acis.js:40
+(anonymous) @ index-Bjr-Acis.js:40
+setTimeout
+(anonymous) @ index-Bjr-Acis.js:40
+cl @ index-Bjr-Acis.js:40
+qt @ index-Bjr-Acis.js:40
+Ed @ index-Bjr-Acis.js:40
+kt @ index-Bjr-Acis.js:40
+Ai @ index-Bjr-Acis.js:40
+yt @ index-Bjr-Acis.js:38
+Rt @ index-Bjr-Acis.js:40
+Es @ index-Bjr-Acis.js:37
+Dl @ index-Bjr-Acis.js:37
+to @ index-Bjr-Acis.js:37
+uf @ index-Bjr-Acis.js:37Understand this error
+index-Bjr-Acis.js:40 [App.tsx] Failed to fetch search results: TypeError: Failed to fetch
+    at f (index-Bjr-Acis.js:40:61568)
+    at index-Bjr-Acis.js:40:61997
