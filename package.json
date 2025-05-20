@@ -19,13 +19,16 @@
     "srt-indexing-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:dev-s3",
     "srt-indexing-lambda:test": "pnpm --filter @listen-fair-play/srt-indexing-lambda test",
     "search-lambda:dev:local": "pnpm --filter @listen-fair-play/search-lambda dev:local",
-    "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local"
+    "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local",
+    "lint:transcripts": "tsx scripts/linting/lint-transcripts.ts"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^1.44.0"
+    "@dotenvx/dotenvx": "^1.44.0",
+    "srt-parser-2": "^1.2.3",
+    "tsx": "catalog:"
   }
 }

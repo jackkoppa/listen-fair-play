@@ -54,6 +54,12 @@ importers:
       '@dotenvx/dotenvx':
         specifier: ^1.44.0
         version: 1.44.0
+      srt-parser-2:
+        specifier: ^1.2.3
+        version: 1.2.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.19.3
 
   packages/client:
     dependencies:

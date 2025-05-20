@@ -196,7 +196,7 @@ async function transcribeWithLocalWhisperCpp(
   
   try {
     // Run whisper.cpp command
-    const command = `cd "${whisperDir}" && "${whisperCliBin}" -m "${modelPath}" -f "${filePath}" ${formatFlag} -of "${tempOutputFile}"`;
+    const command = `cd "${whisperDir}" && "${whisperCliBin}" -m "${modelPath}" -f "${filePath}" ${formatFlag} -of "${tempOutputFile}" --prompt "Hello. Welcome to the Football Clichés podcast! I am your host, Adam Hurrey. Let's begin."`;
 
     const { stdout, stderr } = await execPromise(command);
     
