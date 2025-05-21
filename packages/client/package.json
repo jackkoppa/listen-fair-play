@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "temp-serve-s3-assets": "echo 'TODO: Improve command simplicity' && http-server ../../aws-local-dev/s3 --cors",
     "build-client:dev": "dotenvx run -f ../../.env.dev -- tsc -b && vite build",
     "build-client:prod": "dotenvx run -f ../../.env.prod -- tsc -b && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/react-slot": "^1.2.2",
     "@tailwindcss/vite": "^4.1.7",
@@ -36,6 +38,7 @@
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "http-server": "^14.1.1",
     "tw-animate-css": "^1.3.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",

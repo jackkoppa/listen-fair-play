@@ -5,7 +5,7 @@ import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 // import { Button } from "@/components/ui/button" // No longer using Button here
 
 import { log } from '@listen-fair-play/logging';
-import { ApiSearchResultHit } from '@listen-fair-play/types'
+import { ApiSearchResultHit, EpisodeManifest } from '@listen-fair-play/types'
 
 import './App.css'
 
@@ -14,6 +14,12 @@ import SearchResult from './components/SearchResult'
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
+
+// Get the base URL for manifest files, fallback to local path for development
+// CURSOR-TODO: Fix this, and package.json#scripts.temp-serve-s3-assets
+const MANIFEST_BASE_URL = ''; // for deployment
+// const MANIFEST_BASE_URL = 'http://127.0.0.1:8080'; // for local development
+
 const SEARCH_LIMIT = 50;
 
 function App() {
@@ -21,6 +27,33 @@ function App() {
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [episodeManifest, setEpisodeManifest] = useState<EpisodeManifest | null>(null);
+
+  // TODO: Use this to hold off on rendering results as well
+  const [_, setIsLoadingManifest] = useState(false);
+
+  // Fetch episode manifest on component mount
+  useEffect(() => {
+    const fetchEpisodeManifest = async () => {
+      setIsLoadingManifest(true);
+      try {
+        const manifestPath = `${MANIFEST_BASE_URL}/episode-manifest/full-episode-manifest.json`;
+        const response = await fetch(manifestPath);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch episode manifest: ${response.status}`);
+        }
+        const manifestData = await response.json();
+        setEpisodeManifest(manifestData);
+      } catch (e: any) {
+        log.error('[App.tsx] Failed to fetch episode manifest:', e);
+        // Don't set error state to avoid blocking the main UI functionality
+      } finally {
+        setIsLoadingManifest(false);
+      }
+    };
+
+    fetchEpisodeManifest();
+  }, []);
 
   useEffect(() => {
     if (isLoading) {
@@ -112,6 +145,7 @@ function App() {
               <SearchResult
                 key={result.id}
                 result={result}
+                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === result.sequentialEpisodeId)}
               />
             ))}
           </ul>

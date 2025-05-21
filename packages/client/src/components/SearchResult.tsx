@@ -1,35 +1,40 @@
 import React from 'react';
-import { ApiSearchResultHit } from '@listen-fair-play/types'; // Import the new type
+import { ApiSearchResultHit, EpisodeInManifest } from '@listen-fair-play/types'; // Import the new type
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-// Utility function to format milliseconds to MM:SS
-const formatMillisecondsToMMSS = (ms: number): string => {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+import EpisodeDetailsSheet from './EpisodeDetailsSheet';
+
+import { formatDate } from '@/utils/date';
+import { formatMillisecondsToMMSS } from '@/utils/time';
+
+
+
 
 export interface SearchResultProps {
   result: ApiSearchResultHit;
+  episodeData?: EpisodeInManifest;
 }
 
-const SearchResult: React.FC<SearchResultProps> = ({ result }) => {
+const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
   const formattedStartTime = formatMillisecondsToMMSS(result.startTimeMs);
   const formattedEndTime = formatMillisecondsToMMSS(result.endTimeMs);
+  const formattedDate = episodeData?.publishedAt ? formatDate(episodeData.publishedAt) : null;
 
   return (
     <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{result.episodeTitle}</CardTitle>
         <CardDescription className="text-sm text-gray-600">
-          {formattedStartTime} - {formattedEndTime}
+          {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
+          <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -38,6 +43,9 @@ const SearchResult: React.FC<SearchResultProps> = ({ result }) => {
           dangerouslySetInnerHTML={{ __html: result.highlight }}
         />
       </CardContent>
+      <CardFooter className="flex justify-end">
+        {episodeData && <EpisodeDetailsSheet episodeData={episodeData} originalSearchResult={result} />}
+      </CardFooter>
     </Card>
   );
 };
