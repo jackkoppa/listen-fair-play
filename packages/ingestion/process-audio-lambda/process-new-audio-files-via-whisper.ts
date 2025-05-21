@@ -59,7 +59,7 @@ async function transcriptExists(fileKey: string): Promise<boolean> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName, `${audioFileName}.srt`);
 
-  return fileExists(transcriptKey);
+  return fileExists(transcriptKey.normalize('NFC'));
 }
 
 // Helper function to split audio file into chunks
