@@ -1,5 +1,6 @@
 import { Document } from 'flexsearch';
 import Database from 'flexsearch/db/sqlite'
+import EnglishPreset from 'flexsearch/lang/en'
 import Sqlite3Database from 'sqlite3';
 import { SearchEntry } from '@listen-fair-play/types';
 import { log } from '@listen-fair-play/logging'; // Import logging utility
@@ -23,8 +24,13 @@ export async function createDocumentIndex(sqlite3DB: Sqlite3Database.Database): 
       id: 'id',
       index: [{
         field: 'text',
-        tokenize: 'full',
-        context: true,
+        tokenize: 'strict',
+        encoder: EnglishPreset,
+        context: { 
+          resolution: 3,
+          depth: 1,
+          bidirectional: true
+        },
       }],
       store: true, // Ensure documents (or specified fields) are stored for later enrichment.
     },

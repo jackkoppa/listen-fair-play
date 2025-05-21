@@ -94,12 +94,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   });
   
   // Convert entries to our SearchEntry type and add the new ID structure
-  const searchEntries: SearchEntry[] = utilityEntries.map(entry => ({
-    ...entry, // Spread other properties like startTimeMs, endTimeMs, text
-    sequentialEpisodeId: sequentialEpisodeId,
-    id: `${sequentialEpisodeId}_${entry.startTimeMs}` // New ID format
-    // episodeTitle is no longer part of SearchEntry
-  }));
+  const searchEntries: SearchEntry[] = utilityEntries; // Simplified from map as utilityEntries are already complete
   
   log.debug(`Generated ${searchEntries.length} search entries from SRT file ${srtFileKey}`);
   
@@ -231,8 +226,45 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   const index = await createDocumentIndex(sqlite3DB);
   log.info('FlexSearch index initialized.');
 
-  const allTranscriptFiles = await listFiles(TRANSCRIPTS_DIR_PREFIX);
-  const srtFilesToEvaluate = allTranscriptFiles.filter(file => file.endsWith('.srt'));
+  // Step 1: List the "podcast directories" under the main transcripts prefix
+  const podcastDirectoryPrefixes = await listFiles(TRANSCRIPTS_DIR_PREFIX);
+  log.info(`[DEBUG] listFiles('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} potential podcast directory prefixes.`);
+  if (podcastDirectoryPrefixes.length > 0) {
+    log.debug(`[DEBUG] Podcast directory prefixes: ${JSON.stringify(podcastDirectoryPrefixes)}`);
+  }
+
+  let allSrtFiles: string[] = [];
+
+  // Step 2: For each podcast directory prefix, list the files within it
+  for (const dirPrefix of podcastDirectoryPrefixes) {
+    // Ensure the prefix ends with a '/' for S3 listing, if it doesn't already
+    const currentPodcastPrefix = dirPrefix.endsWith('/') ? dirPrefix : `${dirPrefix}/`;
+    log.debug(`[DEBUG] Listing files under podcast prefix: ${currentPodcastPrefix}`);
+    const filesInDir = await listFiles(currentPodcastPrefix);
+    log.debug(`[DEBUG] Found ${filesInDir.length} items under ${currentPodcastPrefix}.`);
+    if (filesInDir.length > 0 && filesInDir.length < 10) {
+        log.debug(`[DEBUG] Items: ${JSON.stringify(filesInDir)}`)
+    } else if (filesInDir.length > 0) {
+        log.debug(`[DEBUG] First 5 items: ${JSON.stringify(filesInDir.slice(0,5))}`)
+    }
+
+    const srtFilesInCurrentDir = filesInDir.filter(file => {
+      if (typeof file !== 'string') {
+        log.warn(`[DEBUG] Encountered non-string item in listFiles output for ${currentPodcastPrefix}: ${JSON.stringify(file)}`);
+        return false;
+      }
+      return file.endsWith('.srt');
+    });
+    log.debug(`[DEBUG] Found ${srtFilesInCurrentDir.length} SRT files in ${currentPodcastPrefix}.`);
+    allSrtFiles.push(...srtFilesInCurrentDir);
+  }
+  
+  log.info(`[DEBUG] Total SRT files found across all podcast directories: ${allSrtFiles.length}`);
+  if (allSrtFiles.length > 0) {
+    log.debug(`[DEBUG] First 5 SRT files from combined list: ${JSON.stringify(allSrtFiles.slice(0,5))}`);
+  }
+
+  const srtFilesToEvaluate = allSrtFiles; // Already filtered for .srt
   const totalSrtFiles = srtFilesToEvaluate.length;
 
   if (totalSrtFiles === 0) {
