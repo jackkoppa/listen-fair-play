@@ -18,6 +18,7 @@
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/credential-provider-sso": "catalog:",
     "@aws-sdk/s3-request-presigner": "catalog:",
+    "@listen-fair-play/config": "workspace:*",
     "@listen-fair-play/constants": "workspace:*",
     "@listen-fair-play/s3": "workspace:*",
     "@listen-fair-play/logging": "workspace:*",

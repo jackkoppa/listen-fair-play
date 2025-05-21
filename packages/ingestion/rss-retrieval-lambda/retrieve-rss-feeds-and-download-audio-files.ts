@@ -2,37 +2,34 @@ import * as xml2js from 'xml2js';
 import * as path from 'path';
 import { log } from '@listen-fair-play/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
+import { RSS_CONFIG } from '@listen-fair-play/config';
+import { EpisodeManifest, EpisodeInManifest, LlmAnnotations } from '@listen-fair-play/types';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
 // Types
-interface RSSFeedConfig {
-  'rssFeeds': Array<{
-    rssFeedFile: string;
-    title: string;
-    status: 'active' | 'archived';
-    url: string;
-    lastRetrieved: string;
-  }>;
-}
-
-interface Episode {
+interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInManifest
   title: string;
   pubDate: string;
-  enclosure: {
-    $: {
-      url: string;
-      type: string;
-      length: string;
-    };
+  enclosure: { // Attributes are merged directly onto this object due to mergeAttrs: true
+    url: string;
+    type: string;
+    length: string | number; // length might be parsed as a number by valueProcessors
   };
   guid: string;
+  'itunes:summary'?: string; // For fetching episode summary
+  summary?: string; // Fallback if itunes:summary is not present
+  description?: string; // Another fallback for summary
+  'content:encoded'?: string; // Yet another fallback, often HTML
+  'itunes:duration'?: string; // For episode duration
 }
 
 // Constants - Define S3 paths
-const RSS_CONFIG_KEY = 'rss/rss-feeds-config.json';
 const RSS_DIR_PREFIX = 'rss/';
 const AUDIO_DIR_PREFIX = 'audio/';
+const EPISODE_MANIFEST_KEY = 'episode-manifest/full-episode-manifest.json';
+const EPISODE_MANIFEST_DIR_PREFIX = 'episode-manifest/';
+
 
 // Helper to format date as YYYY-MM-DD
 function formatDateYYYYMMDD(date: Date): string {
@@ -44,29 +41,24 @@ function parsePubDate(pubDate: string): Date {
   return new Date(pubDate);
 }
 
-// Get episode filename based on pubDate and title
-function getEpisodeFilename(episode: Episode): string {
-  const date = parsePubDate(episode.pubDate);
+// Get episode fileKey based on pubDate and title (this will be part of the S3 key)
+function getEpisodeFileKey(episodeTitle: string, pubDateStr: string): string {
+  const date = parsePubDate(pubDateStr);
   const formattedDate = formatDateYYYYMMDD(date);
   // Replace invalid characters for filenames
-  const sanitizedTitle = episode.title
-    .replace(/[/\\?%*:|"<>]/g, '-')
+  const sanitizedTitle = episodeTitle
+    .replace(/[/\\?%*:|"<>\.]/g, '-') // Added . to the list of replaced characters
     .replace(/\s+/g, '-')
     .substring(0, 50); // Limit title length
   
-  return `${formattedDate}_${sanitizedTitle}.mp3`;
+  return `${formattedDate}_${sanitizedTitle}`;
 }
 
-// Read RSS config file
-async function readRSSConfig(): Promise<RSSFeedConfig> {
-  try {
-    const configBuffer = await getFile(RSS_CONFIG_KEY);
-    return JSON.parse(configBuffer.toString('utf-8'));
-  } catch (error) {
-    log.error('Error reading RSS config:', error);
-    throw error;
-  }
+// Helper to get episode audio filename (e.g., 2020-01-23_The-Transfer-Window.mp3)
+function getEpisodeAudioFilename(fileKey: string): string {
+  return `${fileKey}.mp3`;
 }
+
 
 // Fetch RSS feed
 async function fetchRSSFeed(url: string): Promise<string> {
@@ -84,7 +76,16 @@ async function fetchRSSFeed(url: string): Promise<string> {
 
 // Parse RSS XML to JSON
 async function parseRSSFeed(xmlContent: string): Promise<any> {
-  const parser = new xml2js.Parser({ explicitArray: false });
+  const parser = new xml2js.Parser({ 
+    explicitArray: false,
+    // Add explicit charkey and mergeAttrs to handle cases like <itunes:summary>
+    // and potentially other tags with attributes or mixed content.
+    charkey: '_', 
+    mergeAttrs: true,
+    // Attempt to parse duration correctly
+    valueProcessors: [xml2js.processors.parseNumbers, xml2js.processors.parseBooleans],
+    attrValueProcessors: [xml2js.processors.parseNumbers, xml2js.processors.parseBooleans],
+ });
   
   try {
     return await parser.parseStringPromise(xmlContent);
@@ -94,214 +95,450 @@ async function parseRSSFeed(xmlContent: string): Promise<any> {
   }
 }
 
-// Save RSS feed to file and update config
-async function saveRSSFeed(
+// Save RSS feed to file
+async function saveRSSFeedToS3(
   xmlContent: string, 
-  feedConfig: RSSFeedConfig['rssFeeds'][0]
+  podcastId: string,
+  feedFile: string,
 ): Promise<void> {
-  const filePath = path.join(RSS_DIR_PREFIX, feedConfig.rssFeedFile);
+  const filePath = path.join(RSS_DIR_PREFIX, feedFile);
   
   try {
     await saveFile(filePath, xmlContent);
-    log.debug(`RSS feed saved to ${filePath}`);
-    
-    // Update lastRetrieved timestamp
-    feedConfig.lastRetrieved = new Date().toISOString();
-    
-    // Update config file
-    const fullConfig = await readRSSConfig();
-    const feedIndex = fullConfig['rssFeeds'].findIndex(feed => feed.rssFeedFile === feedConfig.rssFeedFile);
-    
-    if (feedIndex !== -1) {
-      fullConfig['rssFeeds'][feedIndex] = feedConfig;
-      await saveFile(RSS_CONFIG_KEY, JSON.stringify(fullConfig, null, 2));
-      log.debug(`Updated lastRetrieved timestamp for ${feedConfig.title}`);
-    }
+    log.debug(`RSS feed for ${podcastId} saved to ${filePath}`);
   } catch (error) {
-    log.error(`Error saving RSS feed for ${feedConfig.title}:`, error);
+    log.error(`Error saving RSS feed for ${podcastId}:`, error);
     throw error;
   }
 }
 
-// Get episodes that haven't been downloaded
-async function identifyNewEpisodes(
-  parsedFeed: any, 
-  feedConfig: RSSFeedConfig['rssFeeds'][0]
-): Promise<Episode[]> {
-  const episodes = parsedFeed.rss.channel.item || [];
-  
-  // Create podcast-specific directory path
-  const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
-  const podcastAudioPrefix = path.join(AUDIO_DIR_PREFIX, podcastDir);
-  
-  // Ensure the podcast directory exists
-  await createDirectory(podcastAudioPrefix);
-  
+// Read or create Episode Manifest
+async function getOrCreateEpisodeManifest(): Promise<EpisodeManifest> {
   try {
-    // Get existing files
-    const existingFiles = await listFiles(podcastAudioPrefix);
-    const existingFilenames = existingFiles.map((filePath: string) => path.basename(filePath));
-    
-    return episodes.filter((episode: Episode) => {
-      // Skip episodes without enclosure or URL
-      if (!episode.enclosure || !episode.enclosure.$ || !episode.enclosure.$.url) {
-        return false;
-      }
-      
-      const filename = getEpisodeFilename(episode);
-      // Check if file doesn't exist already
-      return !existingFilenames.includes(filename);
-    });
+    if (await fileExists(EPISODE_MANIFEST_KEY)) {
+      const manifestBuffer = await getFile(EPISODE_MANIFEST_KEY);
+      return JSON.parse(manifestBuffer.toString('utf-8')) as EpisodeManifest;
+    } else {
+      log.info(`Episode manifest not found at ${EPISODE_MANIFEST_KEY}, creating a new one.`);
+      await createDirectory(EPISODE_MANIFEST_DIR_PREFIX); // Ensure directory exists
+      const newManifest: EpisodeManifest = {
+        lastUpdated: new Date().toISOString(),
+        episodes: [],
+      };
+      await saveFile(EPISODE_MANIFEST_KEY, JSON.stringify(newManifest, null, 2));
+      return newManifest;
+    }
   } catch (error) {
-    log.error(`Error identifying new episodes for ${feedConfig.title}:`, error);
-    return [];
+    log.error('Error reading or creating episode manifest:', error);
+    throw error;
   }
 }
 
-// Download episode audio file
-async function downloadEpisodeAudio(episode: Episode, feedConfig: RSSFeedConfig['rssFeeds'][0]): Promise<string> {
-  const url = episode.enclosure.$.url;
-  const filename = getEpisodeFilename(episode);
+// Save Episode Manifest
+async function saveEpisodeManifest(manifest: EpisodeManifest): Promise<void> {
+  try {
+    manifest.lastUpdated = new Date().toISOString();
+    await saveFile(EPISODE_MANIFEST_KEY, JSON.stringify(manifest, null, 2));
+    log.debug(`Episode manifest saved to ${EPISODE_MANIFEST_KEY}`);
+  } catch (error) {
+    log.error('Error saving episode manifest:', error);
+    throw error;
+  }
+}
+
+// Helper to parse itunes:duration (e.g., "HH:MM:SS", "MM:SS", or total seconds)
+function parseDuration(durationStr?: string): number | undefined {
+  if (!durationStr) return undefined;
+  if (/^\d+$/.test(durationStr)) { // Check if it's just seconds
+    return parseInt(durationStr, 10);
+  }
+  const parts = durationStr.split(':').map(Number);
+  let duration = 0;
+  if (parts.length === 3) { // HH:MM:SS
+    duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) { // MM:SS
+    duration = parts[0] * 60 + parts[1];
+  } else if (parts.length === 1 && !isNaN(parts[0])) { // Seconds (if not caught by regex above)
+     duration = parts[0];
+  } else {
+    log.warn(`Could not parse duration: ${durationStr}`);
+    return undefined;
+  }
+  return isNaN(duration) ? undefined : duration;
+}
+
+// Extract summary from various possible fields in RSS item
+function getEpisodeSummary(rssItem: RssEpisode): string {
+    // Order of preference for summary
+    if (rssItem['itunes:summary'] && typeof rssItem['itunes:summary'] === 'string') {
+        return rssItem['itunes:summary'].trim();
+    }
+    if (rssItem.summary && typeof rssItem.summary === 'string') {
+        return rssItem.summary.trim();
+    }
+    // xml2js parser with charkey: '_" might put text content in item.description._
+    if (rssItem.description) {
+      if (typeof rssItem.description === 'string') return rssItem.description.trim();
+      // @ts-ignore TODO: Type this better if description can be an object
+      if (typeof rssItem.description._ === 'string') return rssItem.description._.trim();
+    }
+    if (rssItem['content:encoded'] && typeof rssItem['content:encoded'] === 'string') {
+        // This might contain HTML, for now, just return it.
+        // Consider a simple HTML to text stripping if needed.
+        return rssItem['content:encoded'].trim();
+    }
+    return ''; // Default to empty string if no summary found
+}
+
+
+// Identify new episodes from RSS and add them to the manifest
+async function updateManifestWithNewEpisodes(
+  parsedFeed: any, 
+  podcastConfig: typeof RSS_CONFIG[keyof typeof RSS_CONFIG],
+  episodeManifest: EpisodeManifest
+): Promise<{ newEpisodesInManifest: EpisodeInManifest[], existingEpisodesInManifest: EpisodeInManifest[] }> {
+  const rssEpisodes: RssEpisode[] = parsedFeed.rss.channel.item || [];
+  const podcastId = podcastConfig.id;
+  let newEpisodesInManifest: EpisodeInManifest[] = [];
+  let existingEpisodesInManifest: EpisodeInManifest[] = episodeManifest.episodes.filter((ep: EpisodeInManifest) => ep.podcastId === podcastId);
+
+  const existingEpisodeIdentifiers = new Set(
+    episodeManifest.episodes.map((ep: EpisodeInManifest) => ep.originalAudioURL)
+  );
+  episodeManifest.episodes.forEach((ep: EpisodeInManifest) => ep.fileKey && existingEpisodeIdentifiers.add(ep.fileKey));
+
+  // sequentialId will be assigned globally later. No longer calculate maxSequentialId here.
+
+  for (const rssEpisode of rssEpisodes) {
+    if (!rssEpisode.enclosure || typeof rssEpisode.enclosure.url !== 'string' || !rssEpisode.enclosure.url) {
+      log.warn(`Skipping episode "${rssEpisode.title || 'N/A'}" due to missing or invalid enclosure/URL. Enclosure data: ${JSON.stringify(rssEpisode.enclosure)}`);
+      continue;
+    }
+    
+    const originalAudioURL = rssEpisode.enclosure.url;
+    const episodeTitle = rssEpisode.title || 'Untitled Episode';
+    const pubDateString = rssEpisode.pubDate;
+
+    if (!pubDateString) {
+      log.warn(`Skipping episode "${episodeTitle}" (URL: ${originalAudioURL}) due to missing publication date (pubDate).`);
+      continue;
+    }
+    
+    let parsedPublishedDate: Date;
+    try {
+        parsedPublishedDate = parsePubDate(pubDateString);
+        if (isNaN(parsedPublishedDate.getTime())) {
+            throw new Error('Parsed date is invalid');
+        }
+    } catch (e: any) {
+        log.warn(`Skipping episode "${episodeTitle}" (URL: ${originalAudioURL}) due to invalid publication date: "${pubDateString}". Error: ${e.message}`);
+        continue;
+    }
+
+    if (existingEpisodeIdentifiers.has(originalAudioURL)) {
+      continue; 
+    }
+    
+    const potentialFileKey = getEpisodeFileKey(episodeTitle, pubDateString);
+    if (existingEpisodeIdentifiers.has(potentialFileKey)) {
+        continue;
+    }
+
+    // sequentialId is set to 0 as a placeholder. It will be correctly assigned after global sort.
+    const fileKey = potentialFileKey; // Use the already generated potentialFileKey
+    const summary = getEpisodeSummary(rssEpisode);
+    const durationInSeconds = parseDuration(rssEpisode['itunes:duration']);
+
+    const newEpisodeToAdd: EpisodeInManifest = {
+      sequentialId: 0, // Placeholder - will be set globally later
+      podcastId,
+      title: episodeTitle,
+      fileKey,
+      originalAudioURL,
+      summary,
+      durationInSeconds,
+      publishedAt: parsedPublishedDate.toISOString(),
+      hasCompletedLLMAnnotations: false,
+      llmAnnotations: {},
+    };
+
+    episodeManifest.episodes.push(newEpisodeToAdd);
+    newEpisodesInManifest.push(newEpisodeToAdd);
+    existingEpisodeIdentifiers.add(originalAudioURL);
+    existingEpisodeIdentifiers.add(fileKey);
+
+    log.info(`🆕 Identified for manifest: ${podcastId} - ${episodeTitle}`);
+  }
   
-  // Create podcast-specific directory path
-  const podcastDir = path.basename(feedConfig.rssFeedFile, path.extname(feedConfig.rssFeedFile));
-  const podcastAudioKey = path.join(AUDIO_DIR_PREFIX, podcastDir, filename);
+  // No longer sorting by sequentialId here, as it's a placeholder.
+  // Global sort by publishedAt will happen in the main handler.
+  
+  return { newEpisodesInManifest, existingEpisodesInManifest };
+}
+
+
+// Determine which episodes need their audio downloaded
+async function identifyEpisodesToDownload(
+  episodesFromManifest: EpisodeInManifest[],
+  podcastId: string
+): Promise<EpisodeInManifest[]> {
+  const podcastAudioDirS3 = path.join(AUDIO_DIR_PREFIX, podcastId);
+  await createDirectory(podcastAudioDirS3); // Ensure podcast-specific audio directory exists in S3
+
+  let filesToDownload: EpisodeInManifest[] = [];
   
   try {
-    log.debug(`Downloading episode: ${episode.title}`);
+    const existingAudioFilesS3 = (await listFiles(podcastAudioDirS3)).map(filePath => path.basename(filePath));
+    // Normalize filenames from S3 to NFC before adding to the set
+    const existingAudioFilenamesSet = new Set(existingAudioFilesS3.map(name => name.normalize('NFC')));
+
+    for (const episode of episodesFromManifest) {
+      if (episode.podcastId !== podcastId) continue; 
+
+      const expectedAudioFilename = getEpisodeAudioFilename(episode.fileKey);
+      // Normalize the expected filename to NFC before checking the set
+      const normalizedExpectedAudioFilename = expectedAudioFilename.normalize('NFC');
+
+      if (!existingAudioFilenamesSet.has(normalizedExpectedAudioFilename)) {
+        filesToDownload.push(episode);
+        log.debug(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}, Normalized: ${normalizedExpectedAudioFilename}) as it's not in S3 set.`);
+      } else {
+        // log.debug(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
+      }
+    }
+  } catch (error) {
+      log.error(`Error listing existing audio files for ${podcastId} in S3 bucket:`, error);
+      // Decide if we should throw or return empty / try to proceed
+      // For now, if we can't list, assume no files exist and try to download all relevant.
+      // This could be risky if listFiles fails intermittently.
+      // A safer approach might be to skip downloads for this podcast if listing fails.
+      log.warn(`Could not list existing S3 audio files for ${podcastId}. Assuming all relevant manifest episodes need downloading.`);
+      return episodesFromManifest.filter((ep: EpisodeInManifest) => ep.podcastId === podcastId);
+  }
+  
+  return filesToDownload;
+}
+
+
+// Download episode audio file
+async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string> {
+  const url = episode.originalAudioURL;
+  const audioFilename = getEpisodeAudioFilename(episode.fileKey);
+  const podcastAudioKey = path.join(AUDIO_DIR_PREFIX, episode.podcastId, audioFilename);
+  
+  try {
+    log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${url}`);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const arrayBuffer = await response.arrayBuffer();
-    // Save the audio file directly to S3 or local storage
     await saveFile(podcastAudioKey, Buffer.from(arrayBuffer));
-    log.debug(`Successfully downloaded: ${filename}`);
+    log.info(`✅ Successfully downloaded: ${audioFilename} to ${podcastAudioKey}`);
     
     return podcastAudioKey;
   } catch (error) {
-    log.error(`❌ Error downloading episode ${episode.title}:`, error);
-    throw error;
+    log.error(`❌ Error downloading episode ${episode.title} (key: ${episode.fileKey}):`, error);
+    throw error; // Re-throw to be caught by the caller
   }
 }
 
-// Trigger Lambda-2 for transcription (placeholder for now)
-async function triggerTranscriptionLambda(newAudioFiles: string[]): Promise<void> {
-  log.debug('New audio files to transcribe:', newAudioFiles);
+// Trigger Lambda-2 for transcription (placeholder)
+async function triggerTranscriptionLambda(downloadedAudioS3Keys: string[]): Promise<void> {
+  if (downloadedAudioS3Keys.length === 0) {
+    log.debug('No new audio files were downloaded, so no transcription to trigger.');
+    return;
+  }
+  log.info('New audio files to transcribe (S3 Keys):', downloadedAudioS3Keys);
   // In AWS environment, this would use AWS SDK to trigger another Lambda
   // For local dev, we'll just log the files
-  log.debug('Would trigger Lambda-2 with these files:', newAudioFiles);
+  log.debug('Would trigger Lambda-2 (transcription) with these S3 keys:', downloadedAudioS3Keys);
 }
 
 // Main handler function
 export async function handler(): Promise<void> {
   log.info(`🟢 Starting retrieve-rss-feeds-and-download-audio-files > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
-  log.info('⏱️ Starting at', new Date().toISOString());
+  log.info('⏱️  Starting at', new Date().toISOString());
+
   try {
-    // Ensure directories exist
+    // Ensure base directories exist (S3 operations are generally idempotent for dir creation)
     await createDirectory(RSS_DIR_PREFIX);
     await createDirectory(AUDIO_DIR_PREFIX);
+    await createDirectory(EPISODE_MANIFEST_DIR_PREFIX); // For the manifest file
     
-    // Check if config exists, if not create it with empty array
-    if (!await fileExists(RSS_CONFIG_KEY)) {
-      const emptyConfig = { rssFeeds: [] };
-      await saveFile(RSS_CONFIG_KEY, JSON.stringify(emptyConfig, null, 2));
-    }
+    const episodeManifest = await getOrCreateEpisodeManifest();
     
-    const config = await readRSSConfig();
-    const activeFeeds = config['rssFeeds'].filter(feed => feed.status === 'active');
+    // The RSS_CONFIG is now imported from @listen-fair-play/config
+    const activeFeeds = Object.values(RSS_CONFIG).filter(feed => feed.status === 'active');
     
-    log.debug(`Found ${activeFeeds.length} active feeds to process`);
+    log.debug(`Found ${activeFeeds.length} active feeds to process based on version-controlled config.`);
     
-    const newAudioFiles: string[] = [];
-    
-    for (const feed of activeFeeds) {
-      log.debug(`Processing feed: ${feed.title}`);
+    let allNewlyDownloadedS3AudioKeys: string[] = [];
+    const podcastStats = new Map<string, { newManifestEntries: number, newDownloads: number }>();
+    let totalNewEntriesIdentifiedThisRun = 0;
+
+    for (const podcastConfig of activeFeeds) {
+      const podcastId = podcastConfig.id;
+      log.info(`
+▶️ Processing feed: ${podcastConfig.title} (ID: ${podcastId})`);
+      podcastStats.set(podcastId, { newManifestEntries: 0, newDownloads: 0 });
       
       try {
-        // Fetch RSS feed
-        const xmlContent = await fetchRSSFeed(feed.url);
+        // 1. Fetch RSS feed
+        const xmlContent = await fetchRSSFeed(podcastConfig.url);
         
-        // Save RSS feed
-        await saveRSSFeed(xmlContent, feed);
+        // 2. Save RSS feed to S3 (for archival/debugging)
+        await saveRSSFeedToS3(xmlContent, podcastId, podcastConfig.rssFeedFile);
         
-        // Parse RSS feed
+        // 3. Parse RSS feed
         const parsedFeed = await parseRSSFeed(xmlContent);
-        
-        // Identify new episodes
-        const newEpisodes = await identifyNewEpisodes(parsedFeed, feed);
-        
-        if (newEpisodes.length === 0) {
-          log.debug(`No new episodes found for ${feed.title}`);
-          continue;
+        if (!parsedFeed || !parsedFeed.rss || !parsedFeed.rss.channel) {
+            log.error(`❌ Failed to parse RSS feed for ${podcastConfig.title} or structure is invalid. Skipping.`);
+            continue;
         }
         
-        log.debug(`Found ${newEpisodes.length} new episodes for ${feed.title}`);
+        // 4. Update Episode Manifest with new episodes from this feed
+        // This function now modifies episodeManifest directly
+        const { newEpisodesInManifest } = await updateManifestWithNewEpisodes(parsedFeed, podcastConfig, episodeManifest);
         
-        // Download each new episode
-        for (const episode of newEpisodes) {
+        if (newEpisodesInManifest.length > 0) {
+          log.info(`Identified ${newEpisodesInManifest.length} new episodes from ${podcastConfig.title} to add to manifest.`);
+          podcastStats.get(podcastId)!.newManifestEntries = newEpisodesInManifest.length;
+          totalNewEntriesIdentifiedThisRun += newEpisodesInManifest.length;
+          // Save manifest after each podcast feed is processed and new episodes are added (with placeholder sequentialId)
+          await saveEpisodeManifest(episodeManifest); 
+        } else {
+          log.info(`No new episodes found from ${podcastConfig.title} to add to manifest.`);
+        }
+
+        // 5. Identify which episodes (from the manifest for this podcast) need audio download
+        // We consider all episodes for this podcast in the manifest, not just newly added ones,
+        // in case a previous download failed or files were manually removed.
+        const episodesForThisPodcastInManifest = episodeManifest.episodes.filter((ep: EpisodeInManifest) => ep.podcastId === podcastId);
+        const episodesToDownloadAudioFor = await identifyEpisodesToDownload(episodesForThisPodcastInManifest, podcastId);
+
+        if (episodesToDownloadAudioFor.length === 0) {
+          log.info(`No audio files to download for ${podcastConfig.title} based on current manifest and S3 audio files.`);
+        } else {
+          log.info(`Identified ${episodesToDownloadAudioFor.length} episodes for ${podcastConfig.title} requiring audio download.`);
+        }
+        
+        // 6. Download audio for each identified episode
+        let successfullyDownloadedForThisPodcast = 0;
+        for (const episodeToDownload of episodesToDownloadAudioFor) {
           try {
-            const audioFilePath = await downloadEpisodeAudio(episode, feed);
-            newAudioFiles.push(audioFilePath);
+            // Ensure episodeToDownload has a valid fileKey, which it should if it came from manifest
+            if (!episodeToDownload.fileKey) {
+                log.warn(`Skipping download for episode titled "${episodeToDownload.title}" as it's missing a fileKey in the manifest.`);
+                continue;
+            }
+            const downloadedAudioS3Key = await downloadEpisodeAudio(episodeToDownload);
+            allNewlyDownloadedS3AudioKeys.push(downloadedAudioS3Key);
+            successfullyDownloadedForThisPodcast++;
           } catch (downloadError) {
-            log.error(`❌ Failed to download episode ${episode.title}:`, downloadError);
-            // Continue to next episode rather than stopping the whole process
+            log.error(`❌ Failed to download episode "${episodeToDownload.title}" for ${podcastConfig.title}:`, downloadError);
           }
         }
-      } catch (feedError) {
-        log.error(`❌ Error processing feed ${feed.title}:`, feedError);
-        // Continue to next feed rather than stopping the whole process
+        podcastStats.get(podcastId)!.newDownloads = successfullyDownloadedForThisPodcast;
+
+      } catch (feedProcessingError) {
+        log.error(`❌ Error processing feed ${podcastConfig.title}:`, feedProcessingError);
+        // Continue to next feed rather than stopping the whole Lambda
       }
     }
     
-    // If new audio files were downloaded, trigger transcription
-    if (newAudioFiles.length > 0) {
-      log.debug(`✅ Successfully downloaded ${newAudioFiles.length} new episodes`);
-      await triggerTranscriptionLambda(newAudioFiles);
+    log.info('🏁 Finished processing all feeds. Now finalizing episode manifest...');
+
+    // Globally sort all episodes in the manifest by publication date (oldest first)
+    // and re-assign sequential IDs.
+    log.info('Finalizing episode manifest: Sorting all episodes by publication date and re-assigning sequential IDs...');
+    episodeManifest.episodes.sort((a, b) => {
+      // publishedAt should be a valid ISO string from prior checks.
+      // If not, parsePubDate might return an invalid Date, getTime() would be NaN.
+      const dateA = a.publishedAt ? parsePubDate(a.publishedAt).getTime() : 0;
+      const dateB = b.publishedAt ? parsePubDate(b.publishedAt).getTime() : 0;
+
+      // Handle potential NaN or zero dates (e.g. put them at the end or beginning based on preference)
+      // Here, episodes with invalid/missing dates are pushed towards the end.
+      if (isNaN(dateA) && isNaN(dateB)) return 0;
+      if (isNaN(dateA)) return 1; // a is invalid, b is valid or invalid; if b is valid, a comes after
+      if (isNaN(dateB)) return -1; // b is invalid, a is valid; a comes before
+
+      if (dateA === 0 && dateB === 0) return 0;
+      if (dateA === 0) return 1; 
+      if (dateB === 0) return -1;
+      
+      return dateA - dateB;
+    });
+
+    let changedIds = 0;
+    episodeManifest.episodes.forEach((episode, index) => {
+      const newSequentialId = index + 1;
+      if (episode.sequentialId !== newSequentialId) {
+        changedIds++;
+      }
+      episode.sequentialId = newSequentialId;
+    });
+
+    if (changedIds > 0 || totalNewEntriesIdentifiedThisRun > 0) {
+        log.info(`Sequential IDs re-assigned for ${changedIds} episodes. Total episodes: ${episodeManifest.episodes.length}. New entries this run: ${totalNewEntriesIdentifiedThisRun}.`);
+        await saveEpisodeManifest(episodeManifest); // Perform the final save
+        log.info('✅ Episode manifest has been finalized with chronological sequential IDs.');
     } else {
-      log.debug('☑️  No new episodes were downloaded');
+        log.info('No new entries and no sequential ID changes required. Manifest is already up-to-date.');
     }
     
-    // Group new audio files by podcast
-    const podcastStats = new Map<string, number>();
-    for (const file of newAudioFiles) {
-      const podcastName = path.basename(path.dirname(file));
-      podcastStats.set(podcastName, (podcastStats.get(podcastName) || 0) + 1);
-    }
-
+    await triggerTranscriptionLambda(allNewlyDownloadedS3AudioKeys);
+    
     const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;
     
     log.info('\n📊 RSS Feed Processing Summary:');  
-    log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
-    log.info(`\n📡 Active Feeds Processed: ${activeFeeds.length}`);
-    log.info(`\n🎙️  New Episodes Downloaded: ${newAudioFiles.length}`);
+    log.info(`⏱️   Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
+    log.info(`📡 Active Feeds Processed: ${activeFeeds.length}`);
     
-    if (newAudioFiles.length > 0) {
+    let totalNewManifestEntries = 0;
+    let totalNewDownloads = 0;
+    podcastStats.forEach(stats => {
+        totalNewManifestEntries += stats.newManifestEntries;
+        totalNewDownloads += stats.newDownloads;
+    });
+
+    log.info(`✉️   New Entries Added to Manifest: ${totalNewManifestEntries}`);
+    log.info(`🎧 New Audio Files Downloaded: ${totalNewDownloads}`);
+    
+    if (totalNewManifestEntries > 0 || totalNewDownloads > 0) {
       log.info('\n📂 Breakdown by Podcast:');
-      for (const [podcast, count] of podcastStats) {
-        log.info(`\n🎧 ${podcast}:`);
-        log.info(`   📥 New Episodes: ${count}`);
+      for (const [podcastName, counts] of podcastStats) {
+        // Find the title from RSS_CONFIG using podcastName (which is the ID)
+        const podcastTitle = RSS_CONFIG[podcastName as keyof typeof RSS_CONFIG]?.title || podcastName;
+        log.info(`\n  Podcast: ${podcastTitle}`);
+        log.info(`    ✉️  New Manifest Entries: ${counts.newManifestEntries}`);
+        log.info(`    📥 New Audio Downloads: ${counts.newDownloads}`);
       }
     }
     
-    log.info('\n✨ RSS feed processing completed successfully');
+    log.info('\n✨ RSS feed processing and manifest update completed successfully');
   } catch (error) {
-    log.error('❌ Error in RSS feed processing:', error);
+    log.error('❌ Fatal error in RSS feed processing handler:', error);
+    // Depending on the environment, might want to re-throw or handle differently
+    // For a Lambda, re-throwing will mark the invocation as failed.
     throw error;
   }
 }
 
 // For local development, call the handler directly
-// ES modules don't have require.main === module, so check if this is the entry point by checking import.meta.url
+// ESM check:
 const scriptPath = path.resolve(process.argv[1]);
-if (import.meta.url === `file://${scriptPath}`) {
-  log.debug('Starting podcast RSS feed retrieval - running via pnpm...');
+const scriptUrl = import.meta.url;
+
+if (scriptUrl.startsWith('file://') && scriptUrl.endsWith(scriptPath)) {
+  log.info('🚀 Starting podcast RSS feed retrieval & manifest update (running via pnpm / direct script execution)... ');
   handler()
-    .then(() => log.debug('Processing completed successfully'))
+    .then(() => log.info('✅ Processing completed successfully.'))
     .catch(error => {
-      log.error('Processing failed:', error);
+      log.error('❌ Processing failed with an error:', error);
       process.exit(1);
     });
 }

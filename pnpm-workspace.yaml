@@ -1,5 +1,6 @@
 packages:
   - packages/client
+  - packages/config
   - packages/constants
   - packages/logging
   - packages/database
