@@ -15,7 +15,7 @@
 set -e
 
 echo "WARNING: In normal development, downloading all objects from the S3 bucket is not required."
-echo "It may also overwrite local files in ./aws-local-dev"
+echo "It may also overwrite local files in ./aws-local-dev-TEMP"
 read -p "Are you sure you want to continue? (yes/no): " confirmation
 
 CONFIRMATION_LOWER=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')

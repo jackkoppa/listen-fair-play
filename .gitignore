@@ -54,4 +54,8 @@ terraform/**/*.zip
 /processing/rss
 
 # Client build
-/client/public
+/client/public 
+
+
+# From /scripts/TEMP-download-all-bucket-objects-to-local.sh
+aws-local-dev-TEMP/

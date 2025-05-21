@@ -4,8 +4,7 @@ import { SearchEntry } from '@listen-fair-play/types';
 
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined
-    episodeId: number;
-    episodeTitle: string;
+    sequentialEpisodeId: number;
 }
 
 // Structure for parsed SRT line
@@ -27,8 +26,7 @@ const MAX_CHUNK_DURATION_MS = 30000;
 
 export const convertSrtFileIntoSearchEntryArray = ({
     srtFileContent,
-    episodeId,
-    episodeTitle
+    sequentialEpisodeId,
 }: ConvertSrtFileIntoSearchEntryArrayProps): SearchEntry[] => {
 
     if (!srtFileContent || typeof srtFileContent !== 'string') {
@@ -61,7 +59,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
         return []; // No valid SRT blocks found
     }
 
-    log.debug(`--- Starting Chunking for Episode ${episodeId} ---`); // LOG: Start
+    log.debug(`--- Starting Chunking ---`); // LOG: Start
     log.debug(`Total parsed lines: ${parsedLines.length}`);
 
     const searchEntries: SearchEntry[] = [];
@@ -122,12 +120,11 @@ export const convertSrtFileIntoSearchEntryArray = ({
             log.debug(`    Final Chunk End Time: ${chunkEndTimeMs}`);
             const actualChunkStartTime = currentChunkLines[0].startTimeMs;
             searchEntries.push({
-                id: `${episodeId}_${actualChunkStartTime}`,
-                episodeId,
-                episodeTitle,
+                id: `${sequentialEpisodeId}_${actualChunkStartTime}`,
                 startTimeMs: actualChunkStartTime,
                 endTimeMs: chunkEndTimeMs,
-                text: chunkCombinedText.trim()
+                text: chunkCombinedText.trim(),
+                sequentialEpisodeId,
             });
 
             // Reset for next chunk
@@ -139,7 +136,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
         }
     } // End for loop
 
-    log.debug(`\n--- Chunking Complete for Episode ${episodeId} ---`); // LOG: End
+    log.debug(`\n--- Chunking Complete ---`); // LOG: End
     log.debug(`Total search entries created: ${searchEntries.length}`);
 
     return searchEntries;

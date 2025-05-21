@@ -4,6 +4,7 @@ import { log } from '@listen-fair-play/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
 import { RSS_CONFIG } from '@listen-fair-play/config';
 import { EpisodeManifest, EpisodeInManifest, LlmAnnotations } from '@listen-fair-play/types';
+import {EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
@@ -27,7 +28,6 @@ interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInM
 // Constants - Define S3 paths
 const RSS_DIR_PREFIX = 'rss/';
 const AUDIO_DIR_PREFIX = 'audio/';
-const EPISODE_MANIFEST_KEY = 'episode-manifest/full-episode-manifest.json';
 const EPISODE_MANIFEST_DIR_PREFIX = 'episode-manifest/';
 
 

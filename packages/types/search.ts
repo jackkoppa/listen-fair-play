@@ -5,8 +5,7 @@
  */
 export interface SearchEntry {
   id: string;
-  episodeId: number;
-  episodeTitle: string;
+  sequentialEpisodeId: number;
   startTimeMs: number;
   endTimeMs: number;
   text: string;

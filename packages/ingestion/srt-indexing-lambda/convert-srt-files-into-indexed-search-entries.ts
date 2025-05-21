@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import sqlite3 from "sqlite3";
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 import { createDocumentIndex, logRowCountsForSQLiteTables } from '@listen-fair-play/database';
 import { log } from '@listen-fair-play/logging';
 import { SearchEntry } from '@listen-fair-play/types';
@@ -28,6 +28,15 @@ const PROCESSING_TIME_LIMIT_MS = (PROCESSING_TIME_LIMIT_MINUTES * 60 * 1000) - (
 const MAX_RETRIGGER_COUNT = 5; 
 const COMMIT_PERCENTAGE_THRESHOLD = 5; // Commit every 5% of SRT files processed
 
+// Structure for episode data from the manifest
+interface EpisodeManifestEntry {
+  sequentialId: number;
+  fileKey: string;
+  // other fields from manifest are not strictly needed here but could be added
+}
+
+let episodeManifestData: EpisodeManifestEntry[] = [];
+
 // Function to check if search entries already exist for a transcript
 async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
   const srtFileName = path.basename(srtFileKey, '.srt');
@@ -44,6 +53,8 @@ async function getSrtFilesWithNoSearchEntries(): Promise<string[]> {
   const srtFiles = transcriptFiles.filter(file => file.endsWith('.srt'));
   
   // Filter to only include files with no existing search entries
+  // This logic might need adjustment if "existence" is purely based on the manifest now
+  // For now, keeping it as is, assuming JSON files are still the intermediate step for generated entries.
   const filesToProcess: string[] = [];
   
   for (const srtFile of srtFiles) {
@@ -56,30 +67,6 @@ async function getSrtFilesWithNoSearchEntries(): Promise<string[]> {
   return filesToProcess;
 }
 
-// Function to extract episode information from SRT file path
-function extractEpisodeInfo(srtFilePath: string): { episodeId: number; episodeTitle: string } {
-  // Example path: transcripts/podcast-name/YYYY-MM-DD_episode-title.srt
-  const filename = path.basename(srtFilePath, '.srt');
-  const podcastName = path.basename(path.dirname(srtFilePath));
-  
-  // Generate a simple deterministic hash for the episodeId
-  // This ensures consistency when reprocessing the same file
-  const combinedString = `${podcastName}_${filename}`;
-  let hash = 0;
-  for (let i = 0; i < combinedString.length; i++) {
-    const char = combinedString.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  // Make sure it's positive and reasonable sized
-  const episodeId = Math.abs(hash) % 10000;
-  
-  return {
-    episodeId,
-    episodeTitle: filename
-  };
-}
-
 // Function to process a single SRT file
 async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   log.debug(`Processing SRT file: ${srtFileKey}`);
@@ -88,26 +75,37 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   const srtBuffer = await getFile(srtFileKey);
   const srtContent = srtBuffer.toString('utf-8');
   
-  // Extract episode info from file path
-  const { episodeId, episodeTitle } = extractEpisodeInfo(srtFileKey);
+  // Derive fileKey to match manifest (e.g., "2020-01-23_The-Transfer-Window")
+  const baseSrtName = path.basename(srtFileKey, '.srt'); // e.g., YYYY-MM-DD_episode-title
+
+  const manifestEntry = episodeManifestData.find(ep => ep.fileKey === baseSrtName);
+
+  if (!manifestEntry) {
+    log.error(`No manifest entry found for SRT file key: ${srtFileKey} (derived fileKey: ${baseSrtName}). Skipping this file.`);
+    return [];
+  }
+  const sequentialEpisodeId = manifestEntry.sequentialId;
   
   // Convert SRT content to search entries using the utility function
+  // Note: convertSrtFileIntoSearchEntryArray will need its signature updated too.
   const utilityEntries = convertSrtFileIntoSearchEntryArray({
     srtFileContent: srtContent,
-    episodeId,
-    episodeTitle
+    sequentialEpisodeId
   });
   
-  // Convert entries to our SearchEntry type to ensure index signature is included
+  // Convert entries to our SearchEntry type and add the new ID structure
   const searchEntries: SearchEntry[] = utilityEntries.map(entry => ({
-    ...entry
+    ...entry, // Spread other properties like startTimeMs, endTimeMs, text
+    sequentialEpisodeId: sequentialEpisodeId,
+    id: `${sequentialEpisodeId}_${entry.startTimeMs}` // New ID format
+    // episodeTitle is no longer part of SearchEntry
   }));
   
-  log.debug(`Generated ${searchEntries.length} search entries from SRT file`);
+  log.debug(`Generated ${searchEntries.length} search entries from SRT file ${srtFileKey}`);
   
   // Save search entries to S3
   const srtFileName = path.basename(srtFileKey, '.srt');
-  const podcastName = path.basename(path.dirname(srtFileKey));
+  const podcastName = path.basename(path.dirname(srtFileKey)); // This might be simplified if manifest gives full path or structure
   const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
   
   // Ensure the directory exists
@@ -143,7 +141,42 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString())
-  log.info('🔍 Event:', event)
+  log.info('�� Event:', event)
+
+  try {
+    log.info(`Fetching episode manifest from S3: ${EPISODE_MANIFEST_KEY}`);
+    const manifestBuffer = await getFile(EPISODE_MANIFEST_KEY);
+    const manifestContent = manifestBuffer.toString('utf-8');
+    const parsedManifest = JSON.parse(manifestContent);
+    if (parsedManifest && Array.isArray(parsedManifest.episodes)) {
+      episodeManifestData = parsedManifest.episodes.map((ep: any) => ({ // Cast to any for now, can be stricter with full Episode type
+        sequentialId: ep.sequentialId,
+        fileKey: ep.fileKey,
+      }));
+      log.info(`Successfully loaded and parsed ${episodeManifestData.length} episodes from manifest.`);
+    } else {
+      log.error('Episode manifest is not in the expected format (missing episodes array). Cannot proceed with new ID logic.');
+      // Depending on strictness, might want to throw an error or return an error state
+      episodeManifestData = []; // Ensure it's empty to prevent partial processing
+      // Potentially throw new Error("Invalid episode manifest format.");
+    }
+  } catch (error: any) {
+    log.error(`Failed to load or parse episode manifest from ${EPISODE_MANIFEST_KEY}: ${error.message}`, error);
+    log.error('Cannot proceed without episode manifest for new ID logic. Aborting.');
+    return {
+      status: 'error',
+      message: `Failed to load episode manifest: ${error.message}`,
+      evaluatedSrtFiles: 0,
+      totalSrtFiles: 0,
+      newEntriesAdded: 0,
+      timeLimitReached: false,
+      retriggered: false,
+    };
+  }
+
+  if (episodeManifestData.length === 0) {
+      log.warn("Episode manifest data is empty after loading. This may lead to no SRTs being processed correctly if they rely on manifest IDs. Continuing, but this is unusual.");
+  }
 
   const currentRunCount = event.previousRunsCount || 0;
   if (currentRunCount > MAX_RETRIGGER_COUNT) {
@@ -284,8 +317,8 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
     let entriesAddedForThisFile = 0;
     for (const entry of searchEntriesForFile) {
       // Ensure entry has an id, critical for FlexSearch
-      if (typeof entry.id === 'undefined' || entry.id === null) {
-        log.warn(`Search entry from ${srtFileKey} is missing an ID. Title: "${entry.episodeTitle}", Text snippet: "${entry.text.substring(0,50)}". Skipping this entry.`);
+      if (typeof entry.id === 'undefined' || entry.id === null || entry.id === '') {
+        log.warn(`Search entry from ${srtFileKey} is missing an ID or ID is empty. Text snippet: "${entry.text.substring(0,50)}". Skipping this entry.`);
         continue;
       }
       const existingEntry = await index.get(entry.id);
