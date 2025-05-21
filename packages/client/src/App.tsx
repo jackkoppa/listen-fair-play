@@ -113,7 +113,7 @@ function App() {
 
     return () => clearTimeout(debounceTimer);
 
-  }, [searchQuery]);
+  }, [searchQuery]); 
 
   return (
     <div className="app-container max-w-3xl mx-auto p-4 font-mono pt-28">
