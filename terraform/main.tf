@@ -85,8 +85,9 @@ module "cloudfront" {
   environment                 = var.environment
   
   # Add custom domain configuration
-  custom_domain_name = var.custom_domain_name
-  certificate_arn    = var.custom_domain_name != "" ? aws_acm_certificate.custom_domain[0].arn : ""
+  custom_domain_name  = var.custom_domain_name
+  enable_custom_domain = var.enable_custom_domain_on_cloudfront
+  certificate_arn     = (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? aws_acm_certificate.custom_domain[0].arn : ""
 }
 
 # Wait for the S3 bucket to be fully configured
@@ -246,7 +247,7 @@ resource "aws_apigatewayv2_api" "search_api" {
   cors_configuration {
     allow_origins = concat(
       ["https://${module.cloudfront.cloudfront_domain_name}"],
-      var.custom_domain_name != "" ? ["https://${var.custom_domain_name}"] : []
+      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : []
     )
     allow_methods = ["GET", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]

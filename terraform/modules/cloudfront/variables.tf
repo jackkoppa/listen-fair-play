@@ -23,4 +23,10 @@ variable "certificate_arn" {
   description = "ARN of the SSL certificate for the custom domain"
   type        = string
   default     = ""
+}
+
+variable "enable_custom_domain" {
+  description = "Whether to enable custom domain on CloudFront"
+  type        = bool
+  default     = false
 } 

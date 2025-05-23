@@ -46,3 +46,9 @@ variable "root_domain_name" {
   type        = string
   default     = ""
 }
+
+variable "enable_custom_domain_on_cloudfront" {
+  description = "Whether to enable custom domain on CloudFront (set to false initially, then true after DNS validation)"
+  type        = bool
+  default     = false
+}
