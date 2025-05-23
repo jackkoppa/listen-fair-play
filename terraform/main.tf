@@ -33,6 +33,20 @@ provider "aws" {
   }
 }
 
+# Additional provider for us-east-1 (required for CloudFront certificates)
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+  
+  default_tags {
+    tags = {
+      Project     = "listen-fair-play"
+      Environment = var.environment
+      ManagedBy   = "terraform"
+    }
+  }
+}
+
 # S3 bucket for storing podcast files and hosting website
 module "s3_bucket" {
   source = "./modules/s3"
@@ -42,13 +56,37 @@ module "s3_bucket" {
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
+# SSL Certificate for custom domain (must be in us-east-1 for CloudFront)
+resource "aws_acm_certificate" "custom_domain" {
+  count = var.custom_domain_name != "" ? 1 : 0
+
+  domain_name       = var.custom_domain_name
+  validation_method = "DNS"
+
+  # CloudFront requires certificates to be in us-east-1
+  provider = aws.us_east_1
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name        = "listen-fair-play-${var.environment}"
+    Environment = var.environment
+  }
+}
+
 # CloudFront distribution
 module "cloudfront" {
   source = "./modules/cloudfront"
   
-  bucket_name               = module.s3_bucket.bucket_name
+  bucket_name                 = module.s3_bucket.bucket_name
   bucket_regional_domain_name = module.s3_bucket.bucket_regional_domain_name
-  environment               = var.environment
+  environment                 = var.environment
+  
+  # Add custom domain configuration
+  custom_domain_name = var.custom_domain_name
+  certificate_arn    = var.custom_domain_name != "" ? aws_acm_certificate.custom_domain[0].arn : ""
 }
 
 # Wait for the S3 bucket to be fully configured
@@ -206,7 +244,10 @@ resource "aws_apigatewayv2_api" "search_api" {
   target        = module.search_lambda.lambda_function_arn
 
   cors_configuration {
-    allow_origins = ["https://${module.cloudfront.cloudfront_domain_name}"]
+    allow_origins = concat(
+      ["https://${module.cloudfront.cloudfront_domain_name}"],
+      var.custom_domain_name != "" ? ["https://${var.custom_domain_name}"] : []
+    )
     allow_methods = ["GET", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]
     max_age       = 300

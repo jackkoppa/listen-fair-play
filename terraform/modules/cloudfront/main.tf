@@ -18,6 +18,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   default_root_object = "index.html"
   price_class         = "PriceClass_100"  # Use only North America and Europe edge locations
 
+  # Add custom domain aliases when custom domain is configured
+  aliases = var.custom_domain_name != "" ? [var.custom_domain_name] : []
+
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -83,7 +86,11 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    # Use custom certificate if provided, otherwise use CloudFront default
+    cloudfront_default_certificate = var.certificate_arn == ""
+    acm_certificate_arn           = var.certificate_arn != "" ? var.certificate_arn : null
+    ssl_support_method            = var.certificate_arn != "" ? "sni-only" : null
+    minimum_protocol_version      = var.certificate_arn != "" ? "TLSv1.2_2021" : null
   }
 
   # Route all requests for non-existent files to index.html for SPA support

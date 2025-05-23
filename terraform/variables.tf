@@ -34,3 +34,15 @@ variable "log_level" {
   type        = string
   default     = "info"
 }
+
+variable "custom_domain_name" {
+  description = "The custom domain name for the website (e.g., listenfairplay.com)"
+  type        = string
+  default     = ""
+}
+
+variable "root_domain_name" {
+  description = "The root domain name (e.g., listenfairplay.com)"
+  type        = string
+  default     = ""
+}

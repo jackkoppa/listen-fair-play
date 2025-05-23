@@ -23,7 +23,7 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
     return (
         <>
             <Sheet >
-                <SheetTrigger >
+                <SheetTrigger asChild>
                     <Button>
                         <PlayIcon />
                         Load Here

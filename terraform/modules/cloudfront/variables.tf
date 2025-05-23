@@ -11,4 +11,16 @@ variable "bucket_regional_domain_name" {
 variable "environment" {
   description = "The environment name (dev or prod)"
   type        = string
+}
+
+variable "custom_domain_name" {
+  description = "Custom domain name for the CloudFront distribution"
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ARN of the SSL certificate for the custom domain"
+  type        = string
+  default     = ""
 } 
