@@ -11,6 +11,12 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 - **Rich search features**: Full-text search, highlighting, faceted search
 - **No external dependencies**: Eliminates SQLite dependency
 
+## Key Decisions Made:
+- **Index file format**: `.msp` (binary format recommended by [Orama data persistence docs](https://docs.orama.com/open-source/plugins/plugin-data-persistence#persisting-the-database-to-disk-server-usage))
+- **Sort field**: `episodePublishedUnixTimestamp` (unix timestamp for efficient sorting)
+- **API compatibility**: No backward compatibility needed - redesigning for optimal Orama usage
+- **Migration strategy**: Complete rebuild from SRT files, remove all FlexSearch/SQLite references
+
 ## Task List for FlexSearch to Orama Migration
 
 ### Phase 1: Research & Setup ✅
@@ -18,10 +24,12 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - Orama chosen for TypeScript support, sorting capabilities, and data persistence
   - Key docs: [Getting Started](https://docs.orama.com/open-source), [Create Index](https://docs.orama.com/open-source/usage/create), [Data Persistence](https://docs.orama.com/open-source/plugins/plugin-data-persistence)
 
-- [ ] **Task 1.2**: Define new Orama schema and data structure
-  - Design Orama schema that supports date sorting and current search fields
-  - Define serialization format using data persistence plugin
-  - Files: Update `packages/types/src/search-types.ts`
+- [x] **Task 1.2**: Define new Orama schema and data structure - **COMPLETED**
+  - ✅ Updated `packages/types/search.ts` with new Orama-compatible interfaces
+  - ✅ Added `episodePublishedUnixTimestamp` field for sorting
+  - ✅ Created comprehensive `SearchRequest`/`SearchResponse` interfaces
+  - ✅ Defined `ORAMA_SEARCH_SCHEMA` constant for type safety
+  - ✅ Enhanced search capabilities (sorting, filtering, better search options)
 
 ### Phase 2: Update Dependencies & Core Libraries
 - [ ] **Task 2.1**: Update package dependencies
@@ -46,7 +54,7 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 
 - [ ] **Task 3.2**: Update index storage logic
   - Replace SQLite DB file with Orama serialized index using data persistence plugin
-  - Update S3 key constants (change from `.db` to appropriate extension)
+  - Update S3 key constants (change from `.db` to `.msp` extension)
   - Ensure schema includes episode metadata with proper types for date sorting
   - Files: `packages/constants/src/index.ts`, indexing lambda
 
@@ -103,28 +111,28 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 ## Key Files for Reference:
 - `packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`
 - `packages/search/search-lambda/search-indexed-transcripts.ts`
-- `packages/types/src/search-types.ts`
+- `packages/types/search.ts` ✅ **UPDATED**
 - `packages/database/src/index.ts`
 - `packages/constants/src/index.ts`
 - `diagrams/aws-architecture.drawio`
 
-## Orama Schema Design (Proposed)
+## Final Orama Schema (Implemented) ✅
 ```typescript
-const schema = {
-  id: 'string',           // Unique search entry ID
-  text: 'string',         // Transcript text (searchable)
-  episodeId: 'number',    // Sequential episode ID
-  podcastName: 'string',  // Podcast name (filterable)
-  episodeTitle: 'string', // Episode title (searchable)
-  publishedDate: 'string', // ISO date string (sortable)
-  startTime: 'number',    // Start time in seconds
-  endTime: 'number',      // End time in seconds
-  fileKey: 'string',      // Original file key
-}
+export const ORAMA_SEARCH_SCHEMA = {
+  id: 'string',                         // Unique search entry ID
+  text: 'string',                       // Transcript text (searchable)
+  sequentialEpisodeId: 'number',        // Sequential episode ID from manifest
+  startTimeMs: 'number',                // Start time in milliseconds
+  endTimeMs: 'number',                  // End time in milliseconds
+  episodePublishedUnixTimestamp: 'number', // Unix timestamp for sorting by date
+  podcastId: 'string',                  // Podcast ID (e.g., "football-cliches")
+  episodeTitle: 'string',               // Episode title (searchable)
+  fileKey: 'string',                    // Original file key for reference
+} as const;
 ```
 
 ## Migration Benefits:
-- ✅ **Native date sorting**: Sort by `publishedDate` field easily
+- ✅ **Native date sorting**: Sort by `episodePublishedUnixTimestamp` field easily
 - ✅ **Remove SQLite dependency**: Eliminates Lambda layer complexity
 - ✅ **Better TypeScript support**: Full type safety throughout
 - ✅ **Improved performance**: Lighter weight, faster cold starts
@@ -139,6 +147,6 @@ const schema = {
 
 ## New Architecture (After):
 - Orama with data persistence plugin
-- Index stored as serialized Orama index in S3
-- Simple save/load operations
+- Index stored as serialized Orama index (`.msp`) in S3
+- Simple save/load operations using data persistence plugin
 - Native sorting by any field including dates 
