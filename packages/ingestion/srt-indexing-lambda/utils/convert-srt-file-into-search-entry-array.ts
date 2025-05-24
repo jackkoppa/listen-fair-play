@@ -126,7 +126,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
                 startTimeMs: actualChunkStartTime,
                 endTimeMs: chunkEndTimeMs,
                 text: chunkCombinedText.trim(),
-                sequentialEpisodeId,
+                sequentialEpisodeIdAsString: sequentialEpisodeId.toString(),
                 episodePublishedUnixTimestamp,
             });
 

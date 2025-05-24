@@ -5,7 +5,7 @@
 export interface SearchEntry {
   id: string;                           // Unique search entry ID
   text: string;                         // Transcript text (searchable)
-  sequentialEpisodeId: number;          // Sequential episode ID from manifest
+  sequentialEpisodeIdAsString: string;  // Sequential episode ID from manifest (as string for Orama filtering)
   startTimeMs: number;                  // Start time in milliseconds
   endTimeMs: number;                    // End time in milliseconds
   episodePublishedUnixTimestamp: number; // Unix timestamp for sorting by date
@@ -49,7 +49,7 @@ export interface SearchResponse {
 export const ORAMA_SEARCH_SCHEMA = {
   id: 'string',
   text: 'string',
-  sequentialEpisodeId: 'number',
+  sequentialEpisodeIdAsString: 'string',
   startTimeMs: 'number',
   endTimeMs: 'number',
   episodePublishedUnixTimestamp: 'number',

@@ -73,12 +73,13 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Files: `packages/constants/index.ts`, indexing lambda
 
 - [x] **Task 3.3**: Test index generation - **COMPLETED**
-  - ✅ Fixed episode ID filtering logic to use post-search client-side filtering (Orama doesn't support direct array filtering for number fields)
+  - ✅ Fixed episode ID filtering logic to use Orama where clause filtering with `sequentialEpisodeIdAsString` field (converted from number to string for Orama string array filtering compatibility)
   - ✅ Verified new Orama index format is created and serialized correctly
   - ✅ Tested with test data including search, sorting, filtering, serialization, and deserialization
-  - ✅ Validated index file size and performance vs SQLite - excellent performance (14,925 entries/sec insertion, 2ms search on 1000 entries)
-  - ✅ All tests passing: index creation, entry insertion, search functionality, date sorting, episode filtering, serialization, deserialization, and performance
-  - ✅ Files: `packages/database/database.ts`, `packages/ingestion/srt-indexing-lambda/test-orama-index-generation.ts`
+  - ✅ Validated index file size and performance vs SQLite - excellent performance (8,547+ entries/sec insertion, 1ms search on 1000 entries)
+  - ✅ All tests passing: index creation, entry insertion, search functionality, date sorting, episode filtering (using Orama where clause), serialization, deserialization, and performance
+  - ✅ **IMPORTANT FIX**: Changed `sequentialEpisodeId` (number) to `sequentialEpisodeIdAsString` (string) to enable proper Orama array filtering during search instead of post-search filtering
+  - ✅ Files: `packages/types/search.ts`, `packages/database/database.ts`, `packages/ingestion/srt-indexing-lambda/test-orama-index-generation.ts`, `packages/client/src/App.tsx`, `packages/client/src/components/SearchResult.tsx`, `packages/ingestion/srt-indexing-lambda/utils/convert-srt-file-into-search-entry-array.ts`, fixture files
 
 ### Phase 4: Update Search Lambda (Lambda 4)
 - [ ] **Task 4.1**: Replace FlexSearch query logic with Orama
@@ -160,14 +161,16 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 export const ORAMA_SEARCH_SCHEMA = {
   id: 'string',                         // Unique search entry ID
   text: 'string',                       // Transcript text (searchable)
-  sequentialEpisodeId: 'number',        // Sequential episode ID from manifest
+  sequentialEpisodeIdAsString: 'string', // Sequential episode ID from manifest (as string for Orama filtering)
   startTimeMs: 'number',                // Start time in milliseconds
   endTimeMs: 'number',                  // End time in milliseconds
   episodePublishedUnixTimestamp: 'number', // Unix timestamp for sorting by date
 } as const;
 ```
 
-**Note**: Removed `podcastId`, `episodeTitle`, and `fileKey` from schema to keep index lightweight. These will be handled via client-side filtering using the episode manifest.
+**Note**: 
+- Changed `sequentialEpisodeId` (number) to `sequentialEpisodeIdAsString` (string) for proper Orama array filtering support
+- Removed `podcastId`, `episodeTitle`, and `fileKey` from schema to keep index lightweight. These will be handled via client-side filtering using the episode manifest.
 
 ## Migration Benefits:
 - ✅ **Native date sorting**: Sort by `episodePublishedUnixTimestamp` field easily

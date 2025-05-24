@@ -159,7 +159,7 @@ function App() {
               <SearchResult
                 key={result.id}
                 result={result}
-                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === result.sequentialEpisodeId)}
+                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
               />
             ))}
           </ul>

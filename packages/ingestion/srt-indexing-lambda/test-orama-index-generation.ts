@@ -33,7 +33,7 @@ async function testOramaIndexGeneration() {
       {
         id: "123_86720",
         text: "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack?",
-        sequentialEpisodeId: 123,
+        sequentialEpisodeIdAsString: "123",
         startTimeMs: 86720,
         endTimeMs: 104800,
         episodePublishedUnixTimestamp: 1579773600000 // 2020-01-23T10:00:00Z
@@ -41,7 +41,7 @@ async function testOramaIndexGeneration() {
       {
         id: "456_120400",
         text: "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music!",
-        sequentialEpisodeId: 456,
+        sequentialEpisodeIdAsString: "456",
         startTimeMs: 120400,
         endTimeMs: 137920,
         episodePublishedUnixTimestamp: 1581777000000 // 2020-02-15T14:30:00Z
@@ -49,7 +49,7 @@ async function testOramaIndexGeneration() {
       {
         id: "789_200000",
         text: "This is a test entry for searching football and goalkeeper content in the index.",
-        sequentialEpisodeId: 789,
+        sequentialEpisodeIdAsString: "789",
         startTimeMs: 200000,
         endTimeMs: 215000,
         episodePublishedUnixTimestamp: 1583863200000 // 2020-03-10T18:00:00Z
@@ -129,7 +129,7 @@ async function testOramaIndexGeneration() {
       largeDataset.push({
         id: `perf_${i}_${Date.now()}`,
         text: `Performance test entry ${i} with various keywords like football, goalkeeper, amazing, and music to test search performance.`,
-        sequentialEpisodeId: i,
+        sequentialEpisodeIdAsString: i.toString(),
         startTimeMs: i * 1000,
         endTimeMs: (i * 1000) + 5000,
         episodePublishedUnixTimestamp: 1579773600000 + (i * 86400000) // Spread over different days

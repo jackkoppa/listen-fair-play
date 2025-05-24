@@ -31,7 +31,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
   return (
     <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">{episodeData?.title || `Episode ${result.sequentialEpisodeId}`}</CardTitle>
+        <CardTitle className="text-lg font-semibold">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</CardTitle>
         <CardDescription className="text-sm text-gray-600">
           {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
           <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
