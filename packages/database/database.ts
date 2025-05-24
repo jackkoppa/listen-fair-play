@@ -95,32 +95,35 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       };
     }
 
-    // Add episode ID filtering if specified (client-side pre-filtering)
-    if (episodeIds && episodeIds.length > 0) {
-      searchOptions.where = {
-        sequentialEpisodeId: episodeIds // Use array directly for filtering multiple values
-      };
-    }
-
+    // Note: Episode ID filtering will be done post-search as Orama doesn't support
+    // direct multiple number value filtering in where clause
     const results = await search(db, searchOptions);
     const processingTimeMs = Date.now() - startTime;
 
+    // Filter results by episode IDs if specified (post-search client-side filtering)
+    let filteredHits = results.hits;
+    if (episodeIds && episodeIds.length > 0) {
+      filteredHits = results.hits.filter((hit: any) => 
+        episodeIds.includes(hit.document.sequentialEpisodeId)
+      );
+    }
+
     // Transform results to match API response format
-    const hits: ApiSearchResultHit[] = results.hits.map((hit: any) => ({
+    const hits: ApiSearchResultHit[] = filteredHits.map((hit: any) => ({
       ...hit.document,
       highlight: hit.highlight?.text || undefined // Include highlighting if available
     }));
 
     const response: SearchResponse = {
       hits,
-      totalHits: results.count,
+      totalHits: filteredHits.length, // Use filtered count
       processingTimeMs,
       query,
       sortBy,
       sortOrder
     };
 
-    log.info(`Search completed in ${processingTimeMs}ms, found ${results.count} results for query: "${query}"`);
+    log.info(`Search completed in ${processingTimeMs}ms, found ${filteredHits.length} results for query: "${query}"`);
     return response;
   } catch (error: any) {
     const processingTimeMs = Date.now() - startTime;
