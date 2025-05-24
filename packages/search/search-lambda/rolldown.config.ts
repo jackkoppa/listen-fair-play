@@ -10,6 +10,6 @@ export default defineConfig({
     symlinks: true,
   },
   external: [
-    'sqlite3', // provided by the sqlite3 Lambda Layer, see terraform/lambda-layers/README.md
+    // Orama dependencies will be bundled with the Lambda function
   ]
 });

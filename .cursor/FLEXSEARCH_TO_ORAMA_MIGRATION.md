@@ -32,11 +32,13 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Enhanced search capabilities (sorting, filtering, better search options)
 
 ### Phase 2: Update Dependencies & Core Libraries
-- [ ] **Task 2.1**: Update package dependencies
-  - Remove `flexsearch` and `sqlite3` from relevant packages
-  - Add `@orama/orama` and `@orama/plugin-data-persistence`
-  - Remove SQLite Lambda layer from deployment
-  - Files: `packages/*/package.json`, deployment configurations
+- [x] **Task 2.1**: Update package dependencies - **COMPLETED**
+  - ✅ Removed `flexsearch` and `sqlite3` from all relevant packages
+  - ✅ Added `@orama/orama` and `@orama/plugin-data-persistence` to catalog
+  - ✅ Updated package.json files for types, database, search-lambda, and srt-indexing-lambda
+  - ✅ Removed SQLite external references from rolldown.config.ts files
+  - ✅ Removed SQLite Lambda layer from terraform configuration
+  - ✅ Updated terraform comments to reference Orama instead of SQLite
 
 - [ ] **Task 2.2**: Update database utilities
   - Replace `createDocumentIndex` function with Orama `create()`

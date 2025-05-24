@@ -12,7 +12,8 @@
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/search-lambda"
   },
   "dependencies": {
-    "flexsearch": "catalog:"
+    "@orama/orama": "catalog:",
+    "@orama/plugin-data-persistence": "catalog:"
   },
   "devDependencies": {
     "@listen-fair-play/constants": "workspace:*",
@@ -21,7 +22,6 @@
     "@listen-fair-play/database": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
     "rolldown": "catalog:",
-    "sqlite3": "catalog:",
     "typescript": "catalog:",
     "tsx": "^4.7.0"
   },

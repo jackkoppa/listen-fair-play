@@ -179,14 +179,6 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
   source_arn    = module.rss_lambda.lambda_function_arn
 }
 
-# Lambda Layer for SQLite3
-resource "aws_lambda_layer_version" "sqlite3_layer" {
-  layer_name          = "sqlite3-layer-${var.environment}"
-  description         = "sqlite3 npm package - layer for Lambda functions"
-  filename           = "${path.module}/lambda-layers/sqlite3-layer.zip"
-  compatible_runtimes = ["nodejs20.x"]
-}
-
 # Lambda for SRT to Search Entries conversion
 module "indexing_lambda" {
   source = "./modules/lambda"
@@ -196,7 +188,7 @@ module "indexing_lambda" {
   runtime              = "nodejs20.x"
   timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srt-files-into-indexed-search-entries.ts
   memory_size          = 2048 
-  ephemeral_storage    = 2048 # Trying to have enough space for the sqlite3 DB
+  ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
@@ -205,7 +197,6 @@ module "indexing_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
-  layers              = [aws_lambda_layer_version.sqlite3_layer.arn]
 }
 
 # IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)
@@ -224,9 +215,9 @@ module "search_lambda" {
   function_name        = "search-indexed-transcripts"
   handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
-  timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the SQLite DB file
+  timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file
   memory_size          = 3008 # Trying to allow the search to be performed as quickly as possible (3008 is current max)
-  ephemeral_storage    = 2048 # Trying to have enough space for the sqlite3 DB
+  ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
@@ -235,7 +226,6 @@ module "search_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
-  layers               = [aws_lambda_layer_version.sqlite3_layer.arn]
 }
 
 # API Gateway for Search Lambda
