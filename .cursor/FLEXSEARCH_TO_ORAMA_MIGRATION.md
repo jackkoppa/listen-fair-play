@@ -135,11 +135,11 @@ This ensures the user maintains control over the migration process and can valid
   - ✅ Files: `packages/client/src/App.tsx` (major update with new search interface)
 
 ### Phase 6: Testing & Validation
+
+NOTE from user: For this one, dev will mostly self-test manually. Will ask agent questions if there are unexpected errors.
 - [ ] **Task 6.1**: End-to-end testing
   - Test full pipeline: SRT → Orama Index → Search with sorting
   - Verify search results are properly sorted by date
-  - Performance testing with existing data volume
-  - Compare performance vs FlexSearch+SQLite
   - Files: Test scripts, integration tests
 
 - [ ] **Task 6.2**: Deployment validation

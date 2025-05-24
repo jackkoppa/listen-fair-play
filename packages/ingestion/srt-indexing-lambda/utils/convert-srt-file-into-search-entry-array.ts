@@ -69,6 +69,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
     let chunkStartTimeMs = 0;
     let chunkEndTimeMs = 0;
     let chunkCombinedText = '';
+    let entryCounter = 0; // Add counter to ensure unique IDs within episode
 
     for (let i = 0; i < parsedLines.length; i++) {
         const line = parsedLines[i];
@@ -121,8 +122,13 @@ export const convertSrtFileIntoSearchEntryArray = ({
             log.debug(`    Final Chunk Start Time: ${chunkStartTimeMs}`);
             log.debug(`    Final Chunk End Time: ${chunkEndTimeMs}`);
             const actualChunkStartTime = currentChunkLines[0].startTimeMs;
+            
+            // Use counter to ensure unique IDs even if start times are identical
+            const uniqueId = `${sequentialEpisodeId}_${entryCounter}`;
+            entryCounter++;
+            
             searchEntries.push({
-                id: `${sequentialEpisodeId}_${actualChunkStartTime}`,
+                id: uniqueId,
                 startTimeMs: actualChunkStartTime,
                 endTimeMs: chunkEndTimeMs,
                 text: chunkCombinedText.trim(),
@@ -133,7 +139,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
             // Reset for next chunk
             currentChunkLines = [];
             chunkCombinedText = '';
-            log.debug(`  >>> Chunk Finalized & State Reset <<<`); // LOG: Reset
+            log.debug(`  >>> Chunk Finalized & State Reset (ID: ${uniqueId}) <<<`); // LOG: Reset
         } else {
             log.debug(`  --- Not Finalizing Chunk ---`); // LOG: Not finalizing
         }

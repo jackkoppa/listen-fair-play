@@ -130,14 +130,14 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
 }
 
 /**
- * Serializes the Orama index to binary format for storage
+ * Serializes the Orama index to JSON format for storage
  * @param db - The Orama database instance
  * @returns Promise resolving to serialized index data
  */
 export async function serializeOramaIndex(db: OramaSearchDatabase): Promise<Buffer> {
   try {
-    const serializedData = await persist(db, 'binary');
-    log.info('Successfully serialized Orama index to binary format');
+    const serializedData = await persist(db, 'json');
+    log.info('Successfully serialized Orama index to JSON format');
     return Buffer.from(serializedData);
   } catch (error: any) {
     log.error(`Error serializing Orama index: ${error.message}`, error);
@@ -146,14 +146,14 @@ export async function serializeOramaIndex(db: OramaSearchDatabase): Promise<Buff
 }
 
 /**
- * Deserializes and restores an Orama index from binary data
+ * Deserializes and restores an Orama index from JSON data
  * @param serializedData - The serialized index data
  * @returns Promise resolving to the restored Orama database instance
  */
 export async function deserializeOramaIndex(serializedData: Buffer): Promise<OramaSearchDatabase> {
   try {
-    const db = await restore('binary', serializedData);
-    log.info('Successfully deserialized and restored Orama index from binary data');
+    const db = await restore('json', serializedData.toString());
+    log.info('Successfully deserialized and restored Orama index from JSON data');
     return db as OramaSearchDatabase;
   } catch (error: any) {
     log.error(`Error deserializing Orama index: ${error.message}`, error);
