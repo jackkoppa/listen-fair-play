@@ -98,9 +98,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
     // Add episode ID filtering if specified (client-side pre-filtering)
     if (episodeIds && episodeIds.length > 0) {
       searchOptions.where = {
-        sequentialEpisodeId: {
-          in: episodeIds
-        }
+        sequentialEpisodeId: episodeIds // Use array directly for filtering multiple values
       };
     }
 

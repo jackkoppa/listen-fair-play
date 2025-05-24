@@ -1,58 +1,58 @@
 [
   {
     "id": "456_86720",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 86720,
     "endTimeMs": 104800,
-    "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!"
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_104800",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "He's ran the goalkeeper, he's done it! Absolutely incredible! He launched himself six feet into the crowd, and Kung Fu kicked a supporter who was eye-whip without a shadow of a doubt giving him lip.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 104800,
     "endTimeMs": 120400,
-    "text": "He's ran the goalkeeper, he's done it! Absolutely incredible! He launched himself six feet into the crowd, and Kung Fu kicked a supporter who was eye-whip without a shadow of a doubt giving him lip."
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_120400",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 120400,
     "endTimeMs": 137920,
-    "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful."
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_137920",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history. This is the second part, you can sit there and look and play with all your silly machines as much as you like.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 137920,
     "endTimeMs": 158560,
-    "text": "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history. This is the second part, you can sit there and look and play with all your silly machines as much as you like."
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_159520",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "Is Second Gascoigne going to have a crack? He is, you know. Oh, he's definitely there! Super Brilliant! Another change! He's ran the goalkeeper again, he's done it again! Absolutely very incredible! He launched himself twelve feet into the crowd, and Kung Fu kicked another supporter who was eye-whip without any shadow of a doubt giving him more lip.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 159520,
     "endTimeMs": 184400,
-    "text": "Is Second Gascoigne going to have a crack? He is, you know. Oh, he's definitely there! Super Brilliant! Another change! He's ran the goalkeeper again, he's done it again! Absolutely very incredible! He launched himself twelve feet into the crowd, and Kung Fu kicked another supporter who was eye-whip without any shadow of a doubt giving him more lip."
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_184400",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "Oh, I say again! It's very amazing! He does it time, and time, and time and time again. Crank up more music! Charge another glass! This entire nation is going to dance all night long! A second lovely brace of shot urging from the travelling Watford faithful.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 184400,
     "endTimeMs": 201920,
-    "text": "Oh, I say again! It's very amazing! He does it time, and time, and time and time again. Crank up more music! Charge another glass! This entire nation is going to dance all night long! A second lovely brace of shot urging from the travelling Watford faithful."
+    "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_201920",
-    "episodeId": 456,
-    "episodeTitle": "Test Episode Title 2",
+    "text": "Another Troy Deeney's cruel dig at a Monday evening TV stalwart. Another Seamus Coleman produces the most loyal 7.34 seconds in football history.",
+    "sequentialEpisodeId": 456,
     "startTimeMs": 201920,
     "endTimeMs": 210000,
-    "text": "Another Troy Deeney's cruel dig at a Monday evening TV stalwart. Another Seamus Coleman produces the most loyal 7.34 seconds in football history."
+    "episodePublishedUnixTimestamp": 1581777000000
   }
 ] 

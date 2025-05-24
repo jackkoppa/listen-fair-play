@@ -71,8 +71,8 @@ Troy Deeney's cruel dig at a Sunday evening TV stalwart.
 Seamus Coleman produces the most loyal 3.67 seconds in football history.
 `;
 
-const testEpisodeId = 123;
-const testEpisodeTitle = 'Test Episode Title';
+const testSequentialEpisodeId = 123;
+const testEpisodePublishedUnixTimestamp = 1579770000000; // 2020-01-23T10:00:00Z
 
 // REVISED Expected output based on function's apparent logic:
 // Stop at the *first* punctuation mark encountered *after* >= 15s duration is met.
@@ -89,8 +89,8 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
 
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: sampleSrtContent,
-      episodeId: episodeDetails.id,
-      episodeTitle: episodeDetails.title
+      sequentialEpisodeId: episodeDetails.sequentialId,
+      episodePublishedUnixTimestamp: new Date(episodeDetails.publishedAt).getTime()
     });
     // Use JSON.stringify for potentially more detailed diffs in some test runners
     // expect(JSON.stringify(result, null, 2)).toEqual(JSON.stringify(expectedOutput, null, 2));
@@ -107,8 +107,8 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
 
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: sampleSrtContent,
-      episodeId: episodeDetails.id,
-      episodeTitle: episodeDetails.title
+      sequentialEpisodeId: episodeDetails.sequentialId,
+      episodePublishedUnixTimestamp: new Date(episodeDetails.publishedAt).getTime()
     });
     expect(result).toEqual(expectedOutput);
   });
@@ -123,8 +123,8 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
 
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: sampleSrtContent,
-      episodeId: episodeDetails.id,
-      episodeTitle: episodeDetails.title
+      sequentialEpisodeId: episodeDetails.sequentialId,
+      episodePublishedUnixTimestamp: new Date(episodeDetails.publishedAt).getTime()
     });
     expect(result).toEqual(expectedOutput);
   });
@@ -132,8 +132,8 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
   it('should return an empty array if the SRT content is empty or whitespace', () => {
     const result = convertSrtFileIntoSearchEntryArray({
       srtFileContent: '   \n   \n  ',
-      episodeId: testEpisodeId,
-      episodeTitle: testEpisodeTitle
+      sequentialEpisodeId: testSequentialEpisodeId,
+      episodePublishedUnixTimestamp: testEpisodePublishedUnixTimestamp
     });
     expect(result).toEqual([]);
   });
@@ -141,13 +141,13 @@ describe('convertSrtFileIntoSearchEntryArray', () => {
   it('should return an empty array if the SRT content is null or undefined', () => {
     const result1 = convertSrtFileIntoSearchEntryArray({
       srtFileContent: null as any, // Test case for null
-      episodeId: testEpisodeId,
-      episodeTitle: testEpisodeTitle
+      sequentialEpisodeId: testSequentialEpisodeId,
+      episodePublishedUnixTimestamp: testEpisodePublishedUnixTimestamp
     });
      const result2 = convertSrtFileIntoSearchEntryArray({
       srtFileContent: undefined as any, // Test case for undefined
-      episodeId: testEpisodeId,
-      episodeTitle: testEpisodeTitle
+      sequentialEpisodeId: testSequentialEpisodeId,
+      episodePublishedUnixTimestamp: testEpisodePublishedUnixTimestamp
     });
     expect(result1).toEqual([]);
     expect(result2).toEqual([]);
