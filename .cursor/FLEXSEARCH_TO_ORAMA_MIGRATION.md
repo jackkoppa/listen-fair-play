@@ -16,6 +16,10 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 - **Sort field**: `episodePublishedUnixTimestamp` (unix timestamp for efficient sorting)
 - **API compatibility**: No backward compatibility needed - redesigning for optimal Orama usage
 - **Migration strategy**: Complete rebuild from SRT files, remove all FlexSearch/SQLite references
+- **Schema optimization**: Removed `fileKey`, `podcastId`, `episodeTitle` from search index to keep it lightweight (client-side filtering via episode manifest)
+
+## IMPORTANT: Build Process
+⚠️ **After making changes to any packages, you must run `pnpm all:build` from the root directory.** This is required to update the `/dist` files for each package and ensure TypeScript compilation generates proper `.d.ts` files and JavaScript files.
 
 ## Task List for FlexSearch to Orama Migration
 
@@ -30,6 +34,7 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Created comprehensive `SearchRequest`/`SearchResponse` interfaces
   - ✅ Defined `ORAMA_SEARCH_SCHEMA` constant for type safety
   - ✅ Enhanced search capabilities (sorting, filtering, better search options)
+  - ✅ Optimized schema by removing `fileKey`, `podcastId`, `episodeTitle` for lightweight index
 
 ### Phase 2: Update Dependencies & Core Libraries
 - [x] **Task 2.1**: Update package dependencies - **COMPLETED**
@@ -40,11 +45,15 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Removed SQLite Lambda layer from terraform configuration
   - ✅ Updated terraform comments to reference Orama instead of SQLite
 
-- [ ] **Task 2.2**: Update database utilities
-  - Replace `createDocumentIndex` function with Orama `create()`
-  - Implement new index creation and persistence utilities using Orama
-  - Remove all SQLite-related code
-  - Files: `packages/database/src/index.ts`, `packages/database/src/search-index.ts`
+- [x] **Task 2.2**: Update database utilities - **COMPLETED**
+  - ✅ Replaced `createDocumentIndex` function with Orama `createOramaIndex()`
+  - ✅ Implemented new index creation and persistence utilities using Orama
+  - ✅ Removed all SQLite-related code from `packages/database/database.ts`
+  - ✅ Added comprehensive Orama utilities: `insertSearchEntry`, `insertMultipleSearchEntries`, `searchOramaIndex`, `serializeOramaIndex`, `deserializeOramaIndex`
+  - ✅ Updated exports in `packages/database/index.ts`
+  - ✅ Updated constants to use `.msp` extension in `packages/constants/index.ts`
+  - ✅ Fixed client components to work with new schema (removed `episodeTitle` references)
+  - ✅ Files: `packages/database/database.ts`, `packages/database/index.ts`, `packages/constants/index.ts`
 
 ### Phase 3: Update Indexing Lambda (Lambda 3)
 - [ ] **Task 3.1**: Replace FlexSearch index creation with Orama
@@ -52,6 +61,7 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - Replace SQLite DB operations with Orama + data persistence plugin
   - Maintain existing SRT processing and JSON entry generation logic
   - Use Orama's `insertMultiple()` for batch insertion
+  - Add logic to populate `episodePublishedUnixTimestamp` from episode manifest
   - Files: `packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`
 
 - [ ] **Task 3.2**: Update index storage logic
@@ -70,7 +80,7 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
 - [ ] **Task 4.1**: Replace FlexSearch query logic with Orama
   - Update `search-indexed-transcripts.ts`
   - Implement Orama initialization and querying using data persistence plugin
-  - Maintain existing API interface (`SearchRequest`/`SearchResponse`)
+  - Update API interface to use new `SearchRequest`/`SearchResponse` types
   - Use Orama's `search()` method with sorting options
   - Files: `packages/search/search-lambda/search-indexed-transcripts.ts`
 
@@ -82,17 +92,17 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - Files: Search lambda, search types
 
 - [ ] **Task 4.3**: Update search parameters
-  - Add sort options to `SearchRequest` interface (`sortBy`, `sortOrder`)
-  - Update query parameter handling for GET/POST requests
-  - Ensure backward compatibility where possible
-  - Add support for Orama's additional search options
-  - Files: `packages/types/src/search-types.ts`, search lambda
+  - ✅ Already completed in Task 1.2 - `SearchRequest` interface updated
+  - Update query parameter handling for GET/POST requests to support new parameters
+  - Add support for `episodeIds` filtering from client-side episode selection
+  - Files: Search lambda
 
 ### Phase 5: Update Client Integration
 - [ ] **Task 5.1**: Update client-side search calls
   - Add sorting parameters to search requests from React client
   - Update search result handling for new Orama response format
   - Add UI controls for date sorting (newest first, oldest first)
+  - Implement client-side episode filtering using episode manifest before sending to search API
   - Files: `packages/client/src/` (search components)
 
 ### Phase 6: Testing & Validation
@@ -110,13 +120,36 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - Monitor cold start times (should improve without SQLite)
   - Files: Deployment scripts, monitoring
 
-## Key Files for Reference:
-- `packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`
-- `packages/search/search-lambda/search-indexed-transcripts.ts`
-- `packages/types/search.ts` ✅ **UPDATED**
-- `packages/database/src/index.ts`
-- `packages/constants/src/index.ts`
-- `diagrams/aws-architecture.drawio`
+## File References for Future Agents
+
+### ✅ COMPLETED - Updated Files:
+- **`packages/types/search.ts`** - Contains new Orama schema and interfaces
+- **`pnpm-workspace.yaml`** - Updated with Orama dependencies in catalog
+- **`packages/types/package.json`** - Removed flexsearch dependency
+- **`packages/database/package.json`** - Updated with Orama dependencies
+- **`packages/search/search-lambda/package.json`** - Updated with Orama dependencies
+- **`packages/ingestion/srt-indexing-lambda/package.json`** - Updated with Orama dependencies
+- **`packages/search/search-lambda/rolldown.config.ts`** - Removed sqlite3 external
+- **`packages/ingestion/srt-indexing-lambda/rolldown.config.ts`** - Removed sqlite3 external
+- **`terraform/main.tf`** - Removed SQLite Lambda layer and references
+
+### 🔄 NEXT TO UPDATE - Current FlexSearch/SQLite Files:
+- **`packages/database/src/index.ts`** - Current: exports `createDocumentIndex` function for FlexSearch
+- **`packages/database/database.ts`** - Current: FlexSearch Document creation with SQLite
+- **`packages/constants/src/index.ts`** - Current: `SEARCH_INDEX_DB_S3_KEY` uses `.db` extension
+- **`packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`** - Current: FlexSearch indexing logic
+- **`packages/search/search-lambda/search-indexed-transcripts.ts`** - Current: FlexSearch search logic
+
+### 📋 REFERENCE FILES - No Changes Needed:
+- **`aws-local-dev/s3/episode-manifest/full-episode-manifest.json`** - Episode manifest with `publishedAt` timestamps
+- **`packages/types/episode-manifest.ts`** - Episode manifest type definitions
+- **`terraform/lambda-layers/README.md`** - SQLite layer documentation (can be removed after migration)
+- **`diagrams/aws-architecture.drawio`** - Architecture diagram (should be updated to reflect Orama)
+
+### 🔍 KEY CONTEXT FILES:
+- **Episode Manifest Structure**: Episodes contain `publishedAt` (ISO string) and `sequentialId` fields needed for search entries
+- **SRT Processing**: `packages/ingestion/srt-indexing-lambda/utils/convert-srt-file-into-search-entry-array.ts` - Converts SRT to SearchEntry[]
+- **Client Components**: `packages/client/src/components/SearchResult.tsx` and `packages/client/src/App.tsx` use search APIs
 
 ## Final Orama Schema (Implemented) ✅
 ```typescript
@@ -127,11 +160,10 @@ export const ORAMA_SEARCH_SCHEMA = {
   startTimeMs: 'number',                // Start time in milliseconds
   endTimeMs: 'number',                  // End time in milliseconds
   episodePublishedUnixTimestamp: 'number', // Unix timestamp for sorting by date
-  podcastId: 'string',                  // Podcast ID (e.g., "football-cliches")
-  episodeTitle: 'string',               // Episode title (searchable)
-  fileKey: 'string',                    // Original file key for reference
 } as const;
 ```
+
+**Note**: Removed `podcastId`, `episodeTitle`, and `fileKey` from schema to keep index lightweight. These will be handled via client-side filtering using the episode manifest.
 
 ## Migration Benefits:
 - ✅ **Native date sorting**: Sort by `episodePublishedUnixTimestamp` field easily
@@ -140,6 +172,7 @@ export const ORAMA_SEARCH_SCHEMA = {
 - ✅ **Improved performance**: Lighter weight, faster cold starts
 - ✅ **Rich search features**: Built-in highlighting, faceted search
 - ✅ **Data persistence**: Official plugin for S3 storage
+- ✅ **Lightweight index**: Optimized schema reduces memory usage and improves performance
 
 ## Current Architecture (Before):
 - FlexSearch + SQLite adapter
@@ -151,4 +184,5 @@ export const ORAMA_SEARCH_SCHEMA = {
 - Orama with data persistence plugin
 - Index stored as serialized Orama index (`.msp`) in S3
 - Simple save/load operations using data persistence plugin
-- Native sorting by any field including dates 
+- Native sorting by any field including dates
+- Client-side episode filtering using episode manifest + server-side content search 

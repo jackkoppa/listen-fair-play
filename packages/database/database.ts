@@ -1,93 +1,164 @@
-import { Document } from 'flexsearch';
-import Database from 'flexsearch/db/sqlite'
-import EnglishPreset from 'flexsearch/lang/en'
-import Sqlite3Database from 'sqlite3';
-import { SearchEntry } from '@listen-fair-play/types';
-import { log } from '@listen-fair-play/logging'; // Import logging utility
-/** Name of the SQLite DB */
-const SQLITE_DB_NAME = 'flexsearch_index';
+import { create, insert, insertMultiple, search, save, load } from '@orama/orama';
+import { persist, restore } from '@orama/plugin-data-persistence';
+import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@listen-fair-play/types';
+import { log } from '@listen-fair-play/logging';
+
+// Type for Orama database instance
+export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
 
 /**
- * Creates a FlexSearch Document index using the provided SQLite database.
- * @param sqlite3DB - The SQLite3 database instance to use for the index.
- * @returns A Promise resolving to the created FlexSearch Document index.
+ * Creates an Orama search index with the predefined schema
+ * @returns A Promise resolving to the created Orama search index
  */
-export async function createDocumentIndex(sqlite3DB: Sqlite3Database.Database): Promise<Document<SearchEntry, true>> {
-  // Create FlexSearch Document index with SQLite adapter
-  const db = new Database({
-    name: SQLITE_DB_NAME,
-    db: sqlite3DB
-  });
-
-  const index = new Document<SearchEntry, true>({
-    document: {
-      id: 'id',
-      index: [{
-        field: 'text',
-        tokenize: 'strict',
-        encoder: EnglishPreset,
-        context: { 
-          resolution: 3,
-          depth: 1,
-          bidirectional: true
-        },
-      }],
-      store: true, // Ensure documents (or specified fields) are stored for later enrichment.
-    },
-    commit: false, // We don't make changes regularly to the index, so let's only explicitly commit when needed (at % intervals, and at the end)
-  });
-
-  await index.mount(db);
-
-  return index;
+export async function createOramaIndex(): Promise<OramaSearchDatabase> {
+  try {
+    const db = await create({
+      schema: ORAMA_SEARCH_SCHEMA,
+      components: {
+        // Use default components optimized for search performance
+      }
+    });
+    
+    log.info('Successfully created Orama search index');
+    return db;
+  } catch (error: any) {
+    log.error(`Error creating Orama search index: ${error.message}`, error);
+    throw error;
+  }
 }
 
-
+/**
+ * Inserts a single search entry into the Orama index
+ * @param db - The Orama database instance
+ * @param entry - The search entry to insert
+ */
+export async function insertSearchEntry(db: OramaSearchDatabase, entry: SearchEntry): Promise<void> {
+  try {
+    await insert(db, entry);
+    log.debug(`Inserted search entry with ID: ${entry.id}`);
+  } catch (error: any) {
+    log.error(`Error inserting search entry ${entry.id}: ${error.message}`, error);
+    throw error;
+  }
+}
 
 /**
- * Logs the number of rows in each user-defined table within the provided SQLite database.
- * @param sqlite3DB - The SQLite3 database instance to query.
+ * Inserts multiple search entries into the Orama index using batch insertion
+ * @param db - The Orama database instance
+ * @param entries - Array of search entries to insert
  */
-export async function logRowCountsForSQLiteTables(sqlite3DB: Sqlite3Database.Database): Promise<void> {
+export async function insertMultipleSearchEntries(db: OramaSearchDatabase, entries: SearchEntry[]): Promise<void> {
   try {
-    const tables: { name: string }[] = await new Promise((resolve, reject) => {
-      sqlite3DB.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", (err, tables) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tables as { name: string }[]);
-        }
-      });
-    });
+    await insertMultiple(db, entries);
+    log.info(`Successfully inserted ${entries.length} search entries`);
+  } catch (error: any) {
+    log.error(`Error inserting ${entries.length} search entries: ${error.message}`, error);
+    throw error;
+  }
+}
 
-    if (tables.length > 0) {
-      const tableNames = tables.map(t => t.name);
-      log.debug(`Found tables in SQLite DB: ${tableNames.join(', ')}`);
-      const tableQueries = tableNames.map(tableName => `SELECT '${tableName}' as table_name, COUNT(*) as count FROM ${tableName}`).join(' UNION ALL ');
-      
-      const rowCounts: { table_name: string; count: number }[] = await new Promise((resolve, reject) => {
-        sqlite3DB.all(tableQueries, (err, rows) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(rows as { table_name: string; count: number }[]);
-          }
-        });
-      });
+/**
+ * Searches the Orama index with the provided parameters
+ * @param db - The Orama database instance
+ * @param searchRequest - Search parameters
+ * @returns Promise resolving to search results
+ */
+export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: SearchRequest): Promise<SearchResponse> {
+  const startTime = Date.now();
+  
+  try {
+    const {
+      query,
+      limit = 10,
+      sortBy,
+      sortOrder = 'desc',
+      searchFields = ['text'],
+      episodeIds
+    } = searchRequest;
 
-      if (rowCounts.length > 0) {
-        log.info('--- Row Counts in SQLite DB Tables ---');
-        rowCounts.forEach((row) => {
-          log.info(`Table: ${row.table_name}, Rows: ${row.count}`);
-        });
-        log.info('-------------------------------------');
-      } else {
-        log.info('No row counts returned, though tables were queried.');
+    // Build search options
+    const searchOptions: any = {
+      term: query,
+      limit,
+      properties: searchFields,
+      boost: {
+        // Boost exact matches in text field
+        text: 1.5
       }
-    } else {
-      log.info('No user-defined tables found in the SQLite DB to count rows from.');
+    };
+
+    // Add sorting if specified
+    if (sortBy) {
+      searchOptions.sortBy = {
+        property: sortBy,
+        order: sortOrder
+      };
     }
-  } catch (err: any) {
-    log.warn(`Error querying table row counts from SQLite DB: ${err.message}`, err);
+
+    // Add episode ID filtering if specified (client-side pre-filtering)
+    if (episodeIds && episodeIds.length > 0) {
+      searchOptions.where = {
+        sequentialEpisodeId: {
+          in: episodeIds
+        }
+      };
+    }
+
+    const results = await search(db, searchOptions);
+    const processingTimeMs = Date.now() - startTime;
+
+    // Transform results to match API response format
+    const hits: ApiSearchResultHit[] = results.hits.map((hit: any) => ({
+      ...hit.document,
+      highlight: hit.highlight?.text || undefined // Include highlighting if available
+    }));
+
+    const response: SearchResponse = {
+      hits,
+      totalHits: results.count,
+      processingTimeMs,
+      query,
+      sortBy,
+      sortOrder
+    };
+
+    log.info(`Search completed in ${processingTimeMs}ms, found ${results.count} results for query: "${query}"`);
+    return response;
+  } catch (error: any) {
+    const processingTimeMs = Date.now() - startTime;
+    log.error(`Error searching Orama index after ${processingTimeMs}ms: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Serializes the Orama index to binary format for storage
+ * @param db - The Orama database instance
+ * @returns Promise resolving to serialized index data
+ */
+export async function serializeOramaIndex(db: OramaSearchDatabase): Promise<Buffer> {
+  try {
+    const serializedData = await persist(db, 'binary');
+    log.info('Successfully serialized Orama index to binary format');
+    return Buffer.from(serializedData);
+  } catch (error: any) {
+    log.error(`Error serializing Orama index: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Deserializes and restores an Orama index from binary data
+ * @param serializedData - The serialized index data
+ * @returns Promise resolving to the restored Orama database instance
+ */
+export async function deserializeOramaIndex(serializedData: Buffer): Promise<OramaSearchDatabase> {
+  try {
+    const db = await restore('binary', serializedData);
+    log.info('Successfully deserialized and restored Orama index from binary data');
+    return db as OramaSearchDatabase;
+  } catch (error: any) {
+    log.error(`Error deserializing Orama index: ${error.message}`, error);
+    throw error;
   }
 }

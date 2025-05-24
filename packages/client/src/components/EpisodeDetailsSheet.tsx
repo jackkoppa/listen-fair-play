@@ -47,7 +47,7 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
                             <Badge variant="outline" className="mb-2 mt-6"><em>{formattedStartTime} - {formattedEndTime}</em></Badge>
                             <div
                                 className="result-highlighted-text text-sm mb-8"
-                                dangerouslySetInnerHTML={{ __html: originalSearchResult.highlight }}
+                                dangerouslySetInnerHTML={{ __html: originalSearchResult.highlight || originalSearchResult.text }}
                             />
                         </div>
                     </SheetHeader>
