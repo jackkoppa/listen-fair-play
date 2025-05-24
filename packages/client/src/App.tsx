@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
-
-// import { Button } from "@/components/ui/button" // No longer using Button here
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { log } from '@listen-fair-play/logging';
-import { ApiSearchResultHit, EpisodeManifest } from '@listen-fair-play/types'
+import { ApiSearchResultHit, EpisodeManifest, SearchRequest, SearchResponse } from '@listen-fair-play/types'
 
 import './App.css'
 
@@ -14,13 +20,14 @@ import SearchResult from './components/SearchResult'
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
-
 // Get the base URL for manifest files, fallback to local path for development
 // CURSOR-TODO: Fix this, and package.json#scripts.temp-serve-s3-assets
-const MANIFEST_BASE_URL = ''; // for deployment
-// const MANIFEST_BASE_URL = 'http://127.0.0.1:8080'; // for local development
+// const MANIFEST_BASE_URL = ''; // for deployment
+const MANIFEST_BASE_URL = 'http://127.0.0.1:8080'; // for local development
 
 const SEARCH_LIMIT = 50;
+
+type SortOption = 'relevance' | 'newest' | 'oldest';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +36,11 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [episodeManifest, setEpisodeManifest] = useState<EpisodeManifest | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('relevance');
+  const [selectedEpisodeIds, setSelectedEpisodeIds] = useState<number[]>([]);
+  const [showEpisodeFilter, setShowEpisodeFilter] = useState(false);
+  const [totalHits, setTotalHits] = useState<number>(0);
+  const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
 
   // TODO: Use this to hold off on rendering results as well
   const [_, setIsLoadingManifest] = useState(false);
@@ -79,6 +91,8 @@ function App() {
     if (trimmedQuery.length < 2) {
       setSearchResults([]);
       setError(null);
+      setTotalHits(0);
+      setProcessingTimeMs(0);
       return;
     }
 
@@ -87,21 +101,59 @@ function App() {
       setError(null);
 
       try {
-        const response = await fetch(`${SEARCH_API_BASE_URL}/?query=${encodeURIComponent(trimmedQuery)}&limit=${SEARCH_LIMIT}`);
+        // Prepare search request with new Orama parameters
+        const searchRequest: SearchRequest = {
+          query: trimmedQuery,
+          limit: SEARCH_LIMIT,
+          searchFields: ['text'], // Search only in transcript text
+        };
+
+        // Add sorting parameters based on sort option
+        if (sortOption === 'newest') {
+          searchRequest.sortBy = 'episodePublishedUnixTimestamp';
+          searchRequest.sortOrder = 'desc';
+        } else if (sortOption === 'oldest') {
+          searchRequest.sortBy = 'episodePublishedUnixTimestamp';
+          searchRequest.sortOrder = 'asc';
+        }
+        // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
+
+        // Add episode filtering if episodes are selected
+        if (selectedEpisodeIds.length > 0) {
+          searchRequest.episodeIds = selectedEpisodeIds;
+        }
+
+        // Make API request using POST for complex search parameters
+        const response = await fetch(`${SEARCH_API_BASE_URL}/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(searchRequest),
+        });
+
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
         }
-        const data = await response.json();
+
+        const data: SearchResponse = await response.json();
+        
         if (data && data.hits) {
           setSearchResults(data.hits);
+          setTotalHits(data.totalHits || 0);
+          setProcessingTimeMs(data.processingTimeMs || 0);
         } else {
           setSearchResults([]);
+          setTotalHits(0);
+          setProcessingTimeMs(0);
           log.warn('[App.tsx] API response did not contain .hits array or was empty:', data);
         }
       } catch (e: any) {
         log.error('[App.tsx] Failed to fetch search results:', e);
         setError(e.message || 'Failed to fetch search results. Please try again.');
         setSearchResults([]);
+        setTotalHits(0);
+        setProcessingTimeMs(0);
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +165,24 @@ function App() {
 
     return () => clearTimeout(debounceTimer);
 
-  }, [searchQuery]); 
+  }, [searchQuery, sortOption, selectedEpisodeIds]); 
+
+  const handleEpisodeSelection = (episodeId: number, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedEpisodeIds(prev => [...prev, episodeId]);
+    } else {
+      setSelectedEpisodeIds(prev => prev.filter(id => id !== episodeId));
+    }
+  };
+
+  const clearEpisodeFilters = () => {
+    setSelectedEpisodeIds([]);
+  };
+
+  // Get available episodes for filtering (sorted by date, newest first)
+  const availableEpisodes = episodeManifest?.episodes
+    .slice()
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()) || [];
 
   return (
     <div className="app-container max-w-3xl mx-auto p-4 font-mono pt-28">
@@ -141,6 +210,71 @@ function App() {
         )}
       </div>
 
+      {/* Search Controls */}
+      {searchQuery.trim().length >= 2 && (
+        <div className="search-controls mb-6 p-4 bg-gray-50 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-semibold">Sort by:</label>
+              <Select value={sortOption} onValueChange={(value: SortOption) => setSortOption(value)}>
+                <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+                  <SelectItem value="relevance">Relevance</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Episode Filter Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEpisodeFilter(!showEpisodeFilter)}
+                className="border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none"
+              >
+                Filter Episodes ({selectedEpisodeIds.length})
+              </Button>
+              {selectedEpisodeIds.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearEpisodeFilters}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Episode Selection */}
+          {showEpisodeFilter && (
+            <div className="mt-4 p-3 bg-white border-2 border-gray-300 rounded-none max-h-60 overflow-y-auto">
+              <p className="text-sm font-semibold mb-2">Select episodes to search within:</p>
+              <div className="space-y-1">
+                {availableEpisodes.map((episode) => (
+                  <label key={episode.sequentialId} className="flex items-center gap-2 text-sm hover:bg-gray-50 p-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedEpisodeIds.includes(episode.sequentialId)}
+                      onChange={(e) => handleEpisodeSelection(episode.sequentialId, e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="truncate">{episode.title}</span>
+                    <span className="text-xs text-gray-500 ml-auto">{new Date(episode.publishedAt).getFullYear()}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="error-message text-red-600 bg-red-100 border-red-600 border-2 p-4 mb-6 shadow-[4px_4px_0px_#ef4444] rounded-none">
           <p className="font-semibold">Error:</p>
@@ -153,7 +287,18 @@ function App() {
           <p className="loading-message text-lg text-gray-600 text-center">Loading results...</p>
         ) : searchResults.length > 0 ? (
           <>
-          <p className="text-sm mb-4 text-right"><em>Hits:</em> <span className="font-bold text-black">{searchResults.length}</span></p>
+          <div className="results-info text-sm mb-4 text-right flex justify-between items-center">
+            <span className="text-gray-600">
+              {processingTimeMs > 0 && <em>Search time: {processingTimeMs}ms</em>}
+            </span>
+            <span>
+              <em>Showing:</em> <span className="font-bold text-black">{searchResults.length}</span>
+              {totalHits !== searchResults.length && (
+                <> <em>of</em> <span className="font-bold text-black">{totalHits}</span></>
+              )}
+              <> <em>hits</em></>
+            </span>
+          </div>
           <ul className="results-list space-y-6">
             {searchResults.map((result) => (
               <SearchResult

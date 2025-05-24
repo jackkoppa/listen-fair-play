@@ -122,12 +122,17 @@ This ensures the user maintains control over the migration process and can valid
   - ✅ Files: Search lambda (already updated), types package (already updated)
 
 ### Phase 5: Update Client Integration
-- [ ] **Task 5.1**: Update client-side search calls
-  - Add sorting parameters to search requests from React client
-  - Update search result handling for new Orama response format
-  - Add UI controls for date sorting (newest first, oldest first)
-  - Implement client-side episode filtering using episode manifest before sending to search API
-  - Files: `packages/client/src/` (search components)
+- [x] **Task 5.1**: Update client-side search calls - **COMPLETED**
+  - ✅ Added sorting parameters to search requests using new Orama `SearchRequest` interface
+  - ✅ Updated search API calls to use POST method with JSON body for complex search parameters
+  - ✅ Implemented UI controls for date sorting (relevance, newest first, oldest first)
+  - ✅ Added client-side episode filtering with collapsible episode selection interface
+  - ✅ Updated search result handling to display total hits and processing time from new Orama `SearchResponse`
+  - ✅ Enhanced search controls UI with proper styling consistent with app design
+  - ✅ Implemented proper state management for sort options and episode filters
+  - ✅ Added episode list sorted by publication date for easy filtering
+  - ✅ All TypeScript compilation and build processes successful
+  - ✅ Files: `packages/client/src/App.tsx` (major update with new search interface)
 
 ### Phase 6: Testing & Validation
 - [ ] **Task 6.1**: End-to-end testing
