@@ -1,47 +1,26 @@
-import path from 'path';
-import * as fs from 'fs/promises'; // For local DB file operations
-import Sqlite3Database from 'sqlite3';
-import { Document } from 'flexsearch';
+import { resolve } from 'node:path';
+import * as fs from 'fs/promises';
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
-import { ApiSearchResultHit, SearchEntry } from '@listen-fair-play/types';
-import { createDocumentIndex } from '@listen-fair-play/database';
+import { SearchRequest, SearchResponse } from '@listen-fair-play/types';
+import { deserializeOramaIndex, searchOramaIndex, OramaSearchDatabase } from '@listen-fair-play/database';
 import { log } from '@listen-fair-play/logging';
 import {
   getFile,
-  fileExists // To check if the DB file exists in S3
+  fileExists
 } from '@listen-fair-play/s3';
 
-// Keep the flexsearch index in memory for reuse between lambda invocations
-// The type for Document with a DB adapter might be just Document, or Document<..., ..., SqliteAdapter>
-// For now, using 'any' for the adapter part if StorageInterface is not directly compatible.
-let flexSearchIndex: Document<SearchEntry, true> | null = null;
-
-// Define the search request body structure
-interface SearchRequest {
-  query: string;
-  limit?: number;
-  searchFields?: string[];
-  suggest?: boolean;
-  matchAllFields?: boolean;
-}
-
-// Define the search response structure
-interface SearchResponse {
-  hits: ApiSearchResultHit[];
-  totalHits: number;
-  processingTimeMs: number;
-  query: string;
-}
+// Keep the Orama index in memory for reuse between lambda invocations
+let oramaIndex: OramaSearchDatabase | null = null;
 
 /**
- * Initialize the FlexSearch index from S3
+ * Initialize the Orama search index from S3
  */
-async function initializeFlexSearchIndex() {
-  if (flexSearchIndex) {
-    return flexSearchIndex;
+async function initializeOramaIndex(): Promise<OramaSearchDatabase> {
+  if (oramaIndex) {
+    return oramaIndex;
   }
 
-  log.info('Initializing FlexSearch index from S3 SQLite database...');
+  log.info('Initializing Orama search index from S3...');
   const startTime = Date.now();
 
   // Ensure the local /tmp/ directory is available
@@ -53,115 +32,44 @@ async function initializeFlexSearchIndex() {
     log.debug("Created /tmp directory.");
   }
 
-  // Check if the index DB file exists in S3
-  const indexDbExistsInS3 = await fileExists(SEARCH_INDEX_DB_S3_KEY);
-  if (!indexDbExistsInS3) {
-    throw new Error(`FlexSearch SQLite DB not found in S3 at: ${SEARCH_INDEX_DB_S3_KEY}. Exiting.`);
+  // Check if the index file exists in S3
+  const indexFileExistsInS3 = await fileExists(SEARCH_INDEX_DB_S3_KEY);
+  if (!indexFileExistsInS3) {
+    throw new Error(`Orama search index not found in S3 at: ${SEARCH_INDEX_DB_S3_KEY}. Exiting.`);
   }
 
-  // Download the SQLite DB file from S3 to the local /tmp path
-  log.info(`Downloading SQLite DB from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
+  // Download the Orama index file from S3 to the local /tmp path
+  log.info(`Downloading Orama index from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
   try {
-    const dbFileBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
-    await fs.writeFile(LOCAL_DB_PATH, dbFileBuffer);
-    log.info(`Successfully downloaded and saved SQLite DB to ${LOCAL_DB_PATH}`);
-    // Log the file size of the downloaded SQLite DB file
+    const indexFileBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
+    await fs.writeFile(LOCAL_DB_PATH, indexFileBuffer);
+    log.info(`Successfully downloaded and saved Orama index to ${LOCAL_DB_PATH}`);
+    
+    // Log the file size of the downloaded index file
     try {
       const stats = await fs.stat(LOCAL_DB_PATH);
-      log.info(`SQLite DB file size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+      log.info(`Orama index file size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
     } catch (error) {
-      log.warn(`Failed to get file size for SQLite DB at ${LOCAL_DB_PATH}: ${error}`);
+      log.warn(`Failed to get file size for Orama index at ${LOCAL_DB_PATH}: ${error}`);
     }
   } catch (error) {
-    throw new Error(`Failed to download or save SQLite DB from S3: ${error}. Exiting.`);
+    throw new Error(`Failed to download or save Orama index from S3: ${error}. Exiting.`);
   }
 
-  const sqlite3DB = new Sqlite3Database.Database(LOCAL_DB_PATH);
-  const index = await createDocumentIndex(sqlite3DB);
-
-  log.info(`FlexSearch index loaded from SQLite DB in ${Date.now() - startTime}ms`);
-
-  // Cache the index for future invocations
-  flexSearchIndex = index;
-
-  return index;
+  // Deserialize the Orama index from the downloaded file
+  try {
+    const indexData = await fs.readFile(LOCAL_DB_PATH);
+    const index = await deserializeOramaIndex(indexData);
+    
+    log.info(`Orama search index loaded in ${Date.now() - startTime}ms`);
+    
+    // Cache the index for future invocations
+    oramaIndex = index;
+    return index;
+  } catch (error) {
+    throw new Error(`Failed to deserialize Orama index: ${error}. Exiting.`);
+  }
 }
-
-/**
- * Perform a search against the FlexSearch index
- */
-async function searchIndex(
-  index: Document<any, any, any>,
-  query: string,
-  limit: number = 10,
-  searchFields: string[] = ['text'],
-  suggest: boolean = false,
-  matchAllFields: boolean = false
-): Promise<ApiSearchResultHit[]> {
-
-  if (!query.trim()) {
-    return [];
-  }
-
-  let searchResults: ApiSearchResultHit[] = [];
-
-  if (matchAllFields) {
-    // Search all fields and combine results
-    log.info('Searching all fields and combining results...');
-    const resultsPromises = searchFields.map(field =>
-      index.searchAsync(query, {
-        limit,
-        suggest,
-        index: field,
-        enrich: true // Ensure documents are enriched
-      })
-    );
-
-    const fieldResultsArray = await Promise.all(resultsPromises);
-
-    // Merge and deduplicate results
-    const uniqueResults = new Map<string, ApiSearchResultHit>();
-
-    fieldResultsArray.forEach(fieldResultSet => {
-      if (Array.isArray(fieldResultSet)) {
-        fieldResultSet.forEach(perFieldResult => {
-          if (perFieldResult && Array.isArray(perFieldResult.result)) {
-            perFieldResult.result.forEach(hit => {
-              if (hit && hit.doc && typeof hit.id === 'string') {
-                uniqueResults.set(hit.id, hit.doc);
-              }
-            });
-          }
-        });
-      }
-    });
-
-    searchResults = Array.from(uniqueResults.values());
-  } else {
-    // Search with the specified options
-    const enrichedResults = await index.search(query, {
-      limit,
-      suggest,
-      index: searchFields,
-      enrich: true, // Ensure documents are enriched
-      highlight: "<b>$1</b>"
-    });
-
-    // Convert the results to SearchEntry[]
-    if (Array.isArray(enrichedResults)) {
-      searchResults = enrichedResults
-        .flatMap(fieldResult => fieldResult.result || [])
-        .filter(hit => hit && hit.doc)
-        .map(hit => ({
-          ...hit.doc,
-          highlight: hit.highlight
-        }));
-    }
-  }
-
-  return searchResults;
-}
-
 
 /**
  * Main Lambda handler function
@@ -171,14 +79,17 @@ export async function handler(event: any): Promise<SearchResponse> {
   const startTime = Date.now();
 
   try {
-    const index = await initializeFlexSearchIndex();
+    const index = await initializeOramaIndex();
 
     // Extract search parameters from the event
-    let query: string = '';
-    let limit: number = 10;
-    let searchFields: string[] = ['text'];
-    let suggest: boolean = false;
-    let matchAllFields: boolean = false;
+    let searchRequest: SearchRequest = {
+      query: '',
+      limit: 10,
+      searchFields: ['text'],
+      sortBy: undefined,
+      sortOrder: 'desc',
+      episodeIds: undefined
+    };
 
     // Check if this is an API Gateway v2 event
     if (event.requestContext?.http?.method) {
@@ -187,22 +98,28 @@ export async function handler(event: any): Promise<SearchResponse> {
       if (method === 'GET') {
         // For API Gateway GET requests
         const queryParams = event.queryStringParameters || {};
-        query = queryParams.query || '';
-        limit = parseInt(queryParams.limit || '10', 10);
-        searchFields = queryParams.fields ? queryParams.fields.split(',') : ['text'];
-        suggest = queryParams.suggest === 'true';
-        matchAllFields = queryParams.matchAllFields === 'true';
+        searchRequest = {
+          query: queryParams.query || '',
+          limit: parseInt(queryParams.limit || '10', 10),
+          searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
+          sortBy: queryParams.sortBy || undefined,
+          sortOrder: (queryParams.sortOrder as 'asc' | 'desc') || 'desc',
+          episodeIds: queryParams.episodeIds ? queryParams.episodeIds.split(',').map(Number) : undefined
+        };
       } else if (method === 'POST' && event.body) {
         // For POST requests with a body
         const body: SearchRequest = typeof event.body === 'string'
           ? JSON.parse(event.body)
           : event.body;
 
-        query = body.query || '';
-        limit = body.limit || 10;
-        searchFields = body.searchFields || ['text'];
-        suggest = body.suggest || false;
-        matchAllFields = body.matchAllFields || false;
+        searchRequest = {
+          query: body.query || '',
+          limit: body.limit || 10,
+          searchFields: body.searchFields || ['text'],
+          sortBy: body.sortBy || undefined,
+          sortOrder: body.sortOrder || 'desc',
+          episodeIds: body.episodeIds || undefined
+        };
       }
     } else if (event.body) {
       // For direct invocations or POST requests with a body
@@ -210,54 +127,45 @@ export async function handler(event: any): Promise<SearchResponse> {
         ? JSON.parse(event.body)
         : event.body;
 
-      query = body.query || '';
-      limit = body.limit || 10;
-      searchFields = body.searchFields || ['text'];
-      suggest = body.suggest || false;
-      matchAllFields = body.matchAllFields || false;
+      searchRequest = {
+        query: body.query || '',
+        limit: body.limit || 10,
+        searchFields: body.searchFields || ['text'],
+        sortBy: body.sortBy || undefined,
+        sortOrder: body.sortOrder || 'desc',
+        episodeIds: body.episodeIds || undefined
+      };
     } else if (typeof event.query === 'string') {
-      // For direct invocations with a query property
-      query = event.query;
-      limit = event.limit || 10;
-      searchFields = event.searchFields || ['text'];
-      suggest = event.suggest || false;
-      matchAllFields = event.matchAllFields || false;
+      // For direct invocations with a query property (backward compatibility)
+      searchRequest = {
+        query: event.query,
+        limit: event.limit || 10,
+        searchFields: event.searchFields || ['text'],
+        sortBy: event.sortBy || undefined,
+        sortOrder: event.sortOrder || 'desc',
+        episodeIds: event.episodeIds || undefined
+      };
     }
 
-    // Perform the search
-    const searchResults = await searchIndex(
-      index,
-      query,
-      limit,
-      searchFields,
-      suggest,
-      matchAllFields
-    );
+    // Perform the search using Orama
+    const searchResponse = await searchOramaIndex(index, searchRequest);
 
-    // Calculate processing time
-    const processingTimeMs = Date.now() - startTime;
-
-    // Prepare and return the response
-    const response: SearchResponse = {
-      hits: searchResults,
-      totalHits: searchResults.length,
-      processingTimeMs,
-      query
-    };
-
-    return response;
+    return searchResponse;
   } catch (error) {
     log.error('Error searching indexed transcripts:', error);
     throw error;
   }
 }
 
-// In ESM, import.meta.url will be defined and can be compared to process.argv[1]
-const scriptPath = path.resolve(process.argv[1]);
-// Check if the module is being run directly
-if (import.meta.url === `file://${scriptPath}`) {
-  const testQuery = 'test query';
-  handler({ query: testQuery })
+// Check if the module is being run directly - simplified for compatibility
+if (process.argv[1] && process.argv[1].endsWith('search-indexed-transcripts.ts')) {
+  const testQuery: SearchRequest = {
+    query: 'test query',
+    limit: 5,
+    sortBy: 'episodePublishedUnixTimestamp',
+    sortOrder: 'desc'
+  };
+  handler({ body: testQuery })
     .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))
     .catch(err => log.error('Search failed with error:', err));
 }

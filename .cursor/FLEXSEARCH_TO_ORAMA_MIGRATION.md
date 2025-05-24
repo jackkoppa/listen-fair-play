@@ -3,6 +3,18 @@
 ## Overview
 Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to support sorting by episode published date and enhanced search capabilities. Orama is a complete search engine with TypeScript support, under 2kb, with excellent sorting and data persistence capabilities.
 
+## ⚠️ IMPORTANT INSTRUCTIONS FOR AGENTS
+
+**When working through this migration guide, you MUST follow these instructions:**
+
+1. **Complete ONE task at a time** - Do not skip ahead or work on multiple tasks simultaneously
+2. **Stop after completing each listed task** - Always pause and ask the user for approval before proceeding
+3. **Wait for user confirmation** - The user wants to review all changes before moving to the next step
+4. **Clearly indicate what you completed** - Update the task status and provide a summary of what was accomplished
+5. **Ask before proceeding** - Always prompt: "Task X.Y has been completed. Would you like me to proceed to the next task, or would you like to review/modify anything first?"
+
+This ensures the user maintains control over the migration process and can validate each step before continuing.
+
 ## Why Orama?
 - **Excellent sorting support**: Native support for sorting by any field, including dates
 - **TypeScript native**: Full TypeScript support out of the box
@@ -82,25 +94,32 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Files: `packages/types/search.ts`, `packages/database/database.ts`, `packages/ingestion/srt-indexing-lambda/test-orama-index-generation.ts`, `packages/client/src/App.tsx`, `packages/client/src/components/SearchResult.tsx`, `packages/ingestion/srt-indexing-lambda/utils/convert-srt-file-into-search-entry-array.ts`, fixture files
 
 ### Phase 4: Update Search Lambda (Lambda 4)
-- [ ] **Task 4.1**: Replace FlexSearch query logic with Orama
-  - Update `search-indexed-transcripts.ts`
-  - Implement Orama initialization and querying using data persistence plugin
-  - Update API interface to use new `SearchRequest`/`SearchResponse` types
-  - Use Orama's `search()` method with sorting options
-  - Files: `packages/search/search-lambda/search-indexed-transcripts.ts`
+- [x] **Task 4.1**: Replace FlexSearch query logic with Orama - **COMPLETED**
+  - ✅ Updated `search-indexed-transcripts.ts` to use Orama instead of FlexSearch + SQLite
+  - ✅ Replaced SQLite initialization with Orama index deserialization using data persistence plugin
+  - ✅ Implemented new search logic using `searchOramaIndex()` function from database utilities
+  - ✅ Updated API interface to use new `SearchRequest`/`SearchResponse` types from types package
+  - ✅ Added support for new search parameters: `sortBy`, `sortOrder`, `episodeIds` filtering
+  - ✅ Maintained backward compatibility for existing query parameter formats (GET/POST/direct invocation)
+  - ✅ Replaced FlexSearch-specific parameters (`suggest`, `matchAllFields`) with Orama native capabilities
+  - ✅ Updated test script to use new Orama search parameters
+  - ✅ Fixed ESM import issues and ensured proper TypeScript compilation
+  - ✅ Files: `packages/search/search-lambda/search-indexed-transcripts.ts`, `packages/search/search-lambda/simple-test-local.ts`
 
-- [ ] **Task 4.2**: Add date sorting capabilities
-  - Implement sorting by episode published date using Orama's native sorting
-  - Support combined relevance + date sorting with `sortBy` parameter
-  - Maintain existing search features (highlighting with Orama's built-in support)
-  - Test ascending/descending date sorts
-  - Files: Search lambda, search types
+- [x] **Task 4.2**: Add date sorting capabilities - **COMPLETED**
+  - ✅ Implemented sorting by episode published date using Orama's native sorting in `searchOramaIndex()` function
+  - ✅ Support for combined relevance + date sorting with `sortBy` parameter (any field including `episodePublishedUnixTimestamp`)
+  - ✅ Maintained existing search features with Orama's built-in highlighting support
+  - ✅ Support for both ascending/descending date sorts via `sortOrder` parameter
+  - ✅ Native Orama sorting is more efficient than post-search sorting used in FlexSearch
+  - ✅ Files: `packages/database/database.ts` (searchOramaIndex function), search lambda already updated
 
-- [ ] **Task 4.3**: Update search parameters
-  - ✅ Already completed in Task 1.2 - `SearchRequest` interface updated
-  - Update query parameter handling for GET/POST requests to support new parameters
-  - Add support for `episodeIds` filtering from client-side episode selection
-  - Files: Search lambda
+- [x] **Task 4.3**: Update search parameters - **COMPLETED**
+  - ✅ Already completed in Task 1.2 - `SearchRequest` interface updated with new Orama parameters
+  - ✅ Already completed in Task 4.1 - Updated query parameter handling for GET/POST requests to support new parameters  
+  - ✅ Already completed in Task 4.1 - Added support for `episodeIds` filtering from client-side episode selection
+  - ✅ All parameter mappings implemented and working with API Gateway integration (GET/POST/direct invocation)
+  - ✅ Files: Search lambda (already updated), types package (already updated)
 
 ### Phase 5: Update Client Integration
 - [ ] **Task 5.1**: Update client-side search calls

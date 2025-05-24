@@ -2,47 +2,58 @@ import { handler } from './search-indexed-transcripts.js';
 import { log } from '@listen-fair-play/logging';
 
 async function runTest() {
-  // Example: Simulating an API Gateway GET request
+  // Example: Simulating an API Gateway GET request with new Orama parameters
   const getEvent = {
-    httpMethod: 'GET',
+    requestContext: {
+      http: {
+        method: 'GET'
+      }
+    },
     queryStringParameters: {
       query: 'listen, fair play',
-      limit: '1000',
+      limit: '5',
       fields: 'text',
-      suggest: 'false',
-      matchAllFields: 'false'
+      sortBy: 'episodePublishedUnixTimestamp',
+      sortOrder: 'desc'
     }
   };
 
-  // Example: Simulating a direct invocation or POST request with a JSON body
+  // Example: Simulating a POST request with new SearchRequest interface
   const postEvent = {
+    requestContext: {
+      http: {
+        method: 'POST'
+      }
+    },
     body: JSON.stringify({
       query: 'goalkeeper',
       limit: 3,
       searchFields: ['text'],
-      suggest: true
+      sortBy: 'episodePublishedUnixTimestamp',
+      sortOrder: 'desc',
+      episodeIds: [1, 2, 3] // Example episode filtering
     })
   };
 
-  // Example: Simulating a direct invocation with a query property
+  // Example: Simulating a direct invocation with new query property
   const directEvent = {
     query: 'goalkeeper',
     limit: 2,
     searchFields: ['text'],
-    suggest: false,
-    matchAllFields: true
+    sortBy: 'episodePublishedUnixTimestamp',
+    sortOrder: 'asc'
   };
 
   try {
-    log.info('Testing with GET event:');
+    log.info('Testing with GET event (Orama):');
     const getResult = await handler(getEvent);
     log.info('GET Test Results:', JSON.stringify(getResult, null, 2));
 
-    log.info('\nTesting with POST event:');
+    log.info('\nTesting with POST event (Orama):');
     const postResult = await handler(postEvent);
     log.info('POST Test Results:', JSON.stringify(postResult, null, 2));
     
-    log.info('\nTesting with direct event:');
+    log.info('\nTesting with direct event (Orama):');
     const directResult = await handler(directEvent);
     log.info('Direct Test Results:', JSON.stringify(directResult, null, 2));
 
