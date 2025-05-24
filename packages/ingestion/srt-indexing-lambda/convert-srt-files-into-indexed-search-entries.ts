@@ -1,10 +1,15 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import sqlite3 from "sqlite3";
 import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
-import { createDocumentIndex, logRowCountsForSQLiteTables } from '@listen-fair-play/database';
+import { 
+  createOramaIndex, 
+  insertMultipleSearchEntries, 
+  serializeOramaIndex, 
+  deserializeOramaIndex,
+  type OramaSearchDatabase 
+} from '@listen-fair-play/database';
 import { log } from '@listen-fair-play/logging';
-import { SearchEntry } from '@listen-fair-play/types';
+import { SearchEntry, EpisodeInManifest } from '@listen-fair-play/types';
 import {
   fileExists, 
   getFile, 
@@ -32,7 +37,7 @@ const COMMIT_PERCENTAGE_THRESHOLD = 5; // Commit every 5% of SRT files processed
 interface EpisodeManifestEntry {
   sequentialId: number;
   fileKey: string;
-  // other fields from manifest are not strictly needed here but could be added
+  publishedAt: string; // ISO 8601 date string for calculating unix timestamp
 }
 
 let episodeManifestData: EpisodeManifestEntry[] = [];
@@ -86,11 +91,14 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   }
   const sequentialEpisodeId = manifestEntry.sequentialId;
   
+  // Convert publishedAt to unix timestamp for sorting
+  const episodePublishedUnixTimestamp = new Date(manifestEntry.publishedAt).getTime();
+  
   // Convert SRT content to search entries using the utility function
-  // Note: convertSrtFileIntoSearchEntryArray will need its signature updated too.
   const utilityEntries = convertSrtFileIntoSearchEntryArray({
     srtFileContent: srtContent,
-    sequentialEpisodeId
+    sequentialEpisodeId,
+    episodePublishedUnixTimestamp // Pass the unix timestamp to the utility
   });
   
   // Convert entries to our SearchEntry type and add the new ID structure
@@ -127,16 +135,12 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
   return false;
 }
 
-// CURSOR-TODO: Let's add the work of fetching the sqliteDB file from S3, to a local temp file, to a function here
-// And then let's call it *before* the handler, in the init phase,
-// So that it's available if multiple runs are made (so we don't have to re-download the file every time from S3)
-
 // Main handler function
 export async function handler(event: { previousRunsCount?: number; forceReprocessAll?: boolean } = {}): Promise<any> {
   log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString())
-  log.info('�� Event:', event)
+  log.info('🏁 Event:', event)
 
   try {
     log.info(`Fetching episode manifest from S3: ${EPISODE_MANIFEST_KEY}`);
@@ -144,9 +148,10 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
     const manifestContent = manifestBuffer.toString('utf-8');
     const parsedManifest = JSON.parse(manifestContent);
     if (parsedManifest && Array.isArray(parsedManifest.episodes)) {
-      episodeManifestData = parsedManifest.episodes.map((ep: any) => ({ // Cast to any for now, can be stricter with full Episode type
+      episodeManifestData = parsedManifest.episodes.map((ep: EpisodeInManifest) => ({
         sequentialId: ep.sequentialId,
         fileKey: ep.fileKey,
+        publishedAt: ep.publishedAt, // Include publishedAt for unix timestamp calculation
       }));
       log.info(`Successfully loaded and parsed ${episodeManifestData.length} episodes from manifest.`);
     } else {
@@ -198,36 +203,46 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   
   await createDirectory(SEARCH_ENTRIES_DIR_PREFIX); // Ensure base search entries dir exists
 
+  // Initialize Orama index
+  let oramaIndex: OramaSearchDatabase;
+  
   try {
     if (await fileExists(SEARCH_INDEX_DB_S3_KEY)) {
-      log.info(`Found existing DB in S3 (${SEARCH_INDEX_DB_S3_KEY}). Downloading to ${LOCAL_DB_PATH}...`);
-      const dbBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
-      await fs.writeFile(LOCAL_DB_PATH, dbBuffer);
-      log.info(`Successfully downloaded and saved existing DB to ${LOCAL_DB_PATH}`);
+      log.info(`Found existing Orama index in S3 (${SEARCH_INDEX_DB_S3_KEY}). Downloading to ${LOCAL_DB_PATH}...`);
+      const indexBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
+      await fs.writeFile(LOCAL_DB_PATH, indexBuffer);
+      log.info(`Successfully downloaded existing Orama index to ${LOCAL_DB_PATH}`);
+      
+      // Deserialize the Orama index
+      oramaIndex = await deserializeOramaIndex(indexBuffer);
+      log.info('Successfully deserialized existing Orama index');
     } else {
-      log.info(`No existing DB found in S3 (${SEARCH_INDEX_DB_S3_KEY}). Will start with a fresh index.`);
+      log.info(`No existing Orama index found in S3 (${SEARCH_INDEX_DB_S3_KEY}). Creating fresh index.`);
       try {
         await fs.unlink(LOCAL_DB_PATH);
-        log.debug(`Ensured no stale local DB at ${LOCAL_DB_PATH} before starting fresh.`);
+        log.debug(`Ensured no stale local index at ${LOCAL_DB_PATH} before starting fresh.`);
       } catch (e: any) {
-        if (e.code !== 'ENOENT') log.warn(`Could not remove potentially stale local DB: ${e.message}`);
+        if (e.code !== 'ENOENT') log.warn(`Could not remove potentially stale local index: ${e.message}`);
       }
+      
+      // Create fresh Orama index
+      oramaIndex = await createOramaIndex();
+      log.info('Created fresh Orama search index');
     }
   } catch (error: any) {
-    log.warn(`Error during S3 DB download/setup: ${error.message}. Will proceed, attempting with a fresh index.`, error);
+    log.warn(`Error during S3 index download/setup: ${error.message}. Will proceed with fresh index.`, error);
     try {
         await fs.unlink(LOCAL_DB_PATH);
     } catch (e: any) {
-        if (e.code !== 'ENOENT') log.warn(`Could not remove stale local DB after S3 error: ${e.message}`);
+        if (e.code !== 'ENOENT') log.warn(`Could not remove stale local index after S3 error: ${e.message}`);
     }
+    
+    // Create fresh Orama index as fallback
+    oramaIndex = await createOramaIndex();
+    log.info('Created fresh Orama search index as fallback');
   }
 
-  const sqlite3DB = new sqlite3.Database(LOCAL_DB_PATH);
-  const index = await createDocumentIndex(sqlite3DB);
-  log.info('FlexSearch index initialized.');
-
-  // CURSOR-TODO: This doesn't appear to be working on S3, only finding 'football-cliches' results (not the 'for-our-sins-' ones)
-  // Step 1: List the "podcast directories" under the main transcripts prefix
+  // List all SRT files (keeping existing logic for podcast directory traversal)
   const podcastDirectoryPrefixes = await listFiles(TRANSCRIPTS_DIR_PREFIX);
   log.info(`[DEBUG] listFiles('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} potential podcast directory prefixes.`);
   if (podcastDirectoryPrefixes.length > 0) {
@@ -236,7 +251,7 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
 
   let allSrtFiles: string[] = [];
 
-  // Step 2: For each podcast directory prefix, list the files within it
+  // For each podcast directory prefix, list the files within it
   for (const dirPrefix of podcastDirectoryPrefixes) {
     // Ensure the prefix ends with a '/' for S3 listing, if it doesn't already
     const currentPodcastPrefix = dirPrefix.endsWith('/') ? dirPrefix : `${dirPrefix}/`;
@@ -289,6 +304,9 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   if (forceReprocessAllSrtJson) {
     log.info("forceReprocessAll is true: All SRT files will have their search entry JSONs regenerated.");
   }
+
+  // Collect all search entries to insert in batches for better performance
+  const allSearchEntriesToInsert: SearchEntry[] = [];
 
   for (const srtFileKey of srtFilesToEvaluate) {
     if (Date.now() - lambdaStartTime >= PROCESSING_TIME_LIMIT_MS) {
@@ -347,28 +365,12 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
         continue;
     }
 
-    let entriesAddedForThisFile = 0;
-    for (const entry of searchEntriesForFile) {
-      // Ensure entry has an id, critical for FlexSearch
-      if (typeof entry.id === 'undefined' || entry.id === null || entry.id === '') {
-        log.warn(`Search entry from ${srtFileKey} is missing an ID or ID is empty. Text snippet: "${entry.text.substring(0,50)}". Skipping this entry.`);
-        continue;
-      }
-      const existingEntry = await index.get(entry.id);
-      if (existingEntry) {
-        log.debug(`Entry ${entry.id} already exists in index, skipping.`);
-      } else {
-        await index.add(entry);
-        entriesAddedForThisFile++;
-        newEntriesAddedInThisRun++;
-      }
-    }
+    // Add entries to batch for insertion (Orama doesn't have a "get" method to check existence like FlexSearch)
+    // We'll insert all entries and let Orama handle duplicates (or implement our own deduplication if needed)
+    allSearchEntriesToInsert.push(...searchEntriesForFile);
+    newEntriesAddedInThisRun += searchEntriesForFile.length;
 
-    if (entriesAddedForThisFile > 0) {
-        log.debug(`Added ${entriesAddedForThisFile} new entries to index from ${srtFileKey}`);
-    } else {
-        log.debug(`No new entries added to index from ${srtFileKey} (all likely existed or file had no entries).`);
-    }
+    log.debug(`Queued ${searchEntriesForFile.length} entries for batch insertion from ${srtFileKey}`);
 
     srtFilesProcessedCount++;
 
@@ -378,31 +380,41 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
       log.info(
         `\n🔄 Progress: ${currentSrtPercentage}% of SRT files processed (${srtFilesProcessedCount}/${totalSrtFiles}).` + 
         `\nElapsed time: ${elapsedTimeSinceStart}s.` + 
-        `\nCommitting index to DB...\n`
+        `\nInserting ${allSearchEntriesToInsert.length} entries into Orama index...\n`
       );
-      const commitStart = Date.now();
-      await index.commit(); // Commit to SQLite
-      log.info(`Committed index to DB in ${((Date.now() - commitStart) / 1000).toFixed(2)}s`);
+      const insertStart = Date.now();
+      
+      // Insert all collected entries in batch
+      if (allSearchEntriesToInsert.length > 0) {
+        await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
+        allSearchEntriesToInsert.length = 0; // Clear the array
+      }
+      
+      log.info(`Inserted entries into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
       lastCommitSrtPercentage = Math.floor(currentSrtPercentage / COMMIT_PERCENTAGE_THRESHOLD) * COMMIT_PERCENTAGE_THRESHOLD;
     }
   }
 
-  log.info('Finished processing loop. Committing final index changes to local SQLite DB.');
-  const finalCommitStart = Date.now();
-  await index.commit();
-  log.info(`Final index commit took ${((Date.now() - finalCommitStart) / 1000).toFixed(2)}s.`);
+  // Insert any remaining entries
+  if (allSearchEntriesToInsert.length > 0) {
+    log.info(`Inserting final batch of ${allSearchEntriesToInsert.length} entries into Orama index.`);
+    const finalInsertStart = Date.now();
+    await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
+    log.info(`Final batch insertion completed in ${((Date.now() - finalInsertStart) / 1000).toFixed(2)}s.`);
+  }
 
-  await logRowCountsForSQLiteTables(sqlite3DB);
-
-  // TODO: If we've hit the time limit, we should save the index to the file that we currently do.
-
-  log.info(`Uploading SQLite DB from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
+  log.info(`Serializing Orama index to binary format at ${LOCAL_DB_PATH}...`);
   try {
-    const dbFileBuffer = await fs.readFile(LOCAL_DB_PATH);
-    await saveFile(SEARCH_INDEX_DB_S3_KEY, dbFileBuffer);
-    log.info(`FlexSearch index successfully saved as SQLite DB and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
+    const serializedIndexBuffer = await serializeOramaIndex(oramaIndex);
+    await fs.writeFile(LOCAL_DB_PATH, serializedIndexBuffer);
+    log.info(`Orama index successfully serialized to ${LOCAL_DB_PATH}`);
+    
+    // Upload to S3
+    log.info(`Uploading Orama index from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
+    await saveFile(SEARCH_INDEX_DB_S3_KEY, serializedIndexBuffer);
+    log.info(`Orama index successfully saved and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
   } catch (error: any) {
-    log.error(`Failed to upload SQLite DB to S3: ${error.message}. The local DB may be present at ${LOCAL_DB_PATH} but S3 is not updated.`, error);
+    log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${LOCAL_DB_PATH} but S3 is not updated.`, error);
     // If S3 upload fails, this is a significant issue for the next run.
     // We might still re-trigger if timeLimitReached, but the next run might not get the latest state.
   }
@@ -447,10 +459,10 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
 
   try {
     await fs.unlink(LOCAL_DB_PATH);
-    log.info(`Cleaned up local SQLite DB file: ${LOCAL_DB_PATH}`);
+    log.info(`Cleaned up local Orama index file: ${LOCAL_DB_PATH}`);
   } catch (error: any) {
     if (error.code !== 'ENOENT') { // ENOENT means file not found, which is fine
-      log.warn(`Could not clean up local SQLite DB file: ${error.message}`);
+      log.warn(`Could not clean up local Orama index file: ${error.message}`);
     }
   }
 

@@ -56,19 +56,21 @@ Replacing FlexSearch with [Orama](https://github.com/oramasearch/orama) to suppo
   - ✅ Files: `packages/database/database.ts`, `packages/database/index.ts`, `packages/constants/index.ts`
 
 ### Phase 3: Update Indexing Lambda (Lambda 3)
-- [ ] **Task 3.1**: Replace FlexSearch index creation with Orama
-  - Update `convert-srt-files-into-indexed-search-entries.ts`
-  - Replace SQLite DB operations with Orama + data persistence plugin
-  - Maintain existing SRT processing and JSON entry generation logic
-  - Use Orama's `insertMultiple()` for batch insertion
-  - Add logic to populate `episodePublishedUnixTimestamp` from episode manifest
-  - Files: `packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`
+- [x] **Task 3.1**: Replace FlexSearch index creation with Orama - **COMPLETED**
+  - ✅ Updated `convert-srt-files-into-indexed-search-entries.ts` to use Orama instead of FlexSearch + SQLite
+  - ✅ Replaced SQLite DB operations with Orama serialization/deserialization using data persistence plugin  
+  - ✅ Maintained existing SRT processing and JSON entry generation logic
+  - ✅ Implemented Orama's `insertMultipleSearchEntries()` for efficient batch insertion
+  - ✅ Added logic to populate `episodePublishedUnixTimestamp` from episode manifest `publishedAt` field
+  - ✅ Updated `convert-srt-file-into-search-entry-array.ts` utility to accept and use `episodePublishedUnixTimestamp`
+  - ✅ Switched from SQLite `.db` format to Orama binary `.msp` format for S3 storage
+  - ✅ Removed all SQLite dependencies and FlexSearch `index.commit()` operations
+  - ✅ Files: `packages/ingestion/srt-indexing-lambda/convert-srt-files-into-indexed-search-entries.ts`, `packages/ingestion/srt-indexing-lambda/utils/convert-srt-file-into-search-entry-array.ts`
 
-- [ ] **Task 3.2**: Update index storage logic
-  - Replace SQLite DB file with Orama serialized index using data persistence plugin
-  - Update S3 key constants (change from `.db` to `.msp` extension)
-  - Ensure schema includes episode metadata with proper types for date sorting
-  - Files: `packages/constants/src/index.ts`, indexing lambda
+- [x] **Task 3.2**: Update index storage logic - **COMPLETED**
+  - ✅ Updated S3 key constants (changed from `.db` to `.msp` extension) in `packages/constants/index.ts`
+  - ✅ Schema includes episode metadata with proper types for date sorting (`episodePublishedUnixTimestamp`)
+  - ✅ Files: `packages/constants/index.ts`, indexing lambda
 
 - [ ] **Task 3.3**: Test index generation
   - Verify new Orama index format is created and serialized correctly

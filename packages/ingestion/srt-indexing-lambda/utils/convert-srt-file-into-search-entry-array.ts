@@ -5,6 +5,7 @@ import { SearchEntry } from '@listen-fair-play/types';
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined
     sequentialEpisodeId: number;
+    episodePublishedUnixTimestamp: number; // Unix timestamp for sorting by episode date
 }
 
 // Structure for parsed SRT line
@@ -27,6 +28,7 @@ const MAX_CHUNK_DURATION_MS = 30000;
 export const convertSrtFileIntoSearchEntryArray = ({
     srtFileContent,
     sequentialEpisodeId,
+    episodePublishedUnixTimestamp,
 }: ConvertSrtFileIntoSearchEntryArrayProps): SearchEntry[] => {
 
     if (!srtFileContent || typeof srtFileContent !== 'string') {
@@ -125,6 +127,7 @@ export const convertSrtFileIntoSearchEntryArray = ({
                 endTimeMs: chunkEndTimeMs,
                 text: chunkCombinedText.trim(),
                 sequentialEpisodeId,
+                episodePublishedUnixTimestamp,
             });
 
             // Reset for next chunk
