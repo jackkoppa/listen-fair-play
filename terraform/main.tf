@@ -237,9 +237,11 @@ resource "aws_apigatewayv2_api" "search_api" {
   cors_configuration {
     allow_origins = concat(
       ["https://${module.cloudfront.cloudfront_domain_name}"],
-      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : []
+      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : [],
+      # Always include the custom domain for production
+      var.environment == "prod" ? ["https://listenfairplay.com"] : []
     )
-    allow_methods = ["GET", "OPTIONS"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]
     max_age       = 300
   }
