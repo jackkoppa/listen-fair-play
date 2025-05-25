@@ -15,6 +15,7 @@ import {
   getFile, 
   saveFile, 
   listFiles,
+  listDirectories,
   createDirectory
 } from '@listen-fair-play/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
@@ -243,10 +244,10 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   }
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
-  const podcastDirectoryPrefixes = await listFiles(TRANSCRIPTS_DIR_PREFIX);
-  log.info(`[DEBUG] listFiles('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} potential podcast directory prefixes.`);
+  const podcastDirectoryPrefixes = await listDirectories(TRANSCRIPTS_DIR_PREFIX);
+  log.info(`[DEBUG] listDirectories('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} podcast directories.`);
   if (podcastDirectoryPrefixes.length > 0) {
-    log.debug(`[DEBUG] Podcast directory prefixes: ${JSON.stringify(podcastDirectoryPrefixes)}`);
+    log.debug(`[DEBUG] Podcast directories: ${JSON.stringify(podcastDirectoryPrefixes)}`);
   }
 
   let allSrtFiles: string[] = [];

@@ -22,8 +22,8 @@ const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://local
 
 // Get the base URL for manifest files, fallback to local path for development
 // CURSOR-TODO: Fix this, and package.json#scripts.temp-serve-s3-assets
-// const MANIFEST_BASE_URL = ''; // for deployment
-const MANIFEST_BASE_URL = 'http://127.0.0.1:8080'; // for local development
+const MANIFEST_BASE_URL = ''; // for deployment
+// const MANIFEST_BASE_URL = 'http://127.0.0.1:8080'; // for local development
 
 const SEARCH_LIMIT = 50;
 
