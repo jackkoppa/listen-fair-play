@@ -1,1 +1,9 @@
-export { createDocumentIndex, logRowCountsForSQLiteTables } from './database.js';
+export { 
+  createOramaIndex, 
+  insertSearchEntry, 
+  insertMultipleSearchEntries, 
+  searchOramaIndex, 
+  serializeOramaIndex, 
+  deserializeOramaIndex,
+  type OramaSearchDatabase 
+} from './database.js';

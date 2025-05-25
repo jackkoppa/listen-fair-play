@@ -9,8 +9,8 @@
         "build": "tsc"
     },
     "dependencies": {
-        "sqlite3": "catalog:",
-        "flexsearch": "catalog:"
+        "@orama/orama": "catalog:",
+        "@orama/plugin-data-persistence": "catalog:"
     },
     "devDependencies": {
         "@listen-fair-play/types": "workspace:*",

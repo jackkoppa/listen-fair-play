@@ -304,4 +304,47 @@ export async function getSignedUrl(key: string, expirationSeconds = 3600): Promi
       expiresIn: expirationSeconds,
     });
   }
+}
+
+/**
+ * List directories (unique prefixes) with a specific prefix
+ * This is useful when you need to find subdirectories under a given path
+ */
+export async function listDirectories(prefix: string): Promise<string[]> {
+  if (FILE_STORAGE_ENV === 'local') {
+    const localPath = getLocalFilePath(prefix);
+    try {
+      if (await fs.pathExists(localPath)) {
+        // Get all directories in the path
+        const items = await fs.promises.readdir(localPath, { withFileTypes: true });
+        return items
+          .filter(item => item.isDirectory() && item.name !== '.DS_Store')
+          .map(item => path.join(prefix, item.name));
+      }
+      return [];
+    } catch (error) {
+      log.error('Error listing local directories:', error);
+      return [];
+    }
+  } else {
+    // For S3, we need to extract unique directory prefixes from the file list
+    const bucketName = getBucketName();
+    try {
+      const response = await s3.listObjectsV2({
+        Bucket: bucketName,
+        Prefix: prefix,
+        Delimiter: '/', // This helps S3 group by "directories"
+      });
+      
+      // Get directory prefixes from CommonPrefixes
+      const directories = (response.CommonPrefixes || [])
+        .map(item => item.Prefix || '')
+        .filter(prefix => prefix !== '');
+      
+      return directories;
+    } catch (error) {
+      log.error('Error listing S3 directories:', error);
+      return [];
+    }
+  }
 } 

@@ -1,0 +1,9 @@
+Please examine these files:
+
+1. Diagram of how the application works (mostly accurate) - @README.md , @aws-architecture.drawio 
+2. The description of the search React UI client - @README.md 
+3. The 2 Lambda functions that are relevant in:
+a. creating a search index, and saving it to a file that's saved to S3:@convert-srt-files-into-indexed-search-entries.ts 
+b. (called by the React UI client) a search Lambda that fetches the index file, and re-initializes the search index, then searches it based on the request it receives, and returns search results: @search-indexed-transcripts.ts 
+
+Up to this point, the `flexsearch` package has worked well for this application. However, I've discovered that `flexsearch` has very limited support

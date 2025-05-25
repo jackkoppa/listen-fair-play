@@ -5,6 +5,7 @@ import { SearchEntry } from '@listen-fair-play/types';
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined
     sequentialEpisodeId: number;
+    episodePublishedUnixTimestamp: number; // Unix timestamp for sorting by episode date
 }
 
 // Structure for parsed SRT line
@@ -27,6 +28,7 @@ const MAX_CHUNK_DURATION_MS = 30000;
 export const convertSrtFileIntoSearchEntryArray = ({
     srtFileContent,
     sequentialEpisodeId,
+    episodePublishedUnixTimestamp,
 }: ConvertSrtFileIntoSearchEntryArrayProps): SearchEntry[] => {
 
     if (!srtFileContent || typeof srtFileContent !== 'string') {
@@ -119,18 +121,22 @@ export const convertSrtFileIntoSearchEntryArray = ({
             log.debug(`    Final Chunk Start Time: ${chunkStartTimeMs}`);
             log.debug(`    Final Chunk End Time: ${chunkEndTimeMs}`);
             const actualChunkStartTime = currentChunkLines[0].startTimeMs;
+
+            const uniqueId = `${sequentialEpisodeId}_${actualChunkStartTime}`;
+            
             searchEntries.push({
-                id: `${sequentialEpisodeId}_${actualChunkStartTime}`,
+                id: uniqueId,
                 startTimeMs: actualChunkStartTime,
                 endTimeMs: chunkEndTimeMs,
                 text: chunkCombinedText.trim(),
-                sequentialEpisodeId,
+                sequentialEpisodeIdAsString: sequentialEpisodeId.toString(),
+                episodePublishedUnixTimestamp,
             });
 
             // Reset for next chunk
             currentChunkLines = [];
             chunkCombinedText = '';
-            log.debug(`  >>> Chunk Finalized & State Reset <<<`); // LOG: Reset
+            log.debug(`  >>> Chunk Finalized & State Reset (ID: ${uniqueId}) <<<`); // LOG: Reset
         } else {
             log.debug(`  --- Not Finalizing Chunk ---`); // LOG: Not finalizing
         }

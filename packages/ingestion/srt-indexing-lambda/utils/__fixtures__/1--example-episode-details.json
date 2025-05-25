@@ -1,4 +1,6 @@
 {
     "id": 123,
-    "title": "Test Episode Title"
+    "title": "Test Episode Title",
+    "sequentialId": 123,
+    "publishedAt": "2020-01-23T10:00:00Z"
 }
