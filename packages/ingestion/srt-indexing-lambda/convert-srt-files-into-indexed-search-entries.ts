@@ -108,11 +108,10 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
 }
 
 // Main handler function
-export async function handler(event: any = {}): Promise<any> {
+export async function handler(): Promise<any> {
   log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString())
-  log.info('🏁 Event:', event)
 
   try {
     log.info(`Fetching episode manifest from S3: ${EPISODE_MANIFEST_KEY}`);
@@ -229,9 +228,6 @@ export async function handler(event: any = {}): Promise<any> {
 
   for (const srtFileKey of srtFilesToEvaluate) {
     log.debug(`Evaluating SRT file: ${srtFileKey} (${srtFilesProcessedCount + 1}/${totalSrtFiles})`);
-
-    const srtFileName = path.basename(srtFileKey, '.srt');
-    const podcastName = path.basename(path.dirname(srtFileKey));
     
     let searchEntriesForFile: SearchEntry[] = [];
     let jsonNeedsProcessing = true; // Assume we need to process (load or create) the JSON
