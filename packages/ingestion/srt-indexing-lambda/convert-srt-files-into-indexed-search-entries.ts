@@ -4,8 +4,7 @@ import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@li
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
-  serializeOramaIndex, 
-  deserializeOramaIndex,
+  serializeOramaIndex,
   type OramaSearchDatabase 
 } from '@listen-fair-play/database';
 import { log } from '@listen-fair-play/logging';
@@ -19,20 +18,13 @@ import {
   createDirectory
 } from '@listen-fair-play/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
-import { Lambda } from "@aws-sdk/client-lambda"; // Added for re-triggering
 
 log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
 
 // Constants - S3 paths
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
-
-// Configurable constants as per requirements
-const PROCESSING_TIME_LIMIT_MINUTES = 7; 
-// Give a 30-second buffer before the planned AWS Lambda timeout (currently limiting to 7 minutes above, Lambda max is 15 minutes)
-const PROCESSING_TIME_LIMIT_MS = (PROCESSING_TIME_LIMIT_MINUTES * 60 * 1000) - (30 * 1000); 
-const MAX_RETRIGGER_COUNT = 5; 
-const COMMIT_PERCENTAGE_THRESHOLD = 5; // Commit every 5% of SRT files processed
+const PROGRESS_LOG_THRESHOLD = 5; // Log progress every 5% of SRT files processed
 
 // Structure for episode data from the manifest
 interface EpisodeManifestEntry {
@@ -50,27 +42,6 @@ async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
   const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
   
   return fileExists(searchEntriesKey);
-}
-
-// Function to get all SRT files with no search entries
-async function getSrtFilesWithNoSearchEntries(): Promise<string[]> {
-  // List all SRT files
-  const transcriptFiles = await listFiles(TRANSCRIPTS_DIR_PREFIX);
-  const srtFiles = transcriptFiles.filter(file => file.endsWith('.srt'));
-  
-  // Filter to only include files with no existing search entries
-  // This logic might need adjustment if "existence" is purely based on the manifest now
-  // For now, keeping it as is, assuming JSON files are still the intermediate step for generated entries.
-  const filesToProcess: string[] = [];
-  
-  for (const srtFile of srtFiles) {
-    const hasSearchEntries = await searchEntriesExist(srtFile);
-    if (!hasSearchEntries) {
-      filesToProcess.push(srtFile);
-    }
-  }
-  
-  return filesToProcess;
 }
 
 // Function to process a single SRT file
@@ -137,7 +108,7 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
 }
 
 // Main handler function
-export async function handler(event: { previousRunsCount?: number; forceReprocessAll?: boolean } = {}): Promise<any> {
+export async function handler(event: any = {}): Promise<any> {
   log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString())
@@ -157,9 +128,7 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
       log.info(`Successfully loaded and parsed ${episodeManifestData.length} episodes from manifest.`);
     } else {
       log.error('Episode manifest is not in the expected format (missing episodes array). Cannot proceed with new ID logic.');
-      // Depending on strictness, might want to throw an error or return an error state
       episodeManifestData = []; // Ensure it's empty to prevent partial processing
-      // Potentially throw new Error("Invalid episode manifest format.");
     }
   } catch (error: any) {
     log.error(`Failed to load or parse episode manifest from ${EPISODE_MANIFEST_KEY}: ${error.message}`, error);
@@ -169,30 +138,12 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
       message: `Failed to load episode manifest: ${error.message}`,
       evaluatedSrtFiles: 0,
       totalSrtFiles: 0,
-      newEntriesAdded: 0,
-      timeLimitReached: false,
-      retriggered: false,
+      newEntriesAdded: 0
     };
   }
 
   if (episodeManifestData.length === 0) {
       log.warn("Episode manifest data is empty after loading. This may lead to no SRTs being processed correctly if they rely on manifest IDs. Continuing, but this is unusual.");
-  }
-
-  const currentRunCount = event.previousRunsCount || 0;
-  if (currentRunCount > MAX_RETRIGGER_COUNT) {
-    const errorMsg = `Exceeded maximum re-trigger count (${MAX_RETRIGGER_COUNT}). Stopping further processing. Index may be incomplete.`;
-    log.error(errorMsg);
-    // Return a specific error structure or throw, depending on desired behavior for Step Functions/EventBridge
-    return {
-      status: 'error',
-      message: errorMsg,
-      evaluatedSrtFiles: 0,
-      totalSrtFiles: 0,
-      newEntriesAdded: 0,
-      timeLimitReached: false,
-      retriggered: false,
-    };
   }
 
   try {
@@ -204,44 +155,19 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   
   await createDirectory(SEARCH_ENTRIES_DIR_PREFIX); // Ensure base search entries dir exists
 
-  // Initialize Orama index
-  let oramaIndex: OramaSearchDatabase;
+  // Always create a fresh Orama index
+  log.info('Creating fresh Orama search index');
   
+  // Clean up any existing local index file
   try {
-    if (await fileExists(SEARCH_INDEX_DB_S3_KEY)) {
-      log.info(`Found existing Orama index in S3 (${SEARCH_INDEX_DB_S3_KEY}). Downloading to ${LOCAL_DB_PATH}...`);
-      const indexBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
-      await fs.writeFile(LOCAL_DB_PATH, indexBuffer);
-      log.info(`Successfully downloaded existing Orama index to ${LOCAL_DB_PATH}`);
-      
-      // Deserialize the Orama index
-      oramaIndex = await deserializeOramaIndex(indexBuffer);
-      log.info('Successfully deserialized existing Orama index');
-    } else {
-      log.info(`No existing Orama index found in S3 (${SEARCH_INDEX_DB_S3_KEY}). Creating fresh index.`);
-      try {
-        await fs.unlink(LOCAL_DB_PATH);
-        log.debug(`Ensured no stale local index at ${LOCAL_DB_PATH} before starting fresh.`);
-      } catch (e: any) {
-        if (e.code !== 'ENOENT') log.warn(`Could not remove potentially stale local index: ${e.message}`);
-      }
-      
-      // Create fresh Orama index
-      oramaIndex = await createOramaIndex();
-      log.info('Created fresh Orama search index');
-    }
-  } catch (error: any) {
-    log.warn(`Error during S3 index download/setup: ${error.message}. Will proceed with fresh index.`, error);
-    try {
-        await fs.unlink(LOCAL_DB_PATH);
-    } catch (e: any) {
-        if (e.code !== 'ENOENT') log.warn(`Could not remove stale local index after S3 error: ${e.message}`);
-    }
-    
-    // Create fresh Orama index as fallback
-    oramaIndex = await createOramaIndex();
-    log.info('Created fresh Orama search index as fallback');
+    await fs.unlink(LOCAL_DB_PATH);
+    log.debug(`Removed any existing local index at ${LOCAL_DB_PATH}`);
+  } catch (e: any) {
+    if (e.code !== 'ENOENT') log.warn(`Could not remove existing local index: ${e.message}`);
   }
+  
+  const oramaIndex: OramaSearchDatabase = await createOramaIndex();
+  log.info('Created fresh Orama search index');
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
   const podcastDirectoryPrefixes = await listDirectories(TRANSCRIPTS_DIR_PREFIX);
@@ -287,70 +213,49 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   if (totalSrtFiles === 0) {
     log.info("No SRT files found in transcripts directory. Exiting.");
     return { 
+        status: 'success',
         evaluatedSrtFiles: 0, 
         totalSrtFiles: 0, 
-        newEntriesAdded: 0, 
-        timeLimitReached: false, 
-        retriggered: false 
+        newEntriesAdded: 0
     };
   }
   log.info(`Found ${totalSrtFiles} total SRT files to evaluate for indexing.`);
 
   let srtFilesProcessedCount = 0;
-  let lastCommitSrtPercentage = 0;
-  let timeLimitReached = false;
   let newEntriesAddedInThisRun = 0;
-  const forceReprocessAllSrtJson = event.forceReprocessAll === true;
-
-  if (forceReprocessAllSrtJson) {
-    log.info("forceReprocessAll is true: All SRT files will have their search entry JSONs regenerated.");
-  }
 
   // Collect all search entries to insert in batches for better performance
   const allSearchEntriesToInsert: SearchEntry[] = [];
 
   for (const srtFileKey of srtFilesToEvaluate) {
-    if (Date.now() - lambdaStartTime >= PROCESSING_TIME_LIMIT_MS) {
-      log.warn(`Time limit approaching (${PROCESSING_TIME_LIMIT_MINUTES} minutes). Stopping processing for this run.`);
-      timeLimitReached = true;
-      break;
-    }
-
     log.debug(`Evaluating SRT file: ${srtFileKey} (${srtFilesProcessedCount + 1}/${totalSrtFiles})`);
 
     const srtFileName = path.basename(srtFileKey, '.srt');
     const podcastName = path.basename(path.dirname(srtFileKey));
-    const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
     
     let searchEntriesForFile: SearchEntry[] = [];
     let jsonNeedsProcessing = true; // Assume we need to process (load or create) the JSON
 
-    if (!forceReprocessAllSrtJson) {
-        const existingJsonPath = await searchEntriesJsonFileExists(srtFileKey);
-        if (existingJsonPath) {
-            log.debug(`Search entries JSON already exists for ${srtFileKey} at ${existingJsonPath}. Loading it.`);
-            try {
-                const fileBuffer = await getFile(existingJsonPath);
-                const fileContent = fileBuffer.toString('utf-8');
-                const parsedEntries = JSON.parse(fileContent);
-                if (Array.isArray(parsedEntries)) {
-                    searchEntriesForFile = parsedEntries.map(entry => ({ ...entry }));
-                    jsonNeedsProcessing = false; // Successfully loaded
-                } else {
-                    log.warn(`Unexpected format in ${existingJsonPath}, expected array. Will attempt to regenerate.`);
-                }
-            } catch (error: any) {
-                log.error(`Error loading or parsing existing JSON ${existingJsonPath}: ${error.message}. Will attempt to regenerate.`);
+    const existingJsonPath = await searchEntriesJsonFileExists(srtFileKey);
+    if (existingJsonPath) {
+        log.debug(`Search entries JSON already exists for ${srtFileKey} at ${existingJsonPath}. Loading it.`);
+        try {
+            const fileBuffer = await getFile(existingJsonPath);
+            const fileContent = fileBuffer.toString('utf-8');
+            const parsedEntries = JSON.parse(fileContent);
+            if (Array.isArray(parsedEntries)) {
+                searchEntriesForFile = parsedEntries.map(entry => ({ ...entry }));
+                jsonNeedsProcessing = false; // Successfully loaded
+            } else {
+                log.warn(`Unexpected format in ${existingJsonPath}, expected array. Will attempt to regenerate.`);
             }
+        } catch (error: any) {
+            log.error(`Error loading or parsing existing JSON ${existingJsonPath}: ${error.message}. Will attempt to regenerate.`);
         }
     }
 
-    if (jsonNeedsProcessing) { // True if forceReprocessAllSrtJson, or if JSON didn't exist, or if loading failed
-        if (forceReprocessAllSrtJson) {
-            log.debug(`forceReprocessAll: Regenerating search entries for ${srtFileKey}.`);
-        } else {
-            log.debug(`Search entries JSON does not exist or failed to load for ${srtFileKey}. Generating and saving it now.`);
-        }
+    if (jsonNeedsProcessing) { // True if JSON didn't exist, or if loading failed
+        log.debug(`Search entries JSON does not exist or failed to load for ${srtFileKey}. Generating and saving it now.`);
         try {
             searchEntriesForFile = await processSrtFile(srtFileKey); // This creates and saves the JSON.
         } catch (error: any) {
@@ -366,42 +271,53 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
         continue;
     }
 
-    // Add entries to batch for insertion (Orama doesn't have a "get" method to check existence like FlexSearch)
-    // We'll insert all entries and let Orama handle duplicates (or implement our own deduplication if needed)
+    // Add entries to batch for insertion
     allSearchEntriesToInsert.push(...searchEntriesForFile);
     newEntriesAddedInThisRun += searchEntriesForFile.length;
+
+    // TODO: Remove this after testing
+    if (searchEntriesForFile.find(entry => entry.id.includes('271_'))) {
+      log.info(`[DEBUG] Found entry with id 271_ in ${srtFileKey}, search entries for file: ${JSON.stringify(searchEntriesForFile)}`);
+    }
 
     log.debug(`Queued ${searchEntriesForFile.length} entries for batch insertion from ${srtFileKey}`);
 
     srtFilesProcessedCount++;
 
     const currentSrtPercentage = Math.floor((srtFilesProcessedCount / totalSrtFiles) * 100);
-    if (currentSrtPercentage >= lastCommitSrtPercentage + COMMIT_PERCENTAGE_THRESHOLD && totalSrtFiles > 0) {
+    if (currentSrtPercentage % PROGRESS_LOG_THRESHOLD === 0 && currentSrtPercentage > 0 && totalSrtFiles > 0) {
       const elapsedTimeSinceStart = ((Date.now() - lambdaStartTime) / 1000).toFixed(2);
       log.info(
         `\n🔄 Progress: ${currentSrtPercentage}% of SRT files processed (${srtFilesProcessedCount}/${totalSrtFiles}).` + 
         `\nElapsed time: ${elapsedTimeSinceStart}s.` + 
-        `\nInserting ${allSearchEntriesToInsert.length} entries into Orama index...\n`
+        `\nCollected ${allSearchEntriesToInsert.length} entries so far...\n`
       );
-      const insertStart = Date.now();
-      
-      // Insert all collected entries in batch
-      if (allSearchEntriesToInsert.length > 0) {
-        await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
-        allSearchEntriesToInsert.length = 0; // Clear the array
-      }
-      
-      log.info(`Inserted entries into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
-      lastCommitSrtPercentage = Math.floor(currentSrtPercentage / COMMIT_PERCENTAGE_THRESHOLD) * COMMIT_PERCENTAGE_THRESHOLD;
     }
   }
 
-  // Insert any remaining entries
+  // TODO: Can eventually remove this section, because it adds a few seconds to the lambda runtime
+  // For now, leaving because we've encountered this issue, and want to be warned exactly what it is, if it occurs
+  let setOfIds = new Set<string>();
+  let duplicateIds: SearchEntry[] = []
+  allSearchEntriesToInsert.forEach(entry => {
+    if (setOfIds.has(entry.id)) {
+      duplicateIds.push(entry);
+    } else {
+      setOfIds.add(entry.id);
+    }
+  });
+  if (duplicateIds.length > 0) {
+    log.error(`[ERROR] ❌ Duplicate ids found! ${JSON.stringify(duplicateIds)}`);
+  } else {
+    log.info(`[DEBUG] ✅ No duplicate ids found`);
+  }
+
+  // Insert all collected entries in a single batch
   if (allSearchEntriesToInsert.length > 0) {
-    log.info(`Inserting final batch of ${allSearchEntriesToInsert.length} entries into Orama index.`);
-    const finalInsertStart = Date.now();
+    log.info(`Inserting all ${allSearchEntriesToInsert.length} entries into Orama index in single batch...`);
+    const insertStart = Date.now();
     await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
-    log.info(`Final batch insertion completed in ${((Date.now() - finalInsertStart) / 1000).toFixed(2)}s.`);
+    log.info(`All entries inserted into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
   }
 
   log.info(`Serializing Orama index to binary format at ${LOCAL_DB_PATH}...`);
@@ -410,54 +326,22 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
     await fs.writeFile(LOCAL_DB_PATH, serializedIndexBuffer);
     log.info(`Orama index successfully serialized to ${LOCAL_DB_PATH}`);
     
-    // Upload to S3
+    // Upload to S3 (this will overwrite any existing index)
     log.info(`Uploading Orama index from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
     await saveFile(SEARCH_INDEX_DB_S3_KEY, serializedIndexBuffer);
     log.info(`Orama index successfully saved and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
   } catch (error: any) {
     log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${LOCAL_DB_PATH} but S3 is not updated.`, error);
-    // If S3 upload fails, this is a significant issue for the next run.
-    // We might still re-trigger if timeLimitReached, but the next run might not get the latest state.
+    return {
+      status: 'error',
+      message: `Failed to serialize or upload index: ${error.message}`,
+      evaluatedSrtFiles: srtFilesProcessedCount,
+      totalSrtFiles: totalSrtFiles,
+      newEntriesAdded: newEntriesAddedInThisRun
+    };
   }
 
-  let retriggered = false;
-  if (timeLimitReached && srtFilesProcessedCount < totalSrtFiles) {
-    log.warn(`Lambda stopped early due to time limit. ${srtFilesProcessedCount}/${totalSrtFiles} SRT files evaluated. ${newEntriesAddedInThisRun} new entries added in this run.`);
-    const nextRunCount = currentRunCount + 1;
-    // Check MAX_RETRIGGER_COUNT again here, although checked at the start, to be absolutely sure before invoking.
-    if (nextRunCount <= MAX_RETRIGGER_COUNT) {
-      log.info(`Attempting to re-trigger Lambda for run #${nextRunCount} of ${MAX_RETRIGGER_COUNT}.`);
-      try {
-        const lambdaClient = new Lambda({});
-        const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME;
-        const functionVersion = process.env.AWS_LAMBDA_FUNCTION_VERSION;
-
-        if (!functionName) {
-            log.error("AWS_LAMBDA_FUNCTION_NAME environment variable not set. Cannot re-trigger.");
-        } else {
-            await lambdaClient.invoke({
-              FunctionName: functionName,
-              Qualifier: functionVersion, // Invoke the same version
-              InvocationType: 'Event', // Asynchronous invocation
-              Payload: JSON.stringify({ previousRunsCount: nextRunCount, forceReprocessAll: event.forceReprocessAll }), // Persist forceReprocessAll
-            });
-            log.info(`Successfully re-triggered Lambda. Next run count: ${nextRunCount}.`);
-            retriggered = true;
-        }
-      } catch (error: any) {
-        log.error(`Failed to re-trigger Lambda: ${error.message}`, error);
-      }
-    } else {
-      log.error(`Max re-trigger count (${MAX_RETRIGGER_COUNT}) reached. Will not re-trigger again. Indexing may be incomplete for ${totalSrtFiles - srtFilesProcessedCount} files.`);
-    }
-  } else {
-    if (timeLimitReached && srtFilesProcessedCount >= totalSrtFiles) {
-        log.info('Time limit was reached, but all SRT files were evaluated. Indexing complete for this cycle.');
-    } else if (!timeLimitReached) {
-        log.info(`All ${totalSrtFiles} SRT files evaluated within the time limit. Indexing complete. ${newEntriesAddedInThisRun} new entries added in this run.`);
-    }
-  }
-
+  // Clean up local index file
   try {
     await fs.unlink(LOCAL_DB_PATH);
     log.info(`Cleaned up local Orama index file: ${LOCAL_DB_PATH}`);
@@ -468,36 +352,20 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
   }
 
   const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;
-  const statusMessage = timeLimitReached ? 
-    (retriggered ? "Stopped early, re-triggered." : (srtFilesProcessedCount < totalSrtFiles ? "Stopped early, max retriggers reached or failed to retrigger." : "Completed at time limit."))
-    : "Completed successfully.";
 
   log.info('\n📊 SRT Processing Summary:');
   log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
   log.info(`\n📁 Total SRT Files Found: ${totalSrtFiles}`);
   log.info(`✅ Successfully Processed: ${srtFilesProcessedCount}`);
   log.info(`📝 New Search Entries Added: ${newEntriesAddedInThisRun}`);
-  
-  if (timeLimitReached) {
-    log.info(`\n⚠️  Time Limit Reached: ${PROCESSING_TIME_LIMIT_MINUTES} minutes`);
-    if (retriggered) {
-      log.info(`🔄 Lambda Re-triggered: Run #${currentRunCount + 1} of ${MAX_RETRIGGER_COUNT}`);
-    } else if (srtFilesProcessedCount < totalSrtFiles) {
-      log.info(`❌ Max Re-triggers Reached: ${totalSrtFiles - srtFilesProcessedCount} files remaining`);
-    }
-  }
-
-  log.info(`\n✨ ${statusMessage}`);
+  log.info(`\n✨ Completed successfully.`);
 
   return {
-    status: timeLimitReached && srtFilesProcessedCount < totalSrtFiles && !retriggered ? 'error_incomplete' : 'success',
-    message: statusMessage,
+    status: 'success',
+    message: 'Completed successfully.',
     evaluatedSrtFiles: srtFilesProcessedCount,
     totalSrtFiles: totalSrtFiles,
-    newEntriesAdded: newEntriesAddedInThisRun,
-    timeLimitReached,
-    retriggered,
-    currentRunCount: currentRunCount + 1 // next run would be this +1
+    newEntriesAdded: newEntriesAddedInThisRun
   };
 }
 
@@ -506,9 +374,7 @@ export async function handler(event: { previousRunsCount?: number; forceReproces
 const scriptPath = path.resolve(process.argv[1]);
 // Check if the module is being run directly
 if (import.meta.url === `file://${scriptPath}`) {
-  // Example: Pass { forceReprocessAll: true } to reprocess all JSONs and re-index everything
-  // Or { previousRunsCount: N } to simulate a re-triggered run
-  handler({ forceReprocessAll: false }) 
+  handler({}) 
     .then(result => {
       log.debug('Local run completed with result:');
       console.dir(result, { depth: null });

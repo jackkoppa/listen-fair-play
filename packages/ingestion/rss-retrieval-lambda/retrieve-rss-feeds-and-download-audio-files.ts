@@ -487,7 +487,9 @@ export async function handler(): Promise<void> {
         await saveEpisodeManifest(episodeManifest); // Perform the final save
         log.info('✅ Episode manifest has been finalized with chronological sequential IDs.');
     } else {
-        log.info('No new entries and no sequential ID changes required. Manifest is already up-to-date.');
+        log.info('No new entries and no sequential ID changes required. Updating lastUpdated timestamp.');
+        await saveEpisodeManifest(episodeManifest); // Always save to update lastUpdated
+        log.info('✅ Episode manifest lastUpdated timestamp has been refreshed.');
     }
     
     await triggerTranscriptionLambda(allNewlyDownloadedS3AudioKeys);
