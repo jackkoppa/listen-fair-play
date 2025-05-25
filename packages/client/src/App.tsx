@@ -111,10 +111,10 @@ function App() {
         // Add sorting parameters based on sort option
         if (sortOption === 'newest') {
           searchRequest.sortBy = 'episodePublishedUnixTimestamp';
-          searchRequest.sortOrder = 'desc';
+          searchRequest.sortOrder = 'DESC';
         } else if (sortOption === 'oldest') {
           searchRequest.sortBy = 'episodePublishedUnixTimestamp';
-          searchRequest.sortOrder = 'asc';
+          searchRequest.sortOrder = 'ASC';
         }
         // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
 

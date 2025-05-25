@@ -1,4 +1,4 @@
-import { create, insert, insertMultiple, search, save, load } from '@orama/orama';
+import { create, insert, insertMultiple, search, save, load, SearchParams, Orama, AnyOrama } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
 import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@listen-fair-play/types';
 import { log } from '@listen-fair-play/logging';
@@ -71,20 +71,23 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       query,
       limit = 10,
       sortBy,
-      sortOrder = 'desc',
+      sortOrder = 'DESC',
       searchFields = ['text'],
       episodeIds
     } = searchRequest;
 
     // Build search options
-    const searchOptions: any = {
+    const searchOptions: SearchParams<AnyOrama> = {
       term: query,
       limit,
       properties: searchFields,
-      boost: {
-        // Boost exact matches in text field
-        text: 1.5
-      }
+      // boost: {
+      //   // Boost exact matches in text field
+      //   text: 1.5
+      // },
+      threshold: 0,
+      // TODO: Make this configurable
+      exact: true
     };
 
     // Add sorting if specified
@@ -101,6 +104,8 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
         sequentialEpisodeIdAsString: episodeIds.map(String) // Convert numbers to strings for Orama filtering
       };
     }
+
+    log.warn(`Search options: ${JSON.stringify(searchOptions)}`);
 
     const results = await search(db, searchOptions);
     const processingTimeMs = Date.now() - startTime;

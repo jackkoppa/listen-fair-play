@@ -87,7 +87,7 @@ export async function handler(event: any): Promise<SearchResponse> {
       limit: 10,
       searchFields: ['text'],
       sortBy: undefined,
-      sortOrder: 'desc',
+      sortOrder: 'DESC',
       episodeIds: undefined
     };
 
@@ -103,7 +103,7 @@ export async function handler(event: any): Promise<SearchResponse> {
           limit: parseInt(queryParams.limit || '10', 10),
           searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
           sortBy: queryParams.sortBy || undefined,
-          sortOrder: (queryParams.sortOrder as 'asc' | 'desc') || 'desc',
+          sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
           episodeIds: queryParams.episodeIds ? queryParams.episodeIds.split(',').map(Number) : undefined
         };
       } else if (method === 'POST' && event.body) {
@@ -117,7 +117,7 @@ export async function handler(event: any): Promise<SearchResponse> {
           limit: body.limit || 10,
           searchFields: body.searchFields || ['text'],
           sortBy: body.sortBy || undefined,
-          sortOrder: body.sortOrder || 'desc',
+          sortOrder: body.sortOrder || 'DESC',
           episodeIds: body.episodeIds || undefined
         };
       }
@@ -132,7 +132,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         limit: body.limit || 10,
         searchFields: body.searchFields || ['text'],
         sortBy: body.sortBy || undefined,
-        sortOrder: body.sortOrder || 'desc',
+        sortOrder: body.sortOrder || 'DESC',
         episodeIds: body.episodeIds || undefined
       };
     } else if (typeof event.query === 'string') {
@@ -142,7 +142,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         limit: event.limit || 10,
         searchFields: event.searchFields || ['text'],
         sortBy: event.sortBy || undefined,
-        sortOrder: event.sortOrder || 'desc',
+        sortOrder: event.sortOrder || 'DESC',
         episodeIds: event.episodeIds || undefined
       };
     }
@@ -163,7 +163,7 @@ if (process.argv[1] && process.argv[1].endsWith('search-indexed-transcripts.ts')
     query: 'test query',
     limit: 5,
     sortBy: 'episodePublishedUnixTimestamp',
-    sortOrder: 'desc'
+    sortOrder: 'DESC'
   };
   handler({ body: testQuery })
     .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))

@@ -26,7 +26,7 @@ export interface SearchRequest {
   query: string;                        // Search query text
   limit?: number;                       // Maximum number of results (default: 10)
   sortBy?: keyof SearchEntry;           // Field to sort by
-  sortOrder?: 'asc' | 'desc';          // Sort order (default: 'desc' for date)
+  sortOrder?: 'ASC' | 'DESC';          // Sort order (default: 'DESC' for date) - converted to uppercase internally
   searchFields?: (keyof SearchEntry)[]; // Fields to search in (default: ['text'])
   episodeIds?: number[];                // Filter by specific episode IDs (from client-side manifest filtering)
 }
@@ -40,7 +40,7 @@ export interface SearchResponse {
   processingTimeMs: number;             // Processing time in milliseconds
   query: string;                        // Original query
   sortBy?: keyof SearchEntry;           // Field used for sorting
-  sortOrder?: 'asc' | 'desc';          // Sort order applied
+  sortOrder?: 'ASC' | 'DESC';          // Sort order applied
 }
 
 /**

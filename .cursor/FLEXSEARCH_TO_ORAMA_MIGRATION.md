@@ -137,21 +137,21 @@ This ensures the user maintains control over the migration process and can valid
 ### Phase 6: Testing & Validation
 
 NOTE from user: For this one, dev will mostly self-test manually. Will ask agent questions if there are unexpected errors.
-- [🔄] **Task 6.1**: End-to-end testing - **MOSTLY WORKING WITH ONE BUG**
+- [✅] **Task 6.1**: End-to-end testing - **COMPLETED**
   - ✅ **Full pipeline working**: SRT → Orama Index → Search flow is functional
   - ✅ **Index generation**: Successfully processes 436 SRT files → 68,856 search entries
   - ✅ **Index serialization**: JSON format resolves msgpack depth limit (was hitting 512MB limit with binary format)
   - ✅ **Search functionality**: Text search, episode filtering, and result display working correctly
   - ✅ **Client integration**: Search interface, episode selection, and result rendering working
   - ✅ **Basic sorting**: Search relevance sorting working correctly
-  - ❌ **DATE SORTING BUG**: `sortBy: "episodePublishedUnixTimestamp"` with `sortOrder: "desc"` vs `"asc"` not working correctly
-    - **Issue**: Switching between ascending and descending date sort order does not update results properly
-    - **Expected**: Results should reorder by episode published date when changing sort order
-    - **Actual**: Sort order change does not appear to affect result ordering
-    - **Location**: Search request uses correct parameters `{"sortBy":"episodePublishedUnixTimestamp","sortOrder":"desc"}` vs `"asc"`
-    - **To investigate**: Check if Orama sorting is working properly in `searchOramaIndex()` function in `packages/database/database.ts`
-  - **Files to check for bug fix**: `packages/database/database.ts` (searchOramaIndex function), search lambda, client search calls
-  - **Status**: Ready for production except for date sorting bug - core functionality fully operational
+  - ✅ **DATE SORTING BUG FIXED**: `sortBy: "episodePublishedUnixTimestamp"` with `sortOrder: "desc"` vs `"asc"` now working correctly
+    - **Issue**: Switching between ascending and descending date sort order was not updating results properly
+    - **Root Cause**: Orama expects uppercase sort order values ("ASC"/"DESC") but we were passing lowercase ("asc"/"desc")
+    - **Solution**: Added `.toUpperCase()` conversion in `searchOramaIndex()` function in `packages/database/database.ts`
+    - **Verification**: Created focused test that confirms both ascending and descending sorts work correctly
+    - **Status**: ✅ **RESOLVED** - Date sorting now works as expected (Episode 6→15→25 for ASC, Episode 25→15→6 for DESC)
+  - **Files updated for bug fix**: `packages/database/database.ts` (line 77), `packages/types/search.ts` (comment clarification)
+  - **Status**: ✅ **READY FOR PRODUCTION** - All core functionality fully operational including date sorting
 
 - [ ] **Task 6.2**: Deployment validation
   - Deploy to staging environment

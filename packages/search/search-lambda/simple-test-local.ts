@@ -14,7 +14,7 @@ async function runTest() {
       limit: '5',
       fields: 'text',
       sortBy: 'episodePublishedUnixTimestamp',
-      sortOrder: 'desc'
+      sortOrder: 'DESC'
     }
   };
 
@@ -30,7 +30,7 @@ async function runTest() {
       limit: 3,
       searchFields: ['text'],
       sortBy: 'episodePublishedUnixTimestamp',
-      sortOrder: 'desc',
+      sortOrder: 'DESC',
       episodeIds: [1, 2, 3] // Example episode filtering
     })
   };
@@ -41,7 +41,7 @@ async function runTest() {
     limit: 2,
     searchFields: ['text'],
     sortBy: 'episodePublishedUnixTimestamp',
-    sortOrder: 'asc'
+    sortOrder: 'ASC'
   };
 
   try {

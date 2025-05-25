@@ -68,7 +68,7 @@ async function testOramaIndexGeneration() {
       query: 'goalkeeper',
       limit: 10,
       sortBy: 'episodePublishedUnixTimestamp',
-      sortOrder: 'desc'
+      sortOrder: 'DESC'
     };
     
     const searchResults = await searchOramaIndex(oramaIndex, searchRequest);
@@ -95,7 +95,7 @@ async function testOramaIndexGeneration() {
       query: 'music',
       limit: 5,
       sortBy: 'episodePublishedUnixTimestamp',
-      sortOrder: 'asc' // Test ascending order
+      sortOrder: 'ASC' // Test ascending order
     };
     
     const searchResults2 = await searchOramaIndex(deserializedIndex, searchRequest2);
