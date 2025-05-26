@@ -51,6 +51,7 @@ function MyComponent() {
 | `showFilledProgress` | `boolean` | `true` | Show filled progress bar |
 | `showSkipControls` | `boolean` | `false` | Show next/previous track buttons |
 | `showFilledVolume` | `boolean` | `true` | Show filled volume bar |
+| `showVolumeControls` | `boolean` | `false` | Show volume controls (button and slider) |
 | `hasDefaultKeyBindings` | `boolean` | `true` | Enable keyboard shortcuts |
 | `header` | `React.ReactNode` | `undefined` | Custom content above player |
 | `footer` | `React.ReactNode` | `undefined` | Custom content below player |

@@ -84,6 +84,14 @@ interface AudioPlayerProps {
   showFilledProgress?: boolean;
   showSkipControls?: boolean;
   showFilledVolume?: boolean;
+  showVolumeControls?: boolean;
+  hasDefaultKeyBindings?: boolean;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  loop?: boolean;
+  muted?: boolean;
+  volume?: number;
+  preload?: 'auto' | 'metadata' | 'none';
   onClickNext?: () => void;
   onClickPrevious?: () => void;
   onPlay?: (e: Event) => void;
@@ -94,13 +102,6 @@ interface AudioPlayerProps {
   onTimeUpdate?: (e: Event) => void;
   onVolumeChange?: (e: Event) => void;
   onError?: (e: Event) => void;
-  hasDefaultKeyBindings?: boolean;
-  header?: React.ReactNode;
-  footer?: React.ReactNode;
-  loop?: boolean;
-  muted?: boolean;
-  volume?: number;
-  preload?: 'auto' | 'metadata' | 'none';
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({
@@ -112,6 +113,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   showFilledProgress = true,
   showSkipControls = false,
   showFilledVolume = true,
+  showVolumeControls = false,
+  hasDefaultKeyBindings = true,
+  header,
+  footer,
+  loop = false,
+  muted = false,
+  volume = 1,
+  preload = 'metadata',
   onClickNext,
   onClickPrevious,
   onPlay,
@@ -121,14 +130,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onCanPlay,
   onTimeUpdate,
   onVolumeChange,
-  onError,
-  hasDefaultKeyBindings = true,
-  header,
-  footer,
-  loop = false,
-  muted = false,
-  volume = 1,
-  preload = 'metadata'
+  onError
 }) => {
   const {
     isPlaying,
@@ -209,6 +211,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         onLoadedMetaData={handleLoadedMetadata}
         onVolumeChange={onVolumeChange}
         onError={handleError}
+        customVolumeControls={[]}
+        customAdditionalControls={[]}
         hasDefaultKeyBindings={hasDefaultKeyBindings}
         loop={loop}
         muted={muted}
@@ -223,21 +227,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           '[&_.rhap_progress-indicator]:bg-primary [&_.rhap_progress-indicator]:border-primary',
           '[&_.rhap_volume-filled]:bg-primary',
           '[&_.rhap_volume-indicator]:bg-primary [&_.rhap_volume-indicator]:border-primary',
-          '[&_.rhap_time]:text-muted-foreground [&_.rhap_time]:text-sm',
           '[&_.rhap_main-controls]:gap-2',
           isLoading && 'opacity-75'
         )}
       />
-
-      {/* Status information */}
-      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-        <span>
-          {isLoading ? 'Loading...' : isPlaying ? 'Playing' : 'Paused'}
-        </span>
-        <span>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
-      </div>
 
       {footer && <div className="mt-4">{footer}</div>}
     </div>
