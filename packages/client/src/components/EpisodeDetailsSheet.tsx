@@ -45,8 +45,8 @@ function FullEpisodeTranscript({ episodeData, originalSearchResult }: {
 
     return (
     <div>
-        {isLoading && <div>Loading...</div>}
-        {!isLoading && searchEntries.length === 0 && <div>No search entries found</div>}
+        {isLoading && null}
+        {!isLoading && searchEntries.length === 0 && <p>Episode transcript not available. Please try refreshing the page.</p>}
         {!isLoading && searchEntries.length > 0 && (
             <div>
 
