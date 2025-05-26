@@ -64,14 +64,14 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Update search functionality to read from URL params on page load
 - [x] Ensure URL updates when search state changes (debounced)
 
-### Phase 4: Implement Episode Sheet with Route and Query Parameters
-- [ ] Create episode route component to read `eID` route parameter and `start` query parameter
-- [ ] Fetch episode data by `eID` from episode manifest (simultaneous with home page search loading)
-- [ ] Fetch full episode transcript data independently of search results
-- [ ] Create mock search result from `start` time parameter for transcript highlighting
-- [ ] Keep `EpisodeDetailsSheet` as a Sheet component (overlay behavior preserved)
-- [ ] Handle error states for invalid episode IDs or missing data
-- [ ] Implement sheet close behavior to navigate back to `/` (preserving search query params, removing start param)
+### (✅ COMPLETE) Phase 4: Implement Episode Sheet with Route and Query Parameters
+- [x] Create episode route component to read `eID` route parameter and `start` query parameter
+- [x] Fetch episode data by `eID` from episode manifest (simultaneous with home page search loading)
+- [x] Fetch full episode transcript data independently of search results
+- [x] Create mock search result from `start` time parameter for transcript highlighting
+- [x] Keep `EpisodeDetailsSheet` as a Sheet component (overlay behavior preserved)
+- [x] Handle error states for invalid episode IDs or missing data
+- [x] Implement sheet close behavior to navigate back to `/` (preserving search query params, removing start param)
 
 ### Phase 5: Update Navigation and Preserve Sheet Behavior
 - [ ] Update "Load Here" button in `SearchResult.tsx` to navigate to `/episode/:eID` with current query params plus start param

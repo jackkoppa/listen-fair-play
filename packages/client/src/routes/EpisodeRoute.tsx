@@ -1,9 +1,72 @@
-import { useParams, useSearchParams } from 'react-router'
-import { useState, useEffect } from 'react'
+import { useParams, useSearchParams, useNavigate } from 'react-router'
+import { useState, useEffect, useRef } from 'react'
 import { log } from '@listen-fair-play/logging'
 import { EpisodeInManifest, EpisodeManifest, ApiSearchResultHit } from '@listen-fair-play/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
-import EpisodeDetailsSheet from '../components/EpisodeDetailsSheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { PlayIcon, CaretSortIcon, MinusCircledIcon } from "@radix-ui/react-icons"
+import { Badge } from "../components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover"
+import AudioPlayer from "../components/AudioPlayer/AudioPlayer"
+import { formatDate } from '@/utils/date'
+import { formatMillisecondsToMMSS } from '@/utils/time'
+
+// Import the FullEpisodeTranscript component from EpisodeDetailsSheet
+import { SearchEntry } from '@listen-fair-play/types'
+
+async function getFullEpisodeSearchEntryFile(fileKey: string, podcastId: string): Promise<SearchEntry[]> {
+    const response = await fetch(`${S3_HOSTED_FILES_BASE_URL}search-entries/${podcastId}/${fileKey}.json`);
+    const data = await response.json();
+    return data;
+}
+
+function FullEpisodeTranscript({ episodeData, originalSearchResult }: {
+    episodeData: EpisodeInManifest;
+    originalSearchResult: ApiSearchResultHit | null;
+}) {
+    const [searchEntries, setSearchEntries] = useState<SearchEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const selectedEntryRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        getFullEpisodeSearchEntryFile(episodeData.fileKey, episodeData.podcastId).then(setSearchEntries);
+        setIsLoading(false);
+    }, [episodeData]);
+
+    useEffect(() => {
+        if (!isLoading && searchEntries.length > 0 && selectedEntryRef.current && originalSearchResult) {
+            selectedEntryRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [isLoading, searchEntries, originalSearchResult]);
+
+    function isCurrentlySelected(entry: SearchEntry) {
+        return originalSearchResult && originalSearchResult.id === entry.id;
+    }
+
+    return (
+    <div>
+        {isLoading && null}
+        {!isLoading && searchEntries.length === 0 && <p>Episode transcript not available. Please try refreshing the page.</p>}
+        {!isLoading && searchEntries.length > 0 && (
+            <div>
+                {searchEntries.map((entry) => (
+                    <div 
+                        key={entry.id} 
+                        ref={isCurrentlySelected(entry) ? selectedEntryRef : null}
+                        className={'py-2 px-4' + (isCurrentlySelected(entry) ? ' bg-yellow-100 font-bold' : ' text-muted-foreground')}
+                    >
+                        <Badge variant="outline" className="my-1"><em>{formatMillisecondsToMMSS(entry.startTimeMs)} - {formatMillisecondsToMMSS(entry.endTimeMs)}</em></Badge>
+                        <p>{entry.text}</p>
+                    </div>
+                ))  }
+            </div>
+        )}
+    </div>
+    );
+}
 
 /**
  * EpisodeRoute component that handles the /episode/:eID route.
@@ -18,11 +81,13 @@ import EpisodeDetailsSheet from '../components/EpisodeDetailsSheet'
 export default function EpisodeRoute() {
   const { eID } = useParams<{ eID: string }>()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const startTime = searchParams.get('start')
   
   const [episodeData, setEpisodeData] = useState<EpisodeInManifest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
 
   useEffect(() => {
     const fetchEpisodeData = async () => {
@@ -65,7 +130,7 @@ export default function EpisodeRoute() {
     fetchEpisodeData()
   }, [eID])
 
-  // Create a mock search result for transcript highlighting
+  // Create a mock search result for transcript highlighting (only if start time is provided)
   const createMockSearchResult = (): ApiSearchResultHit | null => {
     if (!episodeData || !startTime) return null
 
@@ -83,27 +148,85 @@ export default function EpisodeRoute() {
     }
   }
 
+  // Handle sheet close - navigate back to home while preserving search query params
+  const handleSheetClose = () => {
+    const currentParams = new URLSearchParams(searchParams)
+    // Remove episode-specific params
+    currentParams.delete('start')
+    
+    // Navigate back to home with preserved search params
+    const queryString = currentParams.toString()
+    navigate(queryString ? `/?${queryString}` : '/')
+  }
+
+  // Show loading state
   if (isLoading) {
-    return <div>Loading episode...</div>
+    return (
+      <Sheet open={true} onOpenChange={handleSheetClose}>
+        <SheetContent className="font-mono overflow-y-auto w-[350px]">
+          <div className="flex items-center justify-center h-32">
+            <p>Loading episode...</p>
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
   }
 
-  if (error) {
-    return <div>Error: {error}</div>
-  }
-
-  if (!episodeData) {
-    return <div>Episode not found</div>
+  // Show error state
+  if (error || !episodeData) {
+    return (
+      <Sheet open={true} onOpenChange={handleSheetClose}>
+        <SheetContent className="font-mono overflow-y-auto w-[350px]">
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <p className="text-red-600 mb-2">Error loading episode</p>
+              <p className="text-sm text-muted-foreground">{error || 'Episode not found'}</p>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
   }
 
   const mockSearchResult = createMockSearchResult()
-  if (!mockSearchResult) {
-    return <div>Invalid start time parameter</div>
-  }
+  const { title, summary, publishedAt, originalAudioURL } = episodeData
+  const formattedPublishedAt = publishedAt ? formatDate(publishedAt) : null
+
+  // Create audio URL with start time if available
+  const audioUrlToLoad = mockSearchResult 
+    ? `${originalAudioURL}#t=${formatMillisecondsToMMSS(mockSearchResult.startTimeMs)}`
+    : originalAudioURL
 
   return (
-    <EpisodeDetailsSheet 
-      episodeData={episodeData}
-      originalSearchResult={mockSearchResult}
-    />
+    <Sheet open={true} onOpenChange={handleSheetClose}>
+      <SheetContent className="font-mono overflow-y-auto w-[350px]">
+        <SheetHeader className="sticky top-0 bg-gradient-to-b from-white from-85% to-transparent pb-4">
+          <div className="flex flex-row gap-2">
+            <Badge variant="destructive">{formattedPublishedAt}</Badge>
+            <Popover onOpenChange={setIsDescriptionOpen}>
+              <PopoverTrigger className="relative cursor-pointer">
+                <Badge variant="outline" className="absolute top-0 left-0 hover:bg-accent hover:text-accent-foreground">
+                  Summary
+                  {isDescriptionOpen ? <MinusCircledIcon /> : <CaretSortIcon />}
+                </Badge>
+              </PopoverTrigger>
+              <PopoverContent align="center" side="bottom" className="text-sm"><em>{summary}</em></PopoverContent>
+            </Popover>
+          </div>
+          <SheetTitle className="text-lg/6 font-semibold mt-2 mb-2">
+            {title}
+          </SheetTitle>
+          <div>
+            <AudioPlayer
+              src={audioUrlToLoad}
+              className="mb-4"
+            />
+          </div>
+          <SheetDescription>
+          </SheetDescription>
+        </SheetHeader>
+        <FullEpisodeTranscript episodeData={episodeData} originalSearchResult={mockSearchResult} />
+      </SheetContent>
+    </Sheet>
   )
 } 
