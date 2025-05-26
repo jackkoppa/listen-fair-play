@@ -13,79 +13,63 @@ interface AudioPlayerProps {
 
 const CustomAudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, startTime }) => {
   const playerRef = useRef<H5AudioPlayer>(null);
+  // Initialize isLoading to true; it will be set to false onCanPlay or onError
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  console.log(`CustomAudioPlayer render/re-render. Key will be: ${audioUrl}, Current isLoading: ${isLoading}`);
+
+  // Effect to reset states when audioUrl changes (primarily for when the component is re-used without a key change, though key should dominate)
   useEffect(() => {
+    console.log(`useEffect[audioUrl]: New URL "${audioUrl}". Setting isLoading=true, error=null.`);
     setIsLoading(true);
     setError(null);
-    if (playerRef.current?.audio.current) {
-      const audio = playerRef.current.audio.current;
-      
-      const handleLoadedMetadata = () => {
-        if (audio.readyState >= 1) { // HAVE_METADATA
-          audio.currentTime = startTime;
-        }
-        // setIsLoading(false); // Let canplay handle this
-      };
+    // The key change on H5AudioPlayer should handle re-initialization and loading.
+  }, [audioUrl]);
 
-      const handleCanPlay = () => {
-        setIsLoading(false);
-        setError(null);
-      };
-
-      const handleError = (e: Event) => {
-        console.error("Error loading audio:", e);
-        // The error event on HTMLMediaElement doesn't provide much detail.
-        // We can get more from audio.error
-        let errorMsg = "Error loading audio.";
-        if (audio.error) {
-            switch (audio.error.code) {
-                case MediaError.MEDIA_ERR_ABORTED:
-                    errorMsg = "Audio playback aborted.";
-                    break;
-                case MediaError.MEDIA_ERR_NETWORK:
-                    errorMsg = "A network error caused the audio download to fail.";
-                    break;
-                case MediaError.MEDIA_ERR_DECODE:
-                    errorMsg = "The audio playback was aborted due to a corruption problem or because the audio used features your browser did not support.";
-                    break;
-                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    errorMsg = "The audio could not be loaded, either because the server or network failed or because the format is not supported.";
-                    break;
-                default:
-                    errorMsg = "An unknown error occurred while loading the audio.";
-                    break;
-            }
-        }
-        setError(errorMsg);
-        setIsLoading(false);
-      };
-
-      // Reset and load new audio
-      // Setting src directly and calling load() is more reliable for some browsers/scenarios
-      audio.src = audioUrl;
-      audio.load();
-
-
-      audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.addEventListener('canplay', handleCanPlay);
-      audio.addEventListener('error', handleError);
-      
-
-      return () => {
-        audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        audio.removeEventListener('canplay', handleCanPlay);
-        audio.removeEventListener('error', handleError);
-        // Optional: pause and reset src when component unmounts or audioUrl changes
-        // audio.pause();
-        // audio.removeAttribute('src');
-        // audio.load();
-      };
+  const handleLoadedMetadata = (event: Event) => {
+    const audio = event.currentTarget as HTMLAudioElement;
+    console.log(`onLoadedMetaData: readyState=${audio.readyState}, duration=${audio.duration}, src="${audio.src}"`);
+    if (audio.readyState >= audio.HAVE_METADATA && startTime >= 0 && audio.duration > 0) {
+      // Ensure startTime is not greater than duration
+      audio.currentTime = Math.min(startTime, audio.duration - 0.1); // -0.1 to avoid issues at the very end
+      console.log(`onLoadedMetaData: currentTime set to ${audio.currentTime}`);
     }
-  }, [audioUrl, startTime]);
+  };
 
+  const handleCanPlay = (event: Event) => {
+    const audio = event.currentTarget as HTMLAudioElement;
+    console.log(`onCanPlay: Audio can play. src="${audio.src}", currentTime=${audio.currentTime}`);
+    setIsLoading(false);
+    setError(null);
+  };
+
+  const handleError = (event: Event) => {
+    const audio = event.currentTarget as HTMLAudioElement;
+    console.error("H5AudioPlayer onError (from audio element):", audio.error);
+    let errorMsg = "Error loading audio.";
+    if (audio.error) {
+        switch (audio.error.code) {
+            case MediaError.MEDIA_ERR_ABORTED: errorMsg = "Playback aborted."; break;
+            case MediaError.MEDIA_ERR_NETWORK: errorMsg = "Network error fetching audio."; break;
+            case MediaError.MEDIA_ERR_DECODE: errorMsg = "Error decoding audio."; break;
+            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: errorMsg = "Audio format not supported or source error."; break;
+            default: errorMsg = `Unknown audio error (code: ${audio.error.code}).`; break;
+        }
+    } else if (!audio.src || audio.src === window.location.href) {
+        errorMsg = "Invalid audio source provided."; // Check if src is not set or points to the page itself
+    }
+    setError(errorMsg);
+    setIsLoading(false);
+  };
+  
+  const handlePlayError = (errorEvent: Error) => {
+    console.error("H5AudioPlayer onPlayError callback:", errorEvent);
+    setError(`Failed to play: ${errorEvent.message}`);
+    setIsPlaying(false);
+    setIsLoading(false);
+  };
 
   const handlePlayPause = () => {
     if (playerRef.current?.audio.current) {
@@ -94,30 +78,33 @@ const CustomAudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, startTime }) 
         audio.pause();
       } else {
         audio.play().catch(e => {
-            console.error("Error playing audio:", e);
-            setError("Could not play audio.");
+            console.error("Error calling audio.play() in handlePlayPause:", e);
+            setError(`Play failed: ${e.message}`);
+            setIsPlaying(false);
         });
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const handleJumpForward = () => {
     if (playerRef.current?.audio.current) {
-      playerRef.current.audio.current.currentTime += 10;
+      const audio = playerRef.current.audio.current;
+      const newTime = audio.currentTime + 10;
+      audio.currentTime = Math.min(newTime, audio.duration);
     }
   };
 
   const handleJumpBackward = () => {
     if (playerRef.current?.audio.current) {
-      playerRef.current.audio.current.currentTime -= 10;
+      const audio = playerRef.current.audio.current;
+      const newTime = audio.currentTime - 10;
+      audio.currentTime = Math.max(0, newTime);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center w-full max-w-2xl p-4 bg-background rounded-lg border">
-        {/* Consistent loading spinner using Tailwind CSS */}
+      <div className="flex items-center justify-center w-full max-w-2xl p-4 bg-background rounded-lg border min-h-[120px]">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
         <span className="ml-3 text-muted-foreground">Loading audio...</span>
       </div>
@@ -126,14 +113,16 @@ const CustomAudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, startTime }) 
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center w-full max-w-2xl p-4 bg-background rounded-lg border border-destructive">
-        <span className="text-destructive-foreground text-sm">{error}</span>
+      <div className="flex flex-col items-center justify-center w-full max-w-2xl p-4 bg-background rounded-lg border border-destructive min-h-[120px]">
+        <span className="text-destructive-foreground text-sm text-center">{error}</span>
         <Button variant="outline" size="sm" onClick={() => {
-             if (playerRef.current?.audio.current) {
-                playerRef.current.audio.current.load(); // Try to reload
-                setIsLoading(true);
-                setError(null);
-             }
+             // Key change on H5AudioPlayer is primary way to reload. This button can re-trigger that if audioUrl is re-passed or state forces re-render.
+             // For now, simply resetting the isLoading to true might give user feedback and allow H5AudioPlayer (if it has src already) to try again on next render cycle if state changes.
+             console.log("Try Again clicked. Current audioUrl: " + audioUrl);
+             setIsLoading(true); // Show loading spinner again
+             setError(null);
+             // Forcing a re-render by parent or changing the key externally would be more robust for "Try Again"
+             // Or, could try: playerRef.current?.audio.current?.load(); if playerRef is valid.
         }} className="mt-2">
             Try Again
         </Button>
@@ -142,19 +131,25 @@ const CustomAudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, startTime }) 
   }
 
   return (
-    // Using card styles for consistency with shadcn/ui
     <div className="w-full max-w-2xl bg-card text-card-foreground p-4 rounded-lg border shadow-sm">
       <style>{`
         .custom-audio-player-styles .rhap_progress-section {
-          margin-bottom: 0.5rem; // Add some space between progress bar and controls
+          margin-bottom: 0.5rem;
         }
-        .custom-audio-player-styles .rhap_progress-bar {
+        .custom-audio-player-styles .rhap_progress-bar,
+        .custom-audio-player-styles .rhap_progress-bar-show-download {
           height: 8px;
           border-radius: 4px;
+          background-color: hsl(var(--muted));
         }
         .custom-audio-player-styles .rhap_progress-filled {
           background-color: hsl(var(--primary));
           border-radius: 4px;
+        }
+        .custom-audio-player-styles .rhap_download-progress {
+            background-color: hsl(var(--accent));
+            border-radius: 4px;
+            opacity: 0.5;
         }
         .custom-audio-player-styles .rhap_progress-indicator {
           background: hsl(var(--primary-foreground));
@@ -162,73 +157,57 @@ const CustomAudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, startTime }) 
           box-shadow: 0 0 2px 1px hsla(var(--primary), 0.5);
           width: 16px;
           height: 16px;
-          top: -4px; // Adjust to center on the 8px bar
+          top: -4px;
         }
-        .custom-audio-player-styles .rhap_main-controls-button {
-            color: hsl(var(--foreground));
-            font-size: 24px; /* Ensure icons are large enough */
-            width: 48px; /* Ensure touch targets */
-            height: 48px;
-        }
-        .custom-audio-player-styles .rhap_button-clear {
-            padding: 0; /* Remove default padding if we use our buttons */
-        }
-        /* Hide default player controls if we are fully custom */
+        .custom-audio-player-styles .rhap_controls-section .rhap_main-controls,
         .custom-audio-player-styles .rhap_additional-controls,
         .custom-audio-player-styles .rhap_volume-controls {
-            display: none;
+            display: none !important;
         }
       `}</style>
       <H5AudioPlayer
+        key={audioUrl} // Force re-mount when audioUrl changes
         ref={playerRef}
-        // src={audioUrl} // src is set in useEffect to ensure it reloads properly with startTime
-        autoPlayAfterSrcChange={false} 
-        onPlayError={(e) => {
-            console.error("onPlayError", e);
-            setError("Error trying to play audio.");
-            setIsPlaying(false);
-        }}
-        onPlay={() => {setIsPlaying(true); setError(null);}}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)} 
+        src={audioUrl}
+        autoPlayAfterSrcChange={false}
+        onLoadedMetaData={handleLoadedMetadata}
+        onCanPlay={handleCanPlay}
+        onError={handleError}
+        onPlayError={handlePlayError}
+        onPlay={() => { console.log("H5AudioPlayer onPlay event"); setIsPlaying(true); setError(null);}}
+        onPause={() => { console.log("H5AudioPlayer onPause event"); setIsPlaying(false);}}
+        onEnded={() => { console.log("H5AudioPlayer onEnded event"); setIsPlaying(false);}} 
         layout="stacked-reverse" 
-        customProgressBarSection={[
-          RHAP_UI.PROGRESS_BAR,
-        ]}
-        customControlsSection={[]} // We use our own div for controls
+        customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
+        customControlsSection={[]} 
         showSkipControls={false}
         showJumpControls={false} 
-        showDownloadProgress={true} // Keep this for better UX on loading bar
+        showDownloadProgress={true}
         showFilledProgress={true}
-        className="custom-audio-player-styles"
+        className="custom-audio-player-styles" 
+        // preload="auto" // This is default for H5AudioPlayer
       />
-      <div className="flex justify-around items-center mt-1"> {/* Reduced margin-top as progress bar has margin-bottom */}
+      <div className="flex justify-around items-center mt-2">
         <Button 
-          variant="ghost"
-          size="icon"
-          onClick={handleJumpBackward} 
-          className="w-12 h-12" // 48px
-          aria-label="Jump back 10 seconds"
+          variant="ghost" size="icon" onClick={handleJumpBackward} 
+          className="w-12 h-12" aria-label="Jump back 10 seconds"
+          disabled={isLoading || !!error}
         >
-          <ReloadIcon className="w-6 h-6" /> {/* Using ReloadIcon as placeholder */}
+          <ReloadIcon className="w-6 h-6" /> 
         </Button>
         <Button 
-          variant="ghost"
-          size="icon"
-          onClick={handlePlayPause} 
-          className="w-12 h-12 mx-2" // 48px
-          aria-label={isPlaying ? "Pause" : "Play"}
+          variant="ghost" size="icon" onClick={handlePlayPause} 
+          className="w-12 h-12 mx-2" aria-label={isPlaying ? "Pause" : "Play"}
+          disabled={isLoading || !!error}
         >
           {isPlaying ? <PauseIcon className="w-7 h-7" /> : <PlayIcon className="w-7 h-7" />}
         </Button>
         <Button 
-          variant="ghost"
-          size="icon"
-          onClick={handleJumpForward} 
-          className="w-12 h-12" // 48px
-          aria-label="Jump forward 10 seconds"
+          variant="ghost" size="icon" onClick={handleJumpForward} 
+          className="w-12 h-12" aria-label="Jump forward 10 seconds"
+          disabled={isLoading || !!error}
         >
-          <TrackNextIcon className="w-6 h-6" /> {/* Using TrackNextIcon as placeholder */}
+          <TrackNextIcon className="w-6 h-6" /> 
         </Button>
       </div>
     </div>
