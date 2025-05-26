@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '@listen-fair-play/logging';
 import { ApiSearchResultHit, EpisodeManifest, SearchResponse } from '@listen-fair-play/types'
@@ -29,17 +29,79 @@ const SEARCH_LIMIT = 50;
  * - Renders Outlet for child routes (episode sheet overlay)
  */
 function HomePage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // URL-driven state - read from search params
+  const searchQuery = searchParams.get('q') || '';
+  const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
+  const selectedEpisodeIds = searchParams.get('episodes') 
+    ? searchParams.get('episodes')!.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+    : [];
+
+  // Local component state
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [episodeManifest, setEpisodeManifest] = useState<EpisodeManifest | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [sortOption, setSortOption] = useState<SortOption>('relevance');
-  const [selectedEpisodeIds, setSelectedEpisodeIds] = useState<number[]>([]);
   const [showEpisodeFilter, setShowEpisodeFilter] = useState(false);
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
+
+  // Local state for immediate search input updates (before URL sync)
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  // Sync local search query when URL changes (browser back/forward, direct navigation)
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  // URL update functions
+  const updateSearchQuery = (query: string) => {
+    setLocalSearchQuery(query);
+    // Debounced URL update will happen in useEffect
+  };
+
+  // Debounced URL update for search query
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        if (localSearchQuery.trim()) {
+          newParams.set('q', localSearchQuery);
+        } else {
+          newParams.delete('q');
+        }
+        return newParams;
+      });
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [localSearchQuery, setSearchParams]);
+
+  const updateSortOption = (sort: SortOption) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (sort !== 'relevance') {
+        newParams.set('sort', sort);
+      } else {
+        newParams.delete('sort');
+      }
+      return newParams;
+    });
+  };
+
+  const updateSelectedEpisodeIds = (episodeIds: number[]) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (episodeIds.length > 0) {
+        newParams.set('episodes', episodeIds.join(','));
+      } else {
+        newParams.delete('episodes');
+      }
+      return newParams;
+    });
+  };
 
   /**
    * Handle scroll detection for header visual effects
@@ -143,9 +205,9 @@ function HomePage() {
    */
   const handleEpisodeSelection = (episodeId: number, isSelected: boolean) => {
     if (isSelected) {
-      setSelectedEpisodeIds(prev => [...prev, episodeId]);
+      updateSelectedEpisodeIds([...selectedEpisodeIds, episodeId]);
     } else {
-      setSelectedEpisodeIds(prev => prev.filter(id => id !== episodeId));
+      updateSelectedEpisodeIds(selectedEpisodeIds.filter(id => id !== episodeId));
     }
   };
 
@@ -153,7 +215,7 @@ function HomePage() {
    * Clear all episode filters
    */
   const clearEpisodeFilters = () => {
-    setSelectedEpisodeIds([]);
+    updateSelectedEpisodeIds([]);
   };
 
   // Get available episodes for filtering (sorted by date, newest first)
@@ -169,15 +231,15 @@ function HomePage() {
       <div className="d-block h-10"></div>
 
       <SearchInput
-        value={searchQuery}
-        onChange={setSearchQuery}
+        value={localSearchQuery}
+        onChange={updateSearchQuery}
         isLoading={isLoading}
       />
 
       <SearchControls
         searchQuery={searchQuery}
         sortOption={sortOption}
-        onSortChange={setSortOption}
+        onSortChange={updateSortOption}
         selectedEpisodeIds={selectedEpisodeIds}
         onEpisodeSelection={handleEpisodeSelection}
         onClearEpisodeFilters={clearEpisodeFilters}

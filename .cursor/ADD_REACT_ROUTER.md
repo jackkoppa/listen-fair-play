@@ -57,12 +57,12 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Create episode route component that renders `EpisodeDetailsSheet` using `eID` route parameter
 - [x] Add redirect from `/episode` (without eID) to `/` for invalid routes
 
-### Phase 3: Implement URL State Management for Home Page
-- [ ] Add URL query param sync for search query (`q` parameter) in `HomePage.tsx`
-- [ ] Add URL query param sync for sort option (`sort` parameter) in `HomePage.tsx`  
-- [ ] Add URL query param sync for selected episode filters (`episodes` parameter) in `HomePage.tsx`
-- [ ] Update search functionality to read from URL params on page load
-- [ ] Ensure URL updates when search state changes (debounced)
+### (✅ COMPLETE) Phase 3: Implement URL State Management for Home Page
+- [x] Add URL query param sync for search query (`q` parameter) in `HomePage.tsx`
+- [x] Add URL query param sync for sort option (`sort` parameter) in `HomePage.tsx`  
+- [x] Add URL query param sync for selected episode filters (`episodes` parameter) in `HomePage.tsx`
+- [x] Update search functionality to read from URL params on page load
+- [x] Ensure URL updates when search state changes (debounced)
 
 ### Phase 4: Implement Episode Sheet with Route and Query Parameters
 - [ ] Create episode route component to read `eID` route parameter and `start` query parameter
