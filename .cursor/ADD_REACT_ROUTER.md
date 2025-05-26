@@ -50,12 +50,12 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Create router setup in `packages/client/src/main.tsx` with BrowserRouter
 - [x] Create route components structure in `packages/client/src/routes/`
 
-### Phase 2: Create Route Components with Nested Structure
-- [ ] Create `packages/client/src/routes/HomePage.tsx` - extract current App.tsx search functionality
-- [ ] Create `packages/client/src/App.tsx` router configuration with nested routes: `/` and `/episode/:eID`
-- [ ] Update `HomePage.tsx` to render `<Outlet />` for child routes (episode sheet overlay)
-- [ ] Create episode route component that renders `EpisodeDetailsSheet` using `eID` route parameter
-- [ ] Add redirect from `/episode` (without eID) to `/` for invalid routes
+### (✅ COMPLETE) Phase 2: Create Route Components with Nested Structure
+- [x] Create `packages/client/src/routes/HomePage.tsx` - extract current App.tsx search functionality
+- [x] Create `packages/client/src/App.tsx` router configuration with nested routes: `/` and `/episode/:eID`
+- [x] Update `HomePage.tsx` to render `<Outlet />` for child routes (episode sheet overlay)
+- [x] Create episode route component that renders `EpisodeDetailsSheet` using `eID` route parameter
+- [x] Add redirect from `/episode` (without eID) to `/` for invalid routes
 
 ### Phase 3: Implement URL State Management for Home Page
 - [ ] Add URL query param sync for search query (`q` parameter) in `HomePage.tsx`
