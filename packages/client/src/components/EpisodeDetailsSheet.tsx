@@ -39,7 +39,7 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
                             <Badge variant="destructive">{formattedPublishedAt}</Badge>
                             <Popover onOpenChange={setIsDescriptionOpen}>
                                 <PopoverTrigger className="relative cursor-pointer">
-                                    <Badge variant="outline" className="absolute top-0 left-0">
+                                    <Badge variant="outline" className="absolute top-0 left-0 hover:bg-accent hover:text-accent-foreground">
                                         Summary
                                         {isDescriptionOpen ? <MinusCircledIcon /> : <CaretSortIcon />}
                                     </Badge>
