@@ -50,11 +50,12 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Create router setup in `packages/client/src/main.tsx` with BrowserRouter
 - [x] Create route components structure in `packages/client/src/routes/`
 
-### Phase 2: Create Route Components
+### Phase 2: Create Route Components with Nested Structure
 - [ ] Create `packages/client/src/routes/HomePage.tsx` - extract current App.tsx search functionality
-- [ ] Create `packages/client/src/routes/EpisodePage.tsx` - standalone episode details page
-- [ ] Create `packages/client/src/App.tsx` router configuration with routes for `/` and `/episode`
-- [ ] Create shared layout component if needed for common elements (header, etc.)
+- [ ] Create `packages/client/src/App.tsx` router configuration with nested routes: `/` and `/episode/:eID`
+- [ ] Update `HomePage.tsx` to render `<Outlet />` for child routes (episode sheet overlay)
+- [ ] Create episode route component that renders `EpisodeDetailsSheet` using `eID` route parameter
+- [ ] Add redirect from `/episode` (without eID) to `/` for invalid routes
 
 ### Phase 3: Implement URL State Management for Home Page
 - [ ] Add URL query param sync for search query (`q` parameter) in `HomePage.tsx`
@@ -63,18 +64,20 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [ ] Update search functionality to read from URL params on page load
 - [ ] Ensure URL updates when search state changes (debounced)
 
-### Phase 4: Implement Episode Page with URL Parameters
-- [ ] Implement `EpisodePage.tsx` to read `eID` and `start` query parameters
-- [ ] Fetch episode data by `sequentialEpisodeIdAsString` from episode manifest
+### Phase 4: Implement Episode Sheet with Route and Query Parameters
+- [ ] Create episode route component to read `eID` route parameter and `start` query parameter
+- [ ] Fetch episode data by `eID` from episode manifest (simultaneous with home page search loading)
+- [ ] Fetch full episode transcript data independently of search results
 - [ ] Create mock search result from `start` time parameter for transcript highlighting
-- [ ] Integrate `EpisodeDetailsSheet` content directly into the page (remove Sheet wrapper)
+- [ ] Keep `EpisodeDetailsSheet` as a Sheet component (overlay behavior preserved)
 - [ ] Handle error states for invalid episode IDs or missing data
+- [ ] Implement sheet close behavior to navigate back to `/` (preserving search query params, removing start param)
 
-### Phase 5: Update Navigation and Remove Old Code
-- [ ] Update "Load Here" button in `SearchResult.tsx` to navigate to `/episode` route with correct params
-- [ ] Remove Sheet/modal wrapper from `EpisodeDetailsSheet.tsx` and make it a regular component
-- [ ] Update any other navigation points to use React Router
-- [ ] Clean up unused state management code from the original App.tsx
+### Phase 5: Update Navigation and Preserve Sheet Behavior
+- [ ] Update "Load Here" button in `SearchResult.tsx` to navigate to `/episode/:eID` with current query params plus start param
+- [ ] Ensure `EpisodeDetailsSheet` remains as a Sheet component (no removal of Sheet wrapper)
+- [ ] Update sheet close handlers to use React Router navigation back to `/`
+- [ ] Test that search query parameters coexist with episode route parameters
 
 ### Phase 6: Testing and Build Configuration
 - [ ] Create Vitest test file `packages/client/src/routes/__tests__/routing.test.tsx`
@@ -91,21 +94,32 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 
 ## Key Files to Modify:
 - `packages/client/package.json` - Add react-router dependency
-- `packages/client/vite.config.ts` - Router dev support
+- `packages/client/vite.config.ts` - Router dev support (no changes needed)
 - `packages/client/src/main.tsx` - Router setup
-- `packages/client/src/App.tsx` - Route configuration
-- `packages/client/src/routes/HomePage.tsx` - Home page with URL state
-- `packages/client/src/routes/EpisodePage.tsx` - Episode page
-- `packages/client/src/components/SearchResult.tsx` - Update navigation
-- `packages/client/src/components/EpisodeDetailsSheet.tsx` - Remove Sheet wrapper
+- `packages/client/src/App.tsx` - Nested route configuration
+- `packages/client/src/routes/HomePage.tsx` - Home page with URL state and Outlet for child routes
+- `packages/client/src/routes/EpisodeRoute.tsx` - Episode route component (renders EpisodeDetailsSheet)
+- `packages/client/src/components/SearchResult.tsx` - Update navigation to preserve all query params
+- `packages/client/src/components/EpisodeDetailsSheet.tsx` - Update close handlers to use React Router
 - `packages/client/src/routes/__tests__/routing.test.tsx` - Tests
 
-## Query Parameters:
-**Home Page (`/`):**
-- `q` - search query string
-- `sort` - sort option ('relevance', 'newest', 'oldest')  
-- `episodes` - comma-separated list of episode IDs for filtering
+## Route Structure and Parameters:
 
-**Episode Page (`/episode`):**
-- `eID` - episode sequential ID (from `sequentialEpisodeIdAsString`)
-- `start` - start time in milliseconds for transcript highlighting
+**Routes:**
+- `/` - Home page with search functionality
+- `/episode/:eID` - Same home page + EpisodeDetailsSheet overlay
+- `/episode` (without eID) - Redirects to `/` (invalid route)
+
+**Query Parameters:**
+- `q` - search query string (preserved across routes)
+- `sort` - sort option ('relevance', 'newest', 'oldest') (preserved across routes)
+- `episodes` - comma-separated list of episode IDs for filtering (preserved across routes)
+- `start` - start time in milliseconds for transcript highlighting (episode route only)
+
+**Route Parameters:**
+- `eID` - episode sequential ID (from `sequentialEpisodeIdAsString`) in `/episode/:eID`
+
+**Navigation Behavior:**
+- Home to Episode: Navigate to `/episode/:eID?start=X&q=Y&sort=Z&episodes=A,B,C`
+- Episode to Home: Navigate to `/?q=Y&sort=Z&episodes=A,B,C` (preserves search state, removes episode-specific params)
+- Direct Episode URL: Loads home page + episode sheet simultaneously
