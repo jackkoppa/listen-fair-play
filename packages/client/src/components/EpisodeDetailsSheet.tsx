@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { ApiSearchResultHit, EpisodeInManifest } from "@listen-fair-play/types";
 import { Badge } from "./ui/badge";
+import CustomAudioPlayer from "./AudioPlayer";
 
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';
@@ -18,6 +19,7 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
     const formattedStartTime = formatMillisecondsToMMSS(originalSearchResult.startTimeMs);
     const formattedEndTime = formatMillisecondsToMMSS(originalSearchResult.endTimeMs);
     const audioUrlToLoad = `${originalAudioURL}#t=${formattedStartTime}`;
+    const startTimeInSeconds = Math.floor(originalSearchResult.startTimeMs / 1000);
     
     
     return (
@@ -42,7 +44,7 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
                         <div className="mt-4">
                             <div>
                                 {/* TODO: Disable + add a loading state, until audio is ready */}
-                                <audio controls src={audioUrlToLoad}></audio>
+                                <CustomAudioPlayer audioUrl={originalAudioURL} startTime={startTimeInSeconds} />
                             </div>
                             <Badge variant="outline" className="mb-2 mt-6"><em>{formattedStartTime} - {formattedEndTime}</em></Badge>
                             <div
