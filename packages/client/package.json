@@ -10,7 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
     "_vite-dev": "vite",
-    "_serve-s3-assets": "echo 'TODO: Improve command simplicity' && http-server ../../aws-local-dev/s3 --cors"
+    "_serve-s3-assets": "http-server ../../aws-local-dev/s3 --cors --port 8080"
   },
   "dependencies": {
     "@listen-fair-play/logging": "workspace:*",

@@ -4,6 +4,7 @@ import { log } from '@listen-fair-play/logging';
 import { ApiSearchResultHit, EpisodeManifest, SearchResponse } from '@listen-fair-play/types'
 
 import './App.css'
+import { S3_HOSTED_FILES_BASE_URL } from './constants';
 
 import AppHeader from './components/AppHeader'
 import SearchControls, { SortOption } from './components/SearchControls'
@@ -13,9 +14,6 @@ import { performSearch } from './utils/search'
 
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
-
-// Get the base URL for manifest files, fallback to local path for development
-const MANIFEST_BASE_URL = import.meta.env.VITE_MANIFEST_BASE_URL || 'http://127.0.0.1:8080/';
 
 const SEARCH_LIMIT = 50;
 
@@ -62,7 +60,7 @@ function App() {
   useEffect(() => {
     const fetchEpisodeManifest = async () => {
       try {
-        const manifestPath = `${MANIFEST_BASE_URL}episode-manifest/full-episode-manifest.json`;
+        const manifestPath = `${S3_HOSTED_FILES_BASE_URL}episode-manifest/full-episode-manifest.json`;
         const response = await fetch(manifestPath);
         if (!response.ok) {
           throw new Error(`Failed to fetch episode manifest: ${response.status}`);

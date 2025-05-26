@@ -2,25 +2,14 @@
 .rhap_container {
     box-shadow: none;
     background-color: var(--color-background);
-    /* border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg); */
     font-family: var(--font-sans);
     padding: 10px 0;
   }
   
   .rhap_main-controls-button {
-    /* color: var(--color-foreground);
-    /* border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg); */
-    /* background-color: var(--color-background);
-    transition: all 150ms ease;  */
     position: relative;
   }
   
-  .rhap_main-controls-button:hover {
-    /* color: var(--color-primary);
-    background-color: var(--color-accent); */
-  }
   .rhap_progress-container {
     margin: 0;
   }
@@ -34,16 +23,6 @@
     border: 2px solid var(--color-primary);
     box-shadow: none;
   }
-  
-  /* .rhap_volume-filled {
-    background-color: var(--color-primary);
-  } */
-  
-  /* .rhap_volume-indicator {
-    background-color: var(--color-primary);
-    border: 2px solid var(--color-primary);
-    box-shadow: none;
-  } */
   
   .rhap_time {
     color: var(--color-muted-foreground);

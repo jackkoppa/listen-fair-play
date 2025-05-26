@@ -34,17 +34,18 @@ CLOUDFRONT_DOMAIN=$(terraform output -raw cloudfront_distribution_domain_name)
 CLOUDFRONT_ID=$(terraform output -raw cloudfront_distribution_id)
 SEARCH_API_URL=$(terraform output -raw search_api_invoke_url)
 
-# Manifest URL is hosted at the same domain as the client
-MANIFEST_BASE_URL="/"
+# S3 files are hosted at the same domain as the client
+# (note: locally, this is a local server, handled in App.tsx)
+S3_HOSTED_FILES_BASE_URL="/"
 
 # Go back to the project root
 cd ..
 
 echo "Building client with search API URL: $SEARCH_API_URL"
-echo "Building client with manifest base URL: $MANIFEST_BASE_URL"
+echo "Building client with manifest base URL: $S3_HOSTED_FILES_BASE_URL"
 cd packages/client
 export VITE_SEARCH_API_URL="$SEARCH_API_URL"
-export VITE_MANIFEST_BASE_URL="$MANIFEST_BASE_URL"
+export VITE_S3_HOSTED_FILES_BASE_URL="$S3_HOSTED_FILES_BASE_URL"
 pnpm build-client:$ENV
 cd ../..
 
