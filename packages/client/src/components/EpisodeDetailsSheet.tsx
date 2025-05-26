@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { ApiSearchResultHit, EpisodeInManifest } from "@listen-fair-play/types";
 import { Badge } from "./ui/badge";
+import AudioPlayer from "./AudioPlayer";
 
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';
@@ -41,8 +42,17 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
                         </SheetDescription>
                         <div className="mt-4">
                             <div>
-                                {/* TODO: Disable + add a loading state, until audio is ready */}
-                                <audio controls src={audioUrlToLoad}></audio>
+                                <AudioPlayer 
+                                    src={audioUrlToLoad}
+                                    showJumpControls={true}
+                                    showDownloadProgress={true}
+                                    showFilledProgress={true}
+                                    showSkipControls={false}
+                                    showFilledVolume={true}
+                                    hasDefaultKeyBindings={true}
+                                    preload="metadata"
+                                    className="mb-4"
+                                />
                             </div>
                             <Badge variant="outline" className="mb-2 mt-6"><em>{formattedStartTime} - {formattedEndTime}</em></Badge>
                             <div

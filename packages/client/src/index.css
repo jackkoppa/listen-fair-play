@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "react-h5-audio-player/lib/styles.css";
 
 :root {
   --background: rgb(255, 255, 255);
@@ -146,4 +147,72 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+}
+
+/* Custom react-h5-audio-player styling to match design system */
+.rhap_container {
+  box-shadow: none !important;
+  background-color: var(--color-background) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.rhap_main-controls-button {
+  color: var(--color-foreground) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  background-color: var(--color-background) !important;
+  transition: all 150ms ease !important;
+}
+
+.rhap_main-controls-button:hover {
+  color: var(--color-primary) !important;
+  background-color: var(--color-accent) !important;
+}
+
+.rhap_progress-filled {
+  background-color: var(--color-primary) !important;
+}
+
+.rhap_progress-indicator {
+  background-color: var(--color-primary) !important;
+  border: 2px solid var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+.rhap_volume-filled {
+  background-color: var(--color-primary) !important;
+}
+
+.rhap_volume-indicator {
+  background-color: var(--color-primary) !important;
+  border: 2px solid var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+.rhap_time {
+  color: var(--color-muted-foreground) !important;
+  font-size: 0.875rem !important;
+  font-family: var(--font-mono) !important;
+}
+
+.rhap_progress-bar,
+.rhap_volume-bar {
+  background-color: var(--color-muted) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.rhap_additional-controls,
+.rhap_volume-controls {
+  color: var(--color-foreground) !important;
+}
+
+.rhap_volume-button {
+  color: var(--color-foreground) !important;
+}
+
+.rhap_volume-button:hover {
+  color: var(--color-primary) !important;
 }
