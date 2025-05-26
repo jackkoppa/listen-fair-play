@@ -53,13 +53,6 @@ export default function EpisodeDetailsSheet({ episodeData, originalSearchResult 
                         <div>
                             <AudioPlayer
                                 src={audioUrlToLoad}
-                                showJumpControls={true}
-                                showDownloadProgress={true}
-                                showFilledProgress={true}
-                                showSkipControls={false}
-                                showFilledVolume={true}
-                                hasDefaultKeyBindings={true}
-                                preload="metadata"
                                 className="mb-4"
                             />
                         </div>
