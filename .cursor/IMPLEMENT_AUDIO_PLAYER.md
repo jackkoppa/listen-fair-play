@@ -36,6 +36,11 @@ Additional details from questions:
 5. Touch targets: For the "big touch targets" requirement, what size would you consider appropriate? (e.g., 48px minimum for accessibility?)
     A: 48px minimum sounds about right.
 
+
+Other details:
+* use `pnpm`, not `npm`
+* only use icons from the existing icon library, `@radix-ui/react-icons`. We might need more in the future (e.g. for skip 10 seconds) - that's fine. Pick a placeholder for now, and we'll add custom SVGs for those in the future.
+
 Ask any important questions you may have, then get started. Add notes below the line about implementation decisions you've made.
 
 
