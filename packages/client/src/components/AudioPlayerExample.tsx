@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import AudioPlayer, { PlayPauseButton, MuteButton, useAudioPlayer } from './AudioPlayer';
+import AudioPlayer, { PlayPauseButton, MuteButton, useAudioPlayer } from './AudioPlayer/AudioPlayer';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 

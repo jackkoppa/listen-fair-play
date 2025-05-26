@@ -1,8 +1,25 @@
 import { useState, useRef } from 'react';
-import AudioPlayerH5 from 'react-h5-audio-player';
-import { PlayIcon, PauseIcon, SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons';
-import { Button } from './ui/button';
+import AudioPlayerH5, { RHAP_UI } from 'react-h5-audio-player';
+import { PlayIcon, PauseIcon } from '@radix-ui/react-icons';
+import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+
+// Custom play/pause button component
+const PlayButton = (<Button
+  variant="default"
+  size="icon"
+  className='absolute top-0 left-0'
+>
+  <PlayIcon />
+</Button>)
+
+const PauseButton = (<Button
+  variant="destructive"
+  size="icon"
+  className='absolute top-0 left-0'
+>
+  <PauseIcon />
+</Button>)
 
 // Custom hook for audio player state management
 export const useAudioPlayer = () => {
@@ -68,13 +85,6 @@ export const useAudioPlayer = () => {
   };
 };
 
-// Utility function to format time in MM:SS format
-const formatTime = (timeInSeconds: number): string => {
-  const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = Math.floor(timeInSeconds % 60);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
-
 interface AudioPlayerProps {
   src: string;
   className?: string;
@@ -113,7 +123,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   showFilledProgress = true,
   showSkipControls = false,
   showFilledVolume = true,
-  showVolumeControls = false,
   hasDefaultKeyBindings = true,
   header,
   footer,
@@ -133,9 +142,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onError
 }) => {
   const {
-    isPlaying,
-    currentTime,
-    duration,
     isLoading,
     playerRef,
     setIsPlaying,
@@ -190,7 +196,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   return (
     <div className={cn('w-full', className)}>
       {header && <div className="mb-4">{header}</div>}
-      
+
       <AudioPlayerH5
         ref={playerRef}
         src={src}
@@ -214,76 +220,33 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         customVolumeControls={[]}
         customAdditionalControls={[]}
         hasDefaultKeyBindings={hasDefaultKeyBindings}
+        customIcons={{
+          play: PlayButton,
+          pause: PauseButton,
+        }}
         loop={loop}
         muted={muted}
         volume={volume}
         preload={preload}
+        layout='stacked'
+        customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.CURRENT_LEFT_TIME]}
+        customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
         className={cn(
           'rhap_container',
           // Custom styling to match the design system
-          '[&_.rhap_container]:bg-background [&_.rhap_container]:border [&_.rhap_container]:border-border [&_.rhap_container]:rounded-md [&_.rhap_container]:p-4',
-          '[&_.rhap_main-controls-button]:text-foreground [&_.rhap_main-controls-button]:hover:text-primary',
-          '[&_.rhap_progress-filled]:bg-primary',
-          '[&_.rhap_progress-indicator]:bg-primary [&_.rhap_progress-indicator]:border-primary',
-          '[&_.rhap_volume-filled]:bg-primary',
-          '[&_.rhap_volume-indicator]:bg-primary [&_.rhap_volume-indicator]:border-primary',
-          '[&_.rhap_main-controls]:gap-2',
+          // '[&_.rhap_container]:bg-background [&_.rhap_container]:border [&_.rhap_container]:border-border [&_.rhap_container]:rounded-md [&_.rhap_container]:p-4',
+          // '[&_.rhap_main-controls-button]:text-foreground [&_.rhap_main-controls-button]:hover:text-primary',
+          // '[&_.rhap_progress-filled]:bg-primary',
+          // '[&_.rhap_progress-indicator]:bg-primary [&_.rhap_progress-indicator]:border-primary',
+          // '[&_.rhap_volume-filled]:bg-primary',
+          // '[&_.rhap_volume-indicator]:bg-primary [&_.rhap_volume-indicator]:border-primary',
+          // '[&_.rhap_main-controls]:gap-2',
           isLoading && 'opacity-75'
         )}
       />
 
       {footer && <div className="mt-4">{footer}</div>}
     </div>
-  );
-};
-
-// Custom play/pause button component
-export const PlayPauseButton: React.FC<{
-  isPlaying: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  size?: 'sm' | 'default' | 'lg';
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-}> = ({ isPlaying, onClick, disabled = false, size = 'default', variant = 'default' }) => {
-  return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={onClick}
-      disabled={disabled}
-      className="shrink-0"
-    >
-      {isPlaying ? (
-        <PauseIcon className="w-4 h-4" />
-      ) : (
-        <PlayIcon className="w-4 h-4" />
-      )}
-    </Button>
-  );
-};
-
-// Custom mute button component
-export const MuteButton: React.FC<{
-  isMuted: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  size?: 'sm' | 'default' | 'lg';
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-}> = ({ isMuted, onClick, disabled = false, size = 'default', variant = 'ghost' }) => {
-  return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={onClick}
-      disabled={disabled}
-      className="shrink-0"
-    >
-      {isMuted ? (
-        <SpeakerOffIcon className="w-4 h-4" />
-      ) : (
-        <SpeakerLoudIcon className="w-4 h-4" />
-      )}
-    </Button>
   );
 };
 
