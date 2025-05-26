@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react'
 
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
-import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
 import { log } from '@listen-fair-play/logging';
-import { ApiSearchResultHit, EpisodeManifest, SearchRequest, SearchResponse } from '@listen-fair-play/types'
+import { ApiSearchResultHit, EpisodeManifest, SearchResponse } from '@listen-fair-play/types'
 
 import './App.css'
 
-import SearchResult from './components/SearchResult'
+import AppHeader from './components/AppHeader'
+import SearchControls, { SortOption } from './components/SearchControls'
+import SearchInput from './components/SearchInput'
+import SearchResults from './components/SearchResults'
+import { performSearch } from './utils/search'
 
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
@@ -25,8 +19,15 @@ const MANIFEST_BASE_URL = import.meta.env.VITE_MANIFEST_BASE_URL || 'http://127.
 
 const SEARCH_LIMIT = 50;
 
-type SortOption = 'relevance' | 'newest' | 'oldest';
-
+/**
+ * Main App component that orchestrates the search functionality for the Football Clichés transcript search.
+ * 
+ * Manages:
+ * - Search state and API calls with debouncing
+ * - Episode manifest fetching and filtering
+ * - Scroll detection for header effects
+ * - Coordination between child components
+ */
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
@@ -40,10 +41,9 @@ function App() {
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
 
-  // TODO: Use this to hold off on rendering results as well
-  const [_, setIsLoadingManifest] = useState(false);
-
-  // Handle scroll effect
+  /**
+   * Handle scroll detection for header visual effects
+   */
   useEffect(() => {
     const handleScroll = () => {
       const isScrolled = window.scrollY > 10;
@@ -56,10 +56,11 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
 
-  // Fetch episode manifest on component mount
+  /**
+   * Fetch episode manifest on component mount for episode filtering functionality
+   */
   useEffect(() => {
     const fetchEpisodeManifest = async () => {
-      setIsLoadingManifest(true);
       try {
         const manifestPath = `${MANIFEST_BASE_URL}episode-manifest/full-episode-manifest.json`;
         const response = await fetch(manifestPath);
@@ -71,14 +72,15 @@ function App() {
       } catch (e: any) {
         log.error('[App.tsx] Failed to fetch episode manifest:', e);
         // Don't set error state to avoid blocking the main UI functionality
-      } finally {
-        setIsLoadingManifest(false);
       }
     };
 
     fetchEpisodeManifest();
   }, []);
 
+  /**
+   * Handle search API calls with debouncing and proper error handling
+   */
   useEffect(() => {
     if (isLoading) {
       return;
@@ -99,42 +101,13 @@ function App() {
       setError(null);
 
       try {
-        // Prepare search request with new Orama parameters
-        const searchRequest: SearchRequest = {
+        const data: SearchResponse = await performSearch({
           query: trimmedQuery,
-          limit: SEARCH_LIMIT,
-          searchFields: ['text'], // Search only in transcript text
-        };
-
-        // Add sorting parameters based on sort option
-        if (sortOption === 'newest') {
-          searchRequest.sortBy = 'episodePublishedUnixTimestamp';
-          searchRequest.sortOrder = 'DESC';
-        } else if (sortOption === 'oldest') {
-          searchRequest.sortBy = 'episodePublishedUnixTimestamp';
-          searchRequest.sortOrder = 'ASC';
-        }
-        // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
-
-        // Add episode filtering if episodes are selected
-        if (selectedEpisodeIds.length > 0) {
-          searchRequest.episodeIds = selectedEpisodeIds;
-        }
-
-        // Make API request using POST for complex search parameters
-        const response = await fetch(`${SEARCH_API_BASE_URL}/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(searchRequest),
+          sortOption,
+          selectedEpisodeIds,
+          searchApiBaseUrl: SEARCH_API_BASE_URL,
+          searchLimit: SEARCH_LIMIT,
         });
-
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-
-        const data: SearchResponse = await response.json();
         
         if (data && data.hits) {
           setSearchResults(data.hits);
@@ -165,6 +138,9 @@ function App() {
 
   }, [searchQuery, sortOption, selectedEpisodeIds]); 
 
+  /**
+   * Handle episode selection for filtering search results
+   */
   const handleEpisodeSelection = (episodeId: number, isSelected: boolean) => {
     if (isSelected) {
       setSelectedEpisodeIds(prev => [...prev, episodeId]);
@@ -173,6 +149,9 @@ function App() {
     }
   };
 
+  /**
+   * Clear all episode filters
+   */
   const clearEpisodeFilters = () => {
     setSelectedEpisodeIds([]);
   };
@@ -184,137 +163,38 @@ function App() {
 
   return (
     <div className="app-container max-w-3xl mx-auto p-4 font-mono pt-28">
-      <header className={`fixed top-0 left-0 right-0 z-10 bg-secondary border-b-2 border-black shadow-[0px_4px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-in-out ${scrolled ? 'py-2' : 'py-4'}`}>
-        <div className="max-w-3xl mx-auto px-6 text-right">
-          <h1 className={`font-bold text-black transition-all duration-200 ${scrolled ? 'text-2xl mb-0' : 'text-3xl mb-1'}`}>Listen, Fair Play</h1>
-          <p className={`text-sm text-black italic transition-all duration-200 ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>search the Football Clichés record books</p>
-        </div>
-      </header>
+      <AppHeader scrolled={scrolled} />
 
       {/* Header spacer */}
       <div className="d-block h-10"></div>
 
-      <div className="search-input-container mb-8 relative flex items-center">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Search transcripts (min. 2 characters)..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input w-full p-3 pl-10 border-black border-2 text-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none"
-        />
-        {isLoading && (
-          <div className="search-spinner absolute right-3 top-1/2 transform -translate-y-1/2 border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-4 h-6 w-6"></div>
-        )}
-      </div>
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        isLoading={isLoading}
+      />
 
-      {/* Search Controls */}
-      {searchQuery.trim().length >= 2 && (
-        <div className="search-controls mb-6 p-4 bg-gray-50 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
-          <div className="flex flex-wrap gap-4 items-center">
-            {/* Sort Controls */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-semibold">Sort by:</label>
-              <Select value={sortOption} onValueChange={(value: SortOption) => setSortOption(value)}>
-                <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <SearchControls
+        searchQuery={searchQuery}
+        sortOption={sortOption}
+        onSortChange={setSortOption}
+        selectedEpisodeIds={selectedEpisodeIds}
+        onEpisodeSelection={handleEpisodeSelection}
+        onClearEpisodeFilters={clearEpisodeFilters}
+        availableEpisodes={availableEpisodes}
+        showEpisodeFilter={showEpisodeFilter}
+        onToggleEpisodeFilter={() => setShowEpisodeFilter(!showEpisodeFilter)}
+      />
 
-            {/* Episode Filter Controls */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEpisodeFilter(!showEpisodeFilter)}
-                className="border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none"
-              >
-                Filter Episodes ({selectedEpisodeIds.length})
-              </Button>
-              {selectedEpisodeIds.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearEpisodeFilters}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Episode Selection */}
-          {showEpisodeFilter && (
-            <div className="mt-4 p-3 bg-white border-2 border-gray-300 rounded-none max-h-60 overflow-y-auto">
-              <p className="text-sm font-semibold mb-2">Select episodes to search within:</p>
-              <div className="space-y-1">
-                {availableEpisodes.map((episode) => (
-                  <label key={episode.sequentialId} className="flex items-center gap-2 text-sm hover:bg-gray-50 p-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedEpisodeIds.includes(episode.sequentialId)}
-                      onChange={(e) => handleEpisodeSelection(episode.sequentialId, e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="truncate">{episode.title}</span>
-                    <span className="text-xs text-gray-500 ml-auto">{new Date(episode.publishedAt).getFullYear()}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {error && (
-        <div className="error-message text-red-600 bg-red-100 border-red-600 border-2 p-4 mb-6 shadow-[4px_4px_0px_#ef4444] rounded-none">
-          <p className="font-semibold">Error:</p>
-          <p>{error}</p>
-        </div>
-      )}
-
-      <div className="results-container">
-        {isLoading && !error ? (
-          <p className="loading-message text-lg text-gray-600 text-center">Loading results...</p>
-        ) : searchResults.length > 0 ? (
-          <>
-          <div className="results-info text-sm mb-4 text-right flex justify-between items-center">
-            <span className="text-gray-600">
-              {processingTimeMs > 0 && <em>Search time: {processingTimeMs}ms</em>}
-            </span>
-            <span>
-              <em>Showing:</em> <span className="font-bold text-black">{searchResults.length}</span>
-              {totalHits !== searchResults.length && (
-                <> <em>of</em> <span className="font-bold text-black">{totalHits}</span></>
-              )}
-              <> <em>hits</em></>
-            </span>
-          </div>
-          <ul className="results-list space-y-6">
-            {searchResults.map((result) => (
-              <SearchResult
-                key={result.id}
-                result={result}
-                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
-              />
-            ))}
-          </ul>
-          </>
-        ) : searchQuery.trim().length >= 2 && !error ? (
-          <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
-            No results found for "{searchQuery}". Try a different term, perhaps something more pedantic?
-          </p>
-        ) : null}
-      </div>
-
-      {/* Removed Test Button */}
+      <SearchResults
+        results={searchResults}
+        isLoading={isLoading}
+        error={error}
+        searchQuery={searchQuery}
+        totalHits={totalHits}
+        processingTimeMs={processingTimeMs}
+        episodeManifest={episodeManifest}
+      />
     </div>
   )
 }
