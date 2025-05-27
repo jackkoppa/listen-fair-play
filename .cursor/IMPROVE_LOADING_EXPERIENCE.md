@@ -62,6 +62,18 @@ Example quotes that we'll use for the loading section:
 
 
 
+## Answers to initial questions from Agent
+
+A few quick clarifications:
+1. Should the quotes in ColdStartLoader.tsx be clickable links that navigate to the episode page (maintaining current search params), or just visual content?
+    A: They should be actual clickable links, likely using react-router navigate, to open up the correct `/episode` URLs given above
+2. For the UI reorganization in point G, do you want the "search time" and "hits" info stacked vertically on the left, with "sort by" on the right, all in a single row?
+    A: Yup, that's correct.
+Should I proceed with adding the health check using a query parameter like ?healthCheck=true or would you prefer a separate /health endpoint?
+    A: I don't need it to be a separate endpoint, a param is fine
+
+
+
 * Once you've finished reading all the above & processing all relevant files, then proceed onto the Implementation Checklist.
 
 
@@ -73,10 +85,10 @@ Example quotes that we'll use for the loading section:
 
 
 ### Phase 1: Add Health Check to Search Lambda ✅
-- [ ] Add `isHealthCheckOnly` parameter to `SearchRequest` type in `packages/types/search.ts`
-- [ ] Modify search Lambda handler in `packages/search/search-lambda/search-indexed-transcripts.ts` to check for health check parameter and return early
-- [ ] Update dev server in `packages/search/search-lambda/dev-server.ts` to handle health check requests
-- [ ] Create `performHealthCheck` utility function in `packages/client/src/utils/search.ts`
+- [x] Add `isHealthCheckOnly` parameter to `SearchRequest` type in `packages/types/search.ts`
+- [x] Modify search Lambda handler in `packages/search/search-lambda/search-indexed-transcripts.ts` to check for health check parameter and return early
+- [x] Update dev server in `packages/search/search-lambda/dev-server.ts` to handle health check requests
+- [x] Create `performHealthCheck` utility function in `packages/client/src/utils/search.ts`
 
 ### Phase 2: Add Lambda Warmup Logic to React App ✅
 - [ ] Add `isLambdaWarm` state and health check logic to `packages/client/src/routes/HomePage.tsx`

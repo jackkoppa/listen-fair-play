@@ -88,7 +88,8 @@ export async function handler(event: any): Promise<SearchResponse> {
       searchFields: ['text'],
       sortBy: undefined,
       sortOrder: 'DESC',
-      episodeIds: undefined
+      episodeIds: undefined,
+      isHealthCheckOnly: false
     };
 
     // Check if this is an API Gateway v2 event
@@ -104,7 +105,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
           sortBy: queryParams.sortBy || undefined,
           sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
-          episodeIds: queryParams.episodeIds ? queryParams.episodeIds.split(',').map(Number) : undefined
+          episodeIds: queryParams.episodeIds ? queryParams.episodeIds.split(',').map(Number) : undefined,
+          isHealthCheckOnly: queryParams.isHealthCheckOnly === 'true'
         };
       } else if (method === 'POST' && event.body) {
         // For POST requests with a body
@@ -118,7 +120,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: body.searchFields || ['text'],
           sortBy: body.sortBy || undefined,
           sortOrder: body.sortOrder || 'DESC',
-          episodeIds: body.episodeIds || undefined
+          episodeIds: body.episodeIds || undefined,
+          isHealthCheckOnly: body.isHealthCheckOnly || false
         };
       }
     } else if (event.body) {
@@ -133,7 +136,8 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: body.searchFields || ['text'],
         sortBy: body.sortBy || undefined,
         sortOrder: body.sortOrder || 'DESC',
-        episodeIds: body.episodeIds || undefined
+        episodeIds: body.episodeIds || undefined,
+        isHealthCheckOnly: body.isHealthCheckOnly || false
       };
     } else if (typeof event.query === 'string') {
       // For direct invocations with a query property (backward compatibility)
@@ -143,7 +147,22 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: event.searchFields || ['text'],
         sortBy: event.sortBy || undefined,
         sortOrder: event.sortOrder || 'DESC',
-        episodeIds: event.episodeIds || undefined
+        episodeIds: event.episodeIds || undefined,
+        isHealthCheckOnly: event.isHealthCheckOnly || false
+      };
+    }
+
+    // If this is a health check, return early with a minimal response
+    if (searchRequest.isHealthCheckOnly) {
+      const processingTimeMs = Date.now() - startTime;
+      log.info(`Health check completed in ${processingTimeMs}ms - Lambda is now warm`);
+      return {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs,
+        query: 'health-check',
+        sortBy: undefined,
+        sortOrder: 'DESC'
       };
     }
 

@@ -36,38 +36,33 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (method === 'GET') {
-      event.httpMethod = 'GET'; // Keep for logging or other potential uses, though handler doesn't strictly need it this way
-      // Adjust to place parameters directly on event, as expected by the handler's fallback
-      parsedUrl.searchParams.forEach((value, key) => {
-        // Convert known numeric/boolean params, default others to string
-        if (key === 'limit') {
-          event[key] = parseInt(value, 10);
-        } else if (key === 'suggest' || key === 'matchAllFields') {
-          event[key] = value === 'true';
-        } else if (key === 'fields') {
-          event[key] = value.split(',');
-        } else {
-          event[key] = value;
+      // Use API Gateway v2 format to match Lambda handler expectations
+      event.requestContext = {
+        http: {
+          method: 'GET'
         }
+      };
+      
+      const queryStringParameters: any = {};
+      parsedUrl.searchParams.forEach((value, key) => {
+        queryStringParameters[key] = value;
       });
-      // Ensure 'query' parameter exists, even if empty, for the handler
-      if (event.query === undefined) {
-        event.query = '';
-      }
-      // Default other parameters if not provided
-      if (event.limit === undefined) event.limit = 10;
-      if (event.fields === undefined) event.fields = ['text'];
-      if (event.suggest === undefined) event.suggest = false;
-      if (event.matchAllFields === undefined) event.matchAllFields = false;
+      event.queryStringParameters = queryStringParameters;
 
     } else if (method === 'POST') {
-      event.httpMethod = 'POST';
+      // Use API Gateway v2 format to match Lambda handler expectations
+      event.requestContext = {
+        http: {
+          method: 'POST'
+        }
+      };
+      
       let body = '';
       for await (const chunk of req) {
         body += chunk;
       }
       try {
-        event.body = JSON.parse(body);
+        event.body = body; // Keep as string, Lambda handler will parse it
       } catch (e) {
         log.error('[Dev Server] Invalid JSON body:', e);
         res.writeHead(400, { 'Content-Type': 'application/json' });

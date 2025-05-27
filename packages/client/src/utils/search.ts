@@ -56,4 +56,33 @@ export const performSearch = async (params: SearchParams): Promise<SearchRespons
 
   const data: SearchResponse = await response.json();
   return data;
+};
+
+/**
+ * Performs a health check request to warm up the search Lambda
+ * 
+ * @param searchApiBaseUrl - The base URL for the search API
+ * @returns Promise that resolves when the Lambda is warmed up
+ * @throws Error if the health check request fails
+ */
+export const performHealthCheck = async (searchApiBaseUrl: string): Promise<void> => {
+  const healthCheckRequest: SearchRequest = {
+    query: '',
+    isHealthCheckOnly: true
+  };
+
+  const response = await fetch(`${searchApiBaseUrl}/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(healthCheckRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Health check failed with status ${response.status}`);
+  }
+
+  // We don't need to process the response, just that it succeeded
+  await response.json();
 }; 
