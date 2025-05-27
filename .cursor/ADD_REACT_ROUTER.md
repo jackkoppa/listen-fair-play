@@ -73,11 +73,11 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Handle error states for invalid episode IDs or missing data
 - [x] Implement sheet close behavior to navigate back to `/` (preserving search query params, removing start param)
 
-### Phase 5: Update Navigation and Preserve Sheet Behavior
-- [ ] Update "Load Here" button in `SearchResult.tsx` to navigate to `/episode/:eID` with current query params plus start param
-- [ ] Ensure `EpisodeDetailsSheet` remains as a Sheet component (no removal of Sheet wrapper)
-- [ ] Update sheet close handlers to use React Router navigation back to `/`
-- [ ] Test that search query parameters coexist with episode route parameters
+### (✅ COMPLETE) Phase 5: Update Navigation and Preserve Sheet Behavior
+- [x] Update "Load Here" button in `SearchResult.tsx` to navigate to `/episode/:eID` with current query params plus start param
+- [x] Ensure `EpisodeDetailsSheet` remains as a Sheet component (no removal of Sheet wrapper)
+- [x] Update sheet close handlers to use React Router navigation back to `/`
+- [x] Test that search query parameters coexist with episode route parameters
 
 ### Phase 6: Testing and Build Configuration
 - [ ] Create Vitest test file `packages/client/src/routes/__tests__/routing.test.tsx`

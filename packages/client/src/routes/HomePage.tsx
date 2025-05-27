@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '@listen-fair-play/logging';
@@ -34,9 +34,12 @@ function HomePage() {
   // URL-driven state - read from search params
   const searchQuery = searchParams.get('q') || '';
   const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
-  const selectedEpisodeIds = searchParams.get('episodes') 
-    ? searchParams.get('episodes')!.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
-    : [];
+  const selectedEpisodeIds = useMemo(() => {
+    const episodesParam = searchParams.get('episodes');
+    return episodesParam 
+      ? episodesParam.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : [];
+  }, [searchParams]);
 
   // Local component state
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
@@ -77,7 +80,7 @@ function HomePage() {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [localSearchQuery, setSearchParams]);
+  }, [localSearchQuery]);
 
   const updateSortOption = (sort: SortOption) => {
     setSearchParams(prev => {
@@ -144,10 +147,6 @@ function HomePage() {
    * Handle search API calls with debouncing and proper error handling
    */
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
     const trimmedQuery = searchQuery.trim();
 
     if (trimmedQuery.length < 2) {
