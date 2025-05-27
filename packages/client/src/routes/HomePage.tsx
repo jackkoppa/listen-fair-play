@@ -83,7 +83,7 @@ function HomePage() {
         }
         return newParams;
       });
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(debounceTimer);
   }, [localSearchQuery]);
@@ -237,7 +237,7 @@ function HomePage() {
 
     const debounceTimer = setTimeout(() => {
       fetchSearchResults();
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(debounceTimer);
 
@@ -291,8 +291,6 @@ function HomePage() {
 
       <SearchControls
         searchQuery={searchQuery}
-        sortOption={sortOption}
-        onSortChange={updateSortOption}
         selectedEpisodeIds={selectedEpisodeIds}
         onEpisodeSelection={handleEpisodeSelection}
         onClearEpisodeFilters={clearEpisodeFilters}
@@ -318,6 +316,8 @@ function HomePage() {
           totalHits={totalHits}
           processingTimeMs={processingTimeMs}
           episodeManifest={episodeManifest}
+          sortOption={sortOption}
+          onSortChange={updateSortOption}
         />
       )}
 

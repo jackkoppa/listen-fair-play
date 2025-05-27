@@ -1,11 +1,4 @@
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 type SortOption = 'relevance' | 'newest' | 'oldest';
 
@@ -17,8 +10,6 @@ interface Episode {
 
 interface SearchControlsProps {
   searchQuery: string;
-  sortOption: SortOption;
-  onSortChange: (option: SortOption) => void;
   selectedEpisodeIds: number[];
   onEpisodeSelection: (episodeId: number, isSelected: boolean) => void;
   onClearEpisodeFilters: () => void;
@@ -29,8 +20,6 @@ interface SearchControlsProps {
 
 export default function SearchControls({
   searchQuery,
-  sortOption,
-  onSortChange,
   selectedEpisodeIds,
   onEpisodeSelection,
   onClearEpisodeFilters,
@@ -46,21 +35,6 @@ export default function SearchControls({
   return (
     <div className="search-controls">
       <div className="flex flex-wrap justify-end gap-4 mb-4">
-        {/* Sort Controls */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-semibold">Sort by:</label>
-          <Select value={sortOption} onValueChange={(value: SortOption) => onSortChange(value)}>
-            <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
-              <SelectItem value="relevance">Relevance</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         {/* Episode Filter Controls */}
         {/* TODO: Re-enable if & when we want this in place */}
         <div className="flex items-center gap-2 hidden">

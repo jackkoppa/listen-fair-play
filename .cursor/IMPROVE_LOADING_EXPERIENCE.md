@@ -73,6 +73,24 @@ Should I proceed with adding the health check using a query parameter like ?heal
     A: I don't need it to be a separate endpoint, a param is fine
 
 
+## Answers to follow-up questions:
+For the UI reorganization in Phase 5 - You mentioned stacking "search time" and "hits" on the left side and putting "sort by" on the right. Looking at the current SearchResults component, I see these are currently in a flex layout with time on the left and hits on the right. Should the new layout look like:
+```
+   [Search time: Xms]     [Sort by: dropdown]
+   [Showing: X of Y hits]
+```
+    A: Yup! That's how it should look, but the sort by dropdown should be roughly the height of those two text lines combined
+
+For the 500ms debounce in Phase 5 - I see there's already a 300ms debounce for search API calls in HomePage.tsx. Are you asking to:
+Increase this from 300ms to 500ms, OR
+Add a separate 500ms debounce specifically for preventing UI updates while typing?
+    A: Increase this from 300ms to 500ms
+For the minimum character requirement UX in Phase 6 - Should the helper text appear:
+Only when the input is focused and has less than 2 characters, OR
+Anytime the input has less than 2 characters (focused or not)?
+    A: Should appear only once the user has actually focused the field, and then unfocused it. If the user has not yet focused the field: no helper text. If they are still focused & potentially typing, no helper text. Only once they've focused & then blurred
+
+
 
 * Once you've finished reading all the above & processing all relevant files, then proceed onto the Implementation Checklist.
 
@@ -83,41 +101,40 @@ Should I proceed with adding the health check using a query parameter like ?heal
 
 ## Implementation Checklist
 
-
-### Phase 1: Add Health Check to Search Lambda ✅
+### Phase 1: Add Health Check to Search Lambda ✅ COMPLETED
 - [x] Add `isHealthCheckOnly` parameter to `SearchRequest` type in `packages/types/search.ts`
 - [x] Modify search Lambda handler in `packages/search/search-lambda/search-indexed-transcripts.ts` to check for health check parameter and return early
 - [x] Update dev server in `packages/search/search-lambda/dev-server.ts` to handle health check requests
 - [x] Create `performHealthCheck` utility function in `packages/client/src/utils/search.ts`
 
-### Phase 2: Add Lambda Warmup Logic to React App ✅
+### Phase 2: Add Lambda Warmup Logic to React App ✅ COMPLETED
 - [x] Add `isLambdaWarm` state and health check logic to `packages/client/src/routes/HomePage.tsx`
 - [x] Call health check immediately on app initialization
 - [x] Add debouncing logic to prevent multiple health check calls
 
-### Phase 3: Create Cold Start Loader Component ✅
+### Phase 3: Create Cold Start Loader Component ✅ COMPLETED
 - [x] Create `packages/client/src/components/ColdStartLoader.tsx` with quote rotation functionality
 - [x] Add constants for quote display duration (7 seconds)
 - [x] Include the three example quotes from instructions with proper episode links
 - [x] Style component to match app's visual design (border, shadow, etc.)
 
-### Phase 4: Integrate Cold Start Loader with Search Flow ✅
+### Phase 4: Integrate Cold Start Loader with Search Flow ✅ COMPLETED
 - [x] Modify `HomePage.tsx` to show `ColdStartLoader` when user starts typing but Lambda is not warm
 - [x] Hide cold start loader when health check completes and real search results arrive
 - [x] Update search triggering logic to respect Lambda warm state
 
-### Phase 5: Improve Subsequent Search Experience ✅
-- [ ] Add skeleton loading states to `packages/client/src/components/SearchResults.tsx`
-- [ ] Reorganize search info layout: stack "search time" and "hits" on left, "sort by" on right
-- [ ] Prevent search result updates while user is still typing (500ms debounce)
-- [ ] Update `packages/client/src/components/SearchControls.tsx` layout
+### Phase 5: Improve Subsequent Search Experience ✅ COMPLETED
+- [x] Add skeleton loading states to `packages/client/src/components/SearchResults.tsx`
+- [x] Reorganize search info layout: stack "search time" and "hits" on left, "sort by" on right
+- [x] Prevent search result updates while user is still typing (500ms debounce)
+- [x] Update `packages/client/src/components/SearchControls.tsx` layout
 
-### Phase 6: Improve Minimum Character Requirement UX ✅
+### Phase 6: Improve Minimum Character Requirement UX ❌ REMAINING
 - [ ] Add helper text below search input when user has less than 2 characters
 - [ ] Modify `packages/client/src/components/SearchInput.tsx` to show muted gray text
 - [ ] Update focus/blur handling for better UX
 
-### Phase 7: Add Tests ✅
+### Phase 7: Add Tests ❌ REMAINING
 - [ ] Create Vitest spec for `ColdStartLoader.tsx` component
 - [ ] Create Vitest spec for new health check functionality
 - [ ] Test loading states and transitions
