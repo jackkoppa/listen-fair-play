@@ -11,6 +11,7 @@ import AppHeader from '../components/AppHeader'
 import SearchControls, { SortOption } from '../components/SearchControls'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
+import ColdStartLoader from '../components/ColdStartLoader'
 import { performSearch, performHealthCheck } from '../utils/search'
 
 // Get the search API URL from environment variable, fallback to localhost for development
@@ -51,6 +52,7 @@ function HomePage() {
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
   const [isLambdaWarm, setIsLambdaWarm] = useState(false);
+  const [showColdStartLoader, setShowColdStartLoader] = useState(false);
 
   // Local state for immediate search input updates (before URL sync)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
@@ -184,7 +186,14 @@ function HomePage() {
       setError(null);
       setTotalHits(0);
       setProcessingTimeMs(0);
+      setShowColdStartLoader(false);
       return;
+    }
+
+    // Show cold start loader if Lambda isn't warm and user is trying to search
+    if (!isLambdaWarm && trimmedQuery.length >= 2) {
+      setShowColdStartLoader(true);
+      log.info('[HomePage.tsx] Showing cold start loader - Lambda not yet warm');
     }
 
     const fetchSearchResults = async () => {
@@ -210,12 +219,17 @@ function HomePage() {
           setProcessingTimeMs(0);
           log.warn('[HomePage.tsx] API response did not contain .hits array or was empty:', data);
         }
+        
+        // Hide cold start loader once we have real search results
+        setShowColdStartLoader(false);
       } catch (e: any) {
         log.error('[HomePage.tsx] Failed to fetch search results:', e);
         setError(e.message || 'Failed to fetch search results. Please try again.');
         setSearchResults([]);
         setTotalHits(0);
         setProcessingTimeMs(0);
+        // Hide cold start loader on error too
+        setShowColdStartLoader(false);
       } finally {
         setIsLoading(false);
       }
@@ -227,7 +241,17 @@ function HomePage() {
 
     return () => clearTimeout(debounceTimer);
 
-  }, [searchQuery, sortOption, selectedEpisodeIds]); 
+  }, [searchQuery, sortOption, selectedEpisodeIds, isLambdaWarm]); 
+
+  /**
+   * Hide cold start loader when Lambda becomes warm
+   */
+  useEffect(() => {
+    if (isLambdaWarm && showColdStartLoader) {
+      log.info('[HomePage.tsx] Lambda is now warm - hiding cold start loader');
+      setShowColdStartLoader(false);
+    }
+  }, [isLambdaWarm, showColdStartLoader]);
 
   /**
    * Handle episode selection for filtering search results
@@ -277,15 +301,25 @@ function HomePage() {
         onToggleEpisodeFilter={() => setShowEpisodeFilter(!showEpisodeFilter)}
       />
 
-      <SearchResults
-        results={searchResults}
-        isLoading={isLoading}
-        error={error}
-        searchQuery={searchQuery}
-        totalHits={totalHits}
-        processingTimeMs={processingTimeMs}
-        episodeManifest={episodeManifest}
-      />
+      {/* Conditionally render ColdStartLoader or SearchResults */}
+      {showColdStartLoader ? (
+        <ColdStartLoader 
+          onComplete={() => {
+            setShowColdStartLoader(false);
+            log.info('[HomePage.tsx] Cold start loader manually dismissed');
+          }}
+        />
+      ) : (
+        <SearchResults
+          results={searchResults}
+          isLoading={isLoading}
+          error={error}
+          searchQuery={searchQuery}
+          totalHits={totalHits}
+          processingTimeMs={processingTimeMs}
+          episodeManifest={episodeManifest}
+        />
+      )}
 
       {/* Outlet for child routes - episode sheet overlay */}
       <Outlet />

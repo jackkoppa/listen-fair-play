@@ -102,9 +102,9 @@ Should I proceed with adding the health check using a query parameter like ?heal
 - [x] Style component to match app's visual design (border, shadow, etc.)
 
 ### Phase 4: Integrate Cold Start Loader with Search Flow ✅
-- [ ] Modify `HomePage.tsx` to show `ColdStartLoader` when user starts typing but Lambda is not warm
-- [ ] Hide cold start loader when health check completes and real search results arrive
-- [ ] Update search triggering logic to respect Lambda warm state
+- [x] Modify `HomePage.tsx` to show `ColdStartLoader` when user starts typing but Lambda is not warm
+- [x] Hide cold start loader when health check completes and real search results arrive
+- [x] Update search triggering logic to respect Lambda warm state
 
 ### Phase 5: Improve Subsequent Search Experience ✅
 - [ ] Add skeleton loading states to `packages/client/src/components/SearchResults.tsx`
