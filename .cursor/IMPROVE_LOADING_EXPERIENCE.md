@@ -70,3 +70,42 @@ Example quotes that we'll use for the loading section:
 ---- AGENTS, EDIT BELOW THIS LINE, INCLUDING ALWAYS UPDATING THE CHECKLIST ----
 
 ## Implementation Checklist
+
+
+### Phase 1: Add Health Check to Search Lambda ✅
+- [ ] Add `isHealthCheckOnly` parameter to `SearchRequest` type in `packages/types/search.ts`
+- [ ] Modify search Lambda handler in `packages/search/search-lambda/search-indexed-transcripts.ts` to check for health check parameter and return early
+- [ ] Update dev server in `packages/search/search-lambda/dev-server.ts` to handle health check requests
+- [ ] Create `performHealthCheck` utility function in `packages/client/src/utils/search.ts`
+
+### Phase 2: Add Lambda Warmup Logic to React App ✅
+- [ ] Add `isLambdaWarm` state and health check logic to `packages/client/src/routes/HomePage.tsx`
+- [ ] Call health check immediately on app initialization
+- [ ] Add debouncing logic to prevent multiple health check calls
+
+### Phase 3: Create Cold Start Loader Component ✅
+- [ ] Create `packages/client/src/components/ColdStartLoader.tsx` with quote rotation functionality
+- [ ] Add constants for quote display duration (7 seconds)
+- [ ] Include the three example quotes from instructions with proper episode links
+- [ ] Style component to match app's visual design (border, shadow, etc.)
+
+### Phase 4: Integrate Cold Start Loader with Search Flow ✅
+- [ ] Modify `HomePage.tsx` to show `ColdStartLoader` when user starts typing but Lambda is not warm
+- [ ] Hide cold start loader when health check completes and real search results arrive
+- [ ] Update search triggering logic to respect Lambda warm state
+
+### Phase 5: Improve Subsequent Search Experience ✅
+- [ ] Add skeleton loading states to `packages/client/src/components/SearchResults.tsx`
+- [ ] Reorganize search info layout: stack "search time" and "hits" on left, "sort by" on right
+- [ ] Prevent search result updates while user is still typing (500ms debounce)
+- [ ] Update `packages/client/src/components/SearchControls.tsx` layout
+
+### Phase 6: Improve Minimum Character Requirement UX ✅
+- [ ] Add helper text below search input when user has less than 2 characters
+- [ ] Modify `packages/client/src/components/SearchInput.tsx` to show muted gray text
+- [ ] Update focus/blur handling for better UX
+
+### Phase 7: Add Tests ✅
+- [ ] Create Vitest spec for `ColdStartLoader.tsx` component
+- [ ] Create Vitest spec for new health check functionality
+- [ ] Test loading states and transitions
