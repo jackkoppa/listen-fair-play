@@ -4,7 +4,7 @@ import { log } from '@listen-fair-play/logging'
 import { EpisodeInManifest, EpisodeManifest, ApiSearchResultHit } from '@listen-fair-play/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
-import { PlayIcon, CaretSortIcon, MinusCircledIcon } from "@radix-ui/react-icons"
+import { CaretSortIcon, MinusCircledIcon } from "@radix-ui/react-icons"
 import { Badge } from "../components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover"
 import AudioPlayer from "../components/AudioPlayer/AudioPlayer"

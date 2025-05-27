@@ -79,11 +79,14 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Update sheet close handlers to use React Router navigation back to `/`
 - [x] Test that search query parameters coexist with episode route parameters
 
-### Phase 6: Testing and Build Configuration
-- [ ] Create Vitest test file `packages/client/src/routes/__tests__/routing.test.tsx`
-- [ ] Test navigation between routes and URL parameter handling
-- [ ] Test build process with `cd packages/client && pnpm build`
-- [ ] Verify that direct navigation to `/episode` URLs works correctly
+### (✅ COMPLETE) Phase 6: Testing and Build Configuration
+- [x] Create Vitest test file `packages/client/src/routes/__tests__/routing.test.tsx`
+- [x] Test navigation between routes and URL parameter handling
+- [x] Test build process with `cd packages/client && pnpm build`
+- [x] Verify that direct navigation to `/episode` URLs works correctly
+- [x] Install React Testing Library dependencies for component testing
+- [x] Configure Vitest with path aliases to match Vite configuration
+- [x] Exclude test files from TypeScript build configuration
 
 ### Phase 7: Final Integration and Cleanup
 - [ ] Test all existing functionality still works (search, filtering, episode loading)
