@@ -129,10 +129,10 @@ Anytime the input has less than 2 characters (focused or not)?
 - [x] Prevent search result updates while user is still typing (500ms debounce)
 - [x] Update `packages/client/src/components/SearchControls.tsx` layout
 
-### Phase 6: Improve Minimum Character Requirement UX ❌ REMAINING
-- [ ] Add helper text below search input when user has less than 2 characters
-- [ ] Modify `packages/client/src/components/SearchInput.tsx` to show muted gray text
-- [ ] Update focus/blur handling for better UX
+### Phase 6: Improve Minimum Character Requirement UX ✅ COMPLETED
+- [x] Add helper text below search input when user has less than 2 characters
+- [x] Modify `packages/client/src/components/SearchInput.tsx` to show muted gray text
+- [x] Update focus/blur handling for better UX
 
 ### Phase 7: Add Tests ❌ REMAINING
 - [ ] Create Vitest spec for `ColdStartLoader.tsx` component
