@@ -1,5 +1,22 @@
 # Instructions
 
+## UPDATE from user
+
+We have completed Phases 1-7.
+However, I'm still not happy with the jumpiness of the experience, with things sometimes briefly loading, only to then be replaced.
+So we're going to simplify it. We will only make searches when the user presses "Enter" from while in the search input, and/or clicks the magnifying glass button.
+
+Please thoroughly process all the relevant files mentioned in this doc, as well as what we've done so far. Then, write an implementation plan, starting with Phase 8 at the bottom (it may only need to be a few more phases). Then let the user review the plan before we proceed.
+
+Some notes:
+* We'll move the magnifying glass from the left of the input, to an icon <Button> on the right of the input
+* We should simplify the code *as much as possible* - we can remove debouncing, some of the complex loading logic, etc.
+    * We still have to account for `ColdStartLoader`, because a user might type a search term & hit search before we've gotten back a healthy `isLambdaWarm`. 
+    * But that's a lot less likely now, so let's also add a new check there. We'll set an estimated const, `ESTIMATED_TIME_FOR_LAMBDA_COLD_START`, starting at 10 seconds. If it's already been 10 seconds since the user first loaded the page & we kicked off the health check, don't bother showing the `ColdStartLoader` UI. We'll just let our normal loading spinner + skeleton components take care of that
+    
+
+## Original instructions (note: these have already been completed in Phases 1-7 below)
+
 We will be working on significantly improving the UX for users:
 1. First landing on the app, and performing their first search
 2. Performing subsequent searches
@@ -138,3 +155,5 @@ Anytime the input has less than 2 characters (focused or not)?
 - [x] Create Vitest spec for `ColdStartLoader.tsx` component
 - [x] Create Vitest spec for new health check functionality
 - [x] Test loading states and transitions
+
+### Phase 8 (& possibly more): Convert Search to be Only on Enter/Button Click - not as-you-type

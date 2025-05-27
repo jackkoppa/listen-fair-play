@@ -154,6 +154,10 @@ export async function handler(event: any): Promise<SearchResponse> {
 
     // If this is a health check, return early with a minimal response
     if (searchRequest.isHealthCheckOnly) {
+      // TODO: REMOVE after testing
+      // currently simulates a cold start
+      await new Promise(resolve => setTimeout(resolve, 15000));
+      
       const processingTimeMs = Date.now() - startTime;
       log.info(`Health check completed in ${processingTimeMs}ms - Lambda is now warm`);
       return {

@@ -19,6 +19,8 @@ const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://local
 
 const SEARCH_LIMIT = 50;
 
+const SEARCH_DEBOUNCE_MS = 150;
+
 /**
  * HomePage component that orchestrates the search functionality for the Football Clichés transcript search.
  * 
@@ -83,7 +85,7 @@ function HomePage() {
         }
         return newParams;
       });
-    }, 500);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(debounceTimer);
   }, [localSearchQuery]);
@@ -194,6 +196,8 @@ function HomePage() {
     if (!isLambdaWarm && trimmedQuery.length >= 2) {
       setShowColdStartLoader(true);
       log.info('[HomePage.tsx] Showing cold start loader - Lambda not yet warm');
+      // Don't proceed with search until Lambda is warm
+      return;
     }
 
     const fetchSearchResults = async () => {
@@ -244,14 +248,69 @@ function HomePage() {
   }, [searchQuery, sortOption, selectedEpisodeIds, isLambdaWarm]); 
 
   /**
-   * Hide cold start loader when Lambda becomes warm
+   * Trigger search when Lambda becomes warm and user has a pending search
    */
   useEffect(() => {
-    if (isLambdaWarm && showColdStartLoader) {
-      log.info('[HomePage.tsx] Lambda is now warm - hiding cold start loader');
+    const trimmedQuery = searchQuery.trim();
+    
+    // If Lambda just became warm and user has a valid search query, perform the search
+    if (isLambdaWarm && trimmedQuery.length >= 2 && showColdStartLoader) {
+      log.info('[HomePage.tsx] Lambda is now warm - performing pending search');
+      
+      const fetchSearchResults = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+          const data: SearchResponse = await performSearch({
+            query: trimmedQuery,
+            sortOption,
+            selectedEpisodeIds,
+            searchApiBaseUrl: SEARCH_API_BASE_URL,
+            searchLimit: SEARCH_LIMIT,
+          });
+          
+          if (data && data.hits) {
+            setSearchResults(data.hits);
+            setTotalHits(data.totalHits || 0);
+            setProcessingTimeMs(data.processingTimeMs || 0);
+          } else {
+            setSearchResults([]);
+            setTotalHits(0);
+            setProcessingTimeMs(0);
+            log.warn('[HomePage.tsx] API response did not contain .hits array or was empty:', data);
+          }
+          
+          // Hide cold start loader once we have real search results
+          setShowColdStartLoader(false);
+        } catch (e: any) {
+          log.error('[HomePage.tsx] Failed to fetch search results:', e);
+          setError(e.message || 'Failed to fetch search results. Please try again.');
+          setSearchResults([]);
+          setTotalHits(0);
+          setProcessingTimeMs(0);
+          // Hide cold start loader on error too
+          setShowColdStartLoader(false);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchSearchResults();
+    }
+  }, [isLambdaWarm, showColdStartLoader, searchQuery, sortOption, selectedEpisodeIds]);
+
+  /**
+   * Hide cold start loader when Lambda becomes warm (if no search is needed)
+   */
+  useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+    
+    if (isLambdaWarm && showColdStartLoader && trimmedQuery.length < 2) {
+      log.info('[HomePage.tsx] Lambda is now warm but no valid search query - hiding cold start loader');
       setShowColdStartLoader(false);
     }
-  }, [isLambdaWarm, showColdStartLoader]);
+  }, [isLambdaWarm, showColdStartLoader, searchQuery]);
 
   /**
    * Handle episode selection for filtering search results

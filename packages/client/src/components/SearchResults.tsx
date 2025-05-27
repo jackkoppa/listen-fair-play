@@ -45,12 +45,15 @@ export default function SearchResults({
   // Show results info and controls when there's a search query of 2+ characters
   const showResultsInfo = searchQuery.trim().length >= 2;
 
+  // round to nearest 0.001 seconds
+  const processingTimeSeconds = Number((processingTimeMs / 1000).toFixed(3));
+
   return (
     <div className="results-container">
       {showResultsInfo && (
-        <div className="results-info-and-controls flex justify-between items-start mb-4 text-sm">
+        <div className="results-info-and-controls flex justify-between items-start mb-4 text-xs">
           {/* Left side: Search time and hits info */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2 self-end">
             {isLoading ? (
               <>
                 <div className="h-4 w-32 bg-gray-200 animate-pulse rounded"></div>
@@ -59,7 +62,7 @@ export default function SearchResults({
             ) : (
               <>
                 <span className="text-gray-600">
-                  {processingTimeMs > 0 && <em>Search time: {processingTimeMs}ms</em>}
+                  {processingTimeMs > 0 && <em>Search time: {processingTimeSeconds}s</em>}
                 </span>
                 <span>
                   <em>Showing:</em> <span className="font-bold text-black">{results.length}</span>
@@ -73,8 +76,8 @@ export default function SearchResults({
           </div>
 
           {/* Right side: Sort dropdown */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold">Sort by:</label>
+          <div className="flex flex-col items-start gap-1">
+            <label className="text-xs font-semibold">Sort by</label>
             <Select value={sortOption} onValueChange={(value: SortOption) => onSortChange(value)}>
               <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
                 <SelectValue />
