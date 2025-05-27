@@ -4,6 +4,7 @@
 
 /* TODO: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
 @import "./components/AudioPlayer/AudioPlayer.css";
+@import "./components/HighlightedText.css";
 
 :root {
   --background: rgb(255, 255, 255);

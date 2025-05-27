@@ -12,6 +12,7 @@ import { PlayIcon } from "@radix-ui/react-icons";
 
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';
+import HighlightedText from './HighlightedText';
 
 export interface SearchResultProps {
   result: ApiSearchResultHit;
@@ -43,10 +44,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
   return (
     <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none gap-2">
       <CardContent>
-        <div
-          className="result-highlighted-text text-sm"
-          dangerouslySetInnerHTML={{ __html: result.highlight || result.text }}
-        />
+        <HighlightedText text={result.text} searchStringToHighlight={searchParams.get('q') || ''} />
       </CardContent>
       <CardFooter className="block">
         {episodeData && (

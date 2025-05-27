@@ -118,6 +118,9 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7
     devDependencies:
+      '@orama/highlight':
+        specifier: ^0.1.9
+        version: 0.1.9
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -1227,6 +1230,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@orama/highlight@0.1.9':
+    resolution: {integrity: sha512-eH4uZMea4R9x9vBFJyS/87oR4Y8oIKxF7e1SItJ9DhPlexZWMVZRlFYvHS1BM/563/dU240ct4ZaGHoYKiCkyQ==}
 
   '@orama/orama@3.1.7':
     resolution: {integrity: sha512-6yB0117ZjsgNevZw3LP+bkrZa9mU/POPVaXgzMPOBbBc35w2P3R+1vMMhEfC06kYCpd5bf0jodBaTkYQW5TVeQ==}
@@ -5095,6 +5101,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
+
+  '@orama/highlight@0.1.9': {}
 
   '@orama/orama@3.1.7': {}
 
