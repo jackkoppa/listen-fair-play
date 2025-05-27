@@ -91,9 +91,9 @@ Should I proceed with adding the health check using a query parameter like ?heal
 - [x] Create `performHealthCheck` utility function in `packages/client/src/utils/search.ts`
 
 ### Phase 2: Add Lambda Warmup Logic to React App ✅
-- [ ] Add `isLambdaWarm` state and health check logic to `packages/client/src/routes/HomePage.tsx`
-- [ ] Call health check immediately on app initialization
-- [ ] Add debouncing logic to prevent multiple health check calls
+- [x] Add `isLambdaWarm` state and health check logic to `packages/client/src/routes/HomePage.tsx`
+- [x] Call health check immediately on app initialization
+- [x] Add debouncing logic to prevent multiple health check calls
 
 ### Phase 3: Create Cold Start Loader Component ✅
 - [ ] Create `packages/client/src/components/ColdStartLoader.tsx` with quote rotation functionality

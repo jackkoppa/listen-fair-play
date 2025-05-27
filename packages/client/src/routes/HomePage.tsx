@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '@listen-fair-play/logging';
@@ -11,7 +11,7 @@ import AppHeader from '../components/AppHeader'
 import SearchControls, { SortOption } from '../components/SearchControls'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
-import { performSearch } from '../utils/search'
+import { performSearch, performHealthCheck } from '../utils/search'
 
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
@@ -50,9 +50,13 @@ function HomePage() {
   const [showEpisodeFilter, setShowEpisodeFilter] = useState(false);
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
+  const [isLambdaWarm, setIsLambdaWarm] = useState(false);
 
   // Local state for immediate search input updates (before URL sync)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  // Ref to track if health check has been initiated to prevent multiple calls
+  const healthCheckInitiated = useRef(false);
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
@@ -141,6 +145,32 @@ function HomePage() {
     };
 
     fetchEpisodeManifest();
+  }, []);
+
+  /**
+   * Perform health check on app initialization to warm up the Lambda
+   */
+  useEffect(() => {
+    if (healthCheckInitiated.current) {
+      return;
+    }
+
+    const performLambdaHealthCheck = async () => {
+      healthCheckInitiated.current = true;
+      
+      try {
+        log.info('[HomePage.tsx] Initiating Lambda health check to warm up search...');
+        await performHealthCheck(SEARCH_API_BASE_URL);
+        setIsLambdaWarm(true);
+        log.info('[HomePage.tsx] Lambda health check completed - Lambda is now warm');
+      } catch (e: any) {
+        log.warn('[HomePage.tsx] Lambda health check failed, but continuing normally:', e);
+        // Set as warm anyway to prevent blocking search functionality
+        setIsLambdaWarm(true);
+      }
+    };
+
+    performLambdaHealthCheck();
   }, []);
 
   /**
