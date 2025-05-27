@@ -151,3 +151,9 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
 }
+
+
+/* Added as overrides, not included in Tailwind or shadcn theme */
+@theme inline {
+  --text-xs: 10px;
+}
