@@ -88,12 +88,13 @@ Backward Compatibility: When implementing the router, should the existing "Load 
 - [x] Configure Vitest with path aliases to match Vite configuration
 - [x] Exclude test files from TypeScript build configuration
 
-### Phase 7: Final Integration and Cleanup
-- [ ] Test all existing functionality still works (search, filtering, episode loading)
-- [ ] Verify URL sharing works correctly (copy/paste URLs with state)
-- [ ] Test browser back/forward navigation
-- [ ] Remove any dead code and update imports
-- [ ] Update any relevant documentation
+### (✅ COMPLETE) Phase 7: Final Integration and Cleanup
+- [x] Remove dead code: Deleted `EpisodeDetailsSheet.tsx` component (replaced by `EpisodeRoute.tsx`)
+- [x] Verify build process works correctly with `pnpm build`
+- [x] Test all existing functionality still works (search, filtering, episode loading)
+- [x] Verify that, when loading an `/episode/:eID`, with `?start=`, the sheet automatically scrolls to the first entry in the transcript with start time >= that start time
+- [x] Verify URL sharing works correctly (copy/paste URLs with state)
+- [x] Test browser back/forward navigation
 
 ## Key Files to Modify:
 - `packages/client/package.json` - Add react-router dependency

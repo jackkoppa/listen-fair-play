@@ -26,6 +26,7 @@ function FullEpisodeTranscript({ episodeData, originalSearchResult }: {
 }) {
     const [searchEntries, setSearchEntries] = useState<SearchEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [targetEntryId, setTargetEntryId] = useState<string | null>(null);
     const selectedEntryRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -33,17 +34,39 @@ function FullEpisodeTranscript({ episodeData, originalSearchResult }: {
         setIsLoading(false);
     }, [episodeData]);
 
+    // Find the target entry to highlight and scroll to
     useEffect(() => {
-        if (!isLoading && searchEntries.length > 0 && selectedEntryRef.current && originalSearchResult) {
+        if (!isLoading && searchEntries.length > 0 && originalSearchResult) {
+            // Find the first entry with start time >= the requested start time
+            const targetEntry = searchEntries.find(entry => 
+                entry.startTimeMs >= originalSearchResult.startTimeMs
+            );
+            
+            if (targetEntry) {
+                setTargetEntryId(targetEntry.id);
+            } else {
+                // If no entry found with start time >= requested time, use the last entry
+                const lastEntry = searchEntries[searchEntries.length - 1];
+                setTargetEntryId(lastEntry?.id || null);
+            }
+        } else if (originalSearchResult && originalSearchResult.id && !originalSearchResult.id.startsWith('mock-')) {
+            // For real search results (not mock), use the original ID
+            setTargetEntryId(originalSearchResult.id);
+        }
+    }, [isLoading, searchEntries, originalSearchResult]);
+
+    // Scroll to the target entry when it's identified
+    useEffect(() => {
+        if (!isLoading && searchEntries.length > 0 && targetEntryId && selectedEntryRef.current) {
             selectedEntryRef.current.scrollIntoView({
                 behavior: 'smooth',
                 block: 'center'
             });
         }
-    }, [isLoading, searchEntries, originalSearchResult]);
+    }, [isLoading, searchEntries, targetEntryId]);
 
     function isCurrentlySelected(entry: SearchEntry) {
-        return originalSearchResult && originalSearchResult.id === entry.id;
+        return targetEntryId === entry.id;
     }
 
     return (
