@@ -14,7 +14,7 @@ export default function SearchInput({
   placeholder = "Search transcripts (min. 2 characters)..." 
 }: SearchInputProps) {
   return (
-    <div className="search-input-container mb-8 mx-[-16px] pt-4 pb-8 px-[16px] sticky top-12 flex items-center bg-gradient-to-b from-white from-85% to-transparent">
+    <div className="search-input-container mx-[-16px] pt-4 pb-8 px-[16px] sticky top-13 flex items-center bg-gradient-to-b from-white from-85% to-transparent z-10">
       <MagnifyingGlassIcon className="absolute left-6 top-1/2 transform -translate-y-4/5 h-7 w-6 text-gray-500" />
       <input
         type="text"

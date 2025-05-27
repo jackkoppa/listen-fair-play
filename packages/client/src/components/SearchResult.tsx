@@ -4,9 +4,6 @@ import { ApiSearchResultHit, EpisodeInManifest } from '@listen-fair-play/types';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

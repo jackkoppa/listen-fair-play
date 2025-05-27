@@ -44,8 +44,8 @@ export default function SearchControls({
   }
 
   return (
-    <div className="search-controls mb-6 p-4 bg-gray-50 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
-      <div className="flex flex-wrap gap-4 items-center">
+    <div className="search-controls">
+      <div className="flex flex-wrap justify-end gap-4 mb-4">
         {/* Sort Controls */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-semibold">Sort by:</label>
@@ -55,14 +55,15 @@ export default function SearchControls({
             </SelectTrigger>
             <SelectContent className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
               <SelectItem value="relevance">Relevance</SelectItem>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Episode Filter Controls */}
-        <div className="flex items-center gap-2">
+        {/* TODO: Re-enable if & when we want this in place */}
+        <div className="flex items-center gap-2 hidden">
           <Button
             variant="outline"
             size="sm"
