@@ -87,18 +87,6 @@ function HomePage() {
     });
   };
 
-  const updateSelectedEpisodeIds = (episodeIds: number[]) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (episodeIds.length > 0) {
-        newParams.set('episodes', episodeIds.join(','));
-      } else {
-        newParams.delete('episodes');
-      }
-      return newParams;
-    });
-  };
-
   /**
    * Handle scroll detection for header visual effects
    */
@@ -283,29 +271,6 @@ function HomePage() {
       performSearchRequest(trimmedQuery);
     }
   }, [sortOption, selectedEpisodeIds]);
-
-  /**
-   * Handle episode selection for filtering search results
-   */
-  const handleEpisodeSelection = (episodeId: number, isSelected: boolean) => {
-    if (isSelected) {
-      updateSelectedEpisodeIds([...selectedEpisodeIds, episodeId]);
-    } else {
-      updateSelectedEpisodeIds(selectedEpisodeIds.filter(id => id !== episodeId));
-    }
-  };
-
-  /**
-   * Clear all episode filters
-   */
-  const clearEpisodeFilters = () => {
-    updateSelectedEpisodeIds([]);
-  };
-
-  // Get available episodes for filtering (sorted by date, newest first)
-  const availableEpisodes = episodeManifest?.episodes
-    .slice()
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()) || [];
 
   return (
     <div className="app-container max-w-3xl mx-auto p-4 font-mono pt-28">

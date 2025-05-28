@@ -1,5 +1,5 @@
 import { SearchRequest, SearchResponse } from '@listen-fair-play/types';
-import { SortOption } from '../components/SearchControls';
+import { SortOption } from '../types/search';
 
 export interface SearchParams {
   query: string;
