@@ -10,7 +10,6 @@ import { S3_HOSTED_FILES_BASE_URL } from '../constants';
 import AppHeader from '../components/AppHeader'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
-import ColdStartLoader from '../components/ColdStartLoader'
 import { performSearch, performHealthCheck } from '../utils/search'
 import { SortOption } from '../types/search'
 
@@ -291,12 +290,11 @@ function HomePage() {
 
       {/* Conditionally render ColdStartLoader or SearchResults */}
       {showColdStartLoader ? (
-        <ColdStartLoader 
-          onComplete={() => {
-            setShowColdStartLoader(false);
-            log.info('[HomePage.tsx] Cold start loader manually dismissed');
-          }}
-        />
+        <div className="p-4 bg-gray-100 animate-pulse rounded text-center">
+          <p>Initializing search...</p>
+          <br/>
+          <p>Subsequent searches will be much faster</p>
+        </div>
       ) : (
         <SearchResults
           results={searchResults}
