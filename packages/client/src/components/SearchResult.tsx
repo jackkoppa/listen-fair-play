@@ -42,24 +42,23 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
   };
 
   return (
-    <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none gap-2">
+    <Card 
+      className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none gap-2 cursor-pointer hover:bg-gray-100" 
+      onClick={handleLoadHere}
+    >
       <CardContent>
         <HighlightedText className="text-sm" text={result.text} searchStringToHighlight={searchParams.get('q') || ''} />
       </CardContent>
       <CardFooter className="block">
         {episodeData && (
           <>
-            <div className="flex justify-between">
-              <div className="flex items-center flex-wrap gap-2">
+            <div className="flex flex-col mt-2">
+              <div className="flex items-center gap-2">
                 {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
                 <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
               </div>
-              <Button onClick={handleLoadHere}>
-                <PlayIcon />
-                Load Here
-              </Button>
+              <div className="text-xs text-gray-600 w-full block mt-2 italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
             </div>
-            <div className="text-xs text-gray-600 w-full block mt-4 italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
           </>
         )}
       </CardFooter>

@@ -20,10 +20,10 @@ interface ParsedSrtLine {
 const sentenceEndRegex = /[.!?]$/;
 
 // Minimum chunk duration in milliseconds
-const MIN_CHUNK_DURATION_MS = 15000;
+const MIN_CHUNK_DURATION_MS = 7000;
 
 // Maximum chunk duration in milliseconds
-const MAX_CHUNK_DURATION_MS = 30000;
+const MAX_CHUNK_DURATION_MS = 15000;
 
 export const convertSrtFileIntoSearchEntryArray = ({
     srtFileContent,

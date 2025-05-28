@@ -41,7 +41,7 @@ export default function SearchInput({
   };
 
   return (
-    <div className="search-input-container mx-[-16px] pt-3 pb-8 px-[16px] sticky top-13 flex flex-col items-center bg-gradient-to-b from-white from-85% to-transparent z-10">
+    <div className="search-input-container mx-[-16px] pt-4 pb-8 px-[16px] sticky top-13.5 flex flex-col items-center bg-gradient-to-b from-white from-85% to-transparent z-10">
       <div className="relative w-full flex gap-2">
         <input
           type="text"

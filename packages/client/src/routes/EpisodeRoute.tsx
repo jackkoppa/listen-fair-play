@@ -113,14 +113,14 @@ function FullEpisodeTranscript({
   }
 
   function getEntryClassName(entry: SearchEntry) {
-    const baseClass = 'py-2 px-4 cursor-pointer hover:bg-gray-50';
+    const baseClass = 'py-2 px-4';
 
     if (isUrlBasedTarget(entry)) {
       return baseClass + ' bg-yellow-100 border-l-4 border-yellow-500 font-bold';
     } else if (isCurrentlyPlaying(entry)) {
       return baseClass + ' bg-blue-100 border-l-4 border-blue-500 font-semibold';
     } else {
-      return baseClass + ' text-muted-foreground';
+      return baseClass + ' text-muted-foreground hover:bg-gray-100 cursor-pointer';
     }
   }
 

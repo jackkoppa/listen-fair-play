@@ -17,7 +17,7 @@ import { SortOption } from '../types/search'
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
-const SEARCH_LIMIT = 50;
+const SEARCH_LIMIT = 25;
 
 // Estimated time for Lambda cold start - if more than this time has passed since page load,
 // we won't show the ColdStartLoader and will just use normal loading states
