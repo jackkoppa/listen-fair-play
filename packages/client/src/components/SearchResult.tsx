@@ -44,7 +44,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
   return (
     <Card className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none gap-2">
       <CardContent>
-        <HighlightedText text={result.text} searchStringToHighlight={searchParams.get('q') || ''} />
+        <HighlightedText className="text-sm" text={result.text} searchStringToHighlight={searchParams.get('q') || ''} />
       </CardContent>
       <CardFooter className="block">
         {episodeData && (
