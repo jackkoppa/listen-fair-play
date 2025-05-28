@@ -6,6 +6,7 @@ interface SearchInputProps {
   onChange: (value: string) => void
   onSearch: () => void
   isLoading: boolean
+  mostRecentSuccessfulSearchQuery: string | null
 }
 
 const PLACEHOLDER_OPTIONS = [
@@ -25,6 +26,7 @@ export default function SearchInput({
   onChange, 
   onSearch,
   isLoading,
+  mostRecentSuccessfulSearchQuery,
 }: SearchInputProps) {
   const handleChange = (newValue: string) => {
     onChange(newValue);
@@ -40,8 +42,17 @@ export default function SearchInput({
     onSearch();
   };
 
+  
+  const showInteractiveButton = mostRecentSuccessfulSearchQuery !== value && value.trim().length >= 2 && !isLoading;
+  
+  // Show a more centered, larger search input on the first search, or when the user has cleared the search input
+  const showBigSearchInput = Boolean(!mostRecentSuccessfulSearchQuery);
+  const containerClassName = showBigSearchInput ? 'pt-30' : 'pt-4';
+  const inputClassName = showBigSearchInput ? 'h-16' : 'h-12';
+  const buttonClassName = showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12';
+
   return (
-    <div className="search-input-container mx-[-16px] pt-4 pb-8 px-[16px] sticky top-13.5 flex flex-col items-center bg-gradient-to-b from-white from-85% to-transparent z-10">
+    <div className={`search-input-container mx-[-16px] pb-8 px-[16px] sticky top-13.5 flex flex-col items-center bg-gradient-to-b from-white from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
       <div className="relative w-full flex gap-2">
         <input
           type="text"
@@ -49,17 +60,18 @@ export default function SearchInput({
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="search-input flex-1 py-2 px-4 border-black border-2 text-md focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none"
+          className={`search-input flex-1 py-2 px-4 border-black border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none ${inputClassName}`}
         />
         <Button
           onClick={handleSearchClick}
-          disabled={isLoading || value.trim().length < 2}
-          className="h-12 w-12 p-0 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none bg-white hover:bg-gray-100 disabled:bg-gray-200 disabled:shadow-none transition-opacity duration-200 flex items-center justify-center"
+          variant={showInteractiveButton ? 'default' : 'ghost'}
+          disabled={!showInteractiveButton}
+          className={`p-0 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${buttonClassName}`}
         >
           {isLoading ? (
             <div className="border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-2 h-5 w-5"></div>
           ) : (
-            <MagnifyingGlassIcon className="text-black size-6" />
+            <MagnifyingGlassIcon className="text-black size-8" />
           )}
         </Button>
       </div>

@@ -7,8 +7,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PlayIcon } from "@radix-ui/react-icons";
 
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';

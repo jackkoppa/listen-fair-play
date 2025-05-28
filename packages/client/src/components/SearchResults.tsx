@@ -14,6 +14,7 @@ interface SearchResultsProps {
   isLoading: boolean;
   error: string | null;
   searchQuery: string;
+  mostRecentSuccessfulSearchQuery: string | null;
   totalHits: number;
   processingTimeMs: number;
   episodeManifest: EpisodeManifest | null;
@@ -68,6 +69,7 @@ export default function SearchResults({
   isLoading,
   error,
   searchQuery,
+  mostRecentSuccessfulSearchQuery,
   totalHits,
   processingTimeMs,
   episodeManifest,
@@ -87,9 +89,13 @@ export default function SearchResults({
   // round to nearest 0.001 seconds
   const processingTimeSeconds = Number((processingTimeMs / 1000).toFixed(3));
 
+  // Only show this banner area once we've had a successful search
+  const showResultsInfo = Boolean(mostRecentSuccessfulSearchQuery);
+
   return (
     <div className="results-container">
-      <div className="results-info-and-controls flex justify-between items-start mb-4 text-xs sm:text-[12px]">
+      {showResultsInfo && (
+        <div className="results-info-and-controls flex justify-between items-start mb-4 text-xs sm:text-[12px]">
         {/* Left side: Search time and hits info */}
         <SearchTimeAndResultCount
           isLoading={isLoading}
@@ -99,8 +105,8 @@ export default function SearchResults({
         />
 
         {/* Right side: Sort dropdown */}
-        <div className="flex items-start gap-1 sm:gap-2">
-          <label className="font-semibold text-right">Sort<br/>by</label>
+        <div className="flex items-start gap-2">
+          <label className="font-bold text-right">Sort<br/>by</label>
           <Select value={sortOption} onValueChange={(value: SortOption) => onSortChange(value)}>
             <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
               <SelectValue />
@@ -111,8 +117,9 @@ export default function SearchResults({
               <SelectItem value="oldest">Oldest</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {isLoading && !error ? (
         <div className="loading-skeleton space-y-6">
