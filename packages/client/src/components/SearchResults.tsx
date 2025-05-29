@@ -38,15 +38,15 @@ const SearchTimeAndResultCount = ({
 }: SearchTimeAndResultCountProps) => {
   return (
     <div className="flex flex-col gap-2 self-end">
-      <span className="text-gray-600">
+      <span className="text-muted-foreground">
         {isLoading ? (
           <em>Search time: <div className="h-3 w-12 bg-gray-200 animate-pulse rounded inline-block align-middle"></div></em>
         ) : (
           processingTimeSeconds > 0 && <em>Search time: {processingTimeSeconds}s</em>
         )}
       </span>
-      <span>
-        <em>Showing:</em> <span className="font-bold text-black">
+      <span className="text-foreground">
+        <em>Showing:</em> <span className="font-bold">
           {isLoading ? (
             <div className="h-3 w-10 bg-gray-200 animate-pulse rounded inline-block align-middle"></div>
           ) : (
@@ -105,13 +105,13 @@ export default function SearchResults({
         />
 
         {/* Right side: Sort dropdown */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 text-foreground">
           <label className="font-bold text-right">Sort<br/>by</label>
           <Select value={sortOption} onValueChange={(value: SortOption) => onSortChange(value)}>
-            <SelectTrigger className="w-32 border-black border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
+            <SelectTrigger className="w-32 border-foreground border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+            <SelectContent className="border-foreground border-2 shadow-sm rounded-none">
               <SelectItem value="relevance">Relevance</SelectItem>
               <SelectItem value="newest">Newest</SelectItem>
               <SelectItem value="oldest">Oldest</SelectItem>
@@ -124,7 +124,7 @@ export default function SearchResults({
       {isLoading && !error ? (
         <div className="loading-skeleton space-y-6">
           {[...Array(3)].map((_, index) => (
-            <div key={index} className="border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none p-4">
+            <div key={index} className="border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="h-4 w-16 bg-gray-200 animate-pulse rounded"></div>
                 <div className="h-4 w-20 bg-gray-200 animate-pulse rounded"></div>
@@ -148,7 +148,7 @@ export default function SearchResults({
           ))}
         </ul>
       ) : searchQuery.trim().length >= 2 && !error ? (
-        <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+        <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
           No results found for "{searchQuery}". Try a different term, perhaps something more pedantic?
         </p>
       ) : null}

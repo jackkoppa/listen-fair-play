@@ -1,5 +1,6 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface SearchInputProps {
   value: string
@@ -52,26 +53,26 @@ export default function SearchInput({
   const buttonClassName = showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12';
 
   return (
-    <div className={`search-input-container mx-[-16px] pb-8 px-[16px] sticky top-13.5 flex flex-col items-center bg-gradient-to-b from-white from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
+    <div className={`mx-[-16px] text-card-foreground pb-8 px-[16px] sticky top-13.5 flex flex-col items-center bg-gradient-to-b from-background from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
       <div className="relative w-full flex gap-2">
-        <input
+        <Input
           type="text"
           placeholder={placeholder}
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`text-[16px]search-input flex-1 py-2 px-4 border-black border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none ${inputClassName}`}
+          className={`text-md shadow-sm ${inputClassName}`}
         />
         <Button
           onClick={handleSearchClick}
           variant={showInteractiveButton ? 'default' : 'ghost'}
           disabled={!showInteractiveButton}
-          className={`p-0 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${buttonClassName}`}
+          className={`p-0 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${buttonClassName}`}
         >
           {isLoading ? (
             <div className="border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-2 h-5 w-5"></div>
           ) : (
-            <MagnifyingGlassIcon className="text-black size-8" />
+            <MagnifyingGlassIcon className="text-foreground size-8" />
           )}
         </Button>
       </div>

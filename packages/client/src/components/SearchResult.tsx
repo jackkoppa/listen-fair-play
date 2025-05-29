@@ -41,7 +41,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
 
   return (
     <Card 
-      className="result-item mb-4 border-black border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none gap-2 cursor-pointer hover:bg-gray-100" 
+      className="mb-4 border-foreground border-2 gap-2 cursor-pointer hover:bg-muted" 
       onClick={handleLoadHere}
     >
       <CardContent>
@@ -55,7 +55,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
                 {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
                 <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
               </div>
-              <div className="text-xs text-gray-600 w-full block mt-2 italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
+              <div className="text-xs text-muted-foreground w-full block mt-2 italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
             </div>
           </>
         )}
