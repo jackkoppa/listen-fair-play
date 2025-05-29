@@ -6,6 +6,14 @@
 @import "./components/AudioPlayer/AudioPlayer.css";
 @import "./components/HighlightedText.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom colors for the app, can reference if something should stay the same regardless of light/dark mode */
+:root {
+  --lfp-yellow: rgb(253, 241, 0);
+  --lfp-blue: rgb(30, 92, 183);
+}
+
 :root {
   --background: rgb(255, 255, 255);
   --foreground: rgb(0, 0, 0);
@@ -14,12 +22,12 @@
   --popover: rgb(255, 255, 255);
   --popover-foreground: rgb(0, 0, 0);
   --primary: rgb(255, 51, 51);
-  --secondary: rgb(253, 241, 0); /* Match assets/site.webmanifest - "theme_color": "#fdf100" */
+  --secondary: var(--lfp-yellow); /* Match hooks/useTheme.ts - for `light` theme */
   --primary-foreground: rgb(255, 255, 255);
   --secondary-foreground: rgb(0, 0, 0);
   --muted: rgb(240, 240, 240);
   --muted-foreground: rgb(51, 51, 51);
-  --accent: rgb(30, 92, 183); /* Match assets/site.webmanifest - "background_color": "#1e5cb7" */
+  --accent: var(--lfp-blue); /* Match hooks/useTheme.ts - for `dark` theme */
   --accent-foreground: rgb(255, 255, 255);
   --destructive: rgb(0, 0, 0);
   --destructive-foreground: rgb(255, 255, 255);
@@ -27,15 +35,15 @@
   --input: rgb(0, 0, 0);
   --ring: rgb(255, 51, 51);
   --chart-1: rgb(255, 51, 51);
-  --chart-2: rgb(253, 241, 0);
-  --chart-3: rgb(30, 92, 183);
+  --chart-2: var(--lfp-yellow);
+  --chart-3: var(--lfp-blue);
   --chart-4: rgb(0, 204, 0);
   --chart-5: rgb(204, 0, 204);
   --sidebar: rgb(240, 240, 240);
   --sidebar-foreground: rgb(0, 0, 0);
   --sidebar-primary: rgb(255, 51, 51);
   --sidebar-primary-foreground: rgb(255, 255, 255);
-  --sidebar-accent: rgb(30, 92, 183);
+  --sidebar-accent: var(--lfp-blue);
   --sidebar-accent-foreground: rgb(255, 255, 255);
   --sidebar-border: rgb(0, 0, 0);
   --sidebar-ring: rgb(255, 51, 51);
@@ -62,7 +70,7 @@
   --popover-foreground: rgb(255, 255, 255);
   --primary: rgb(255, 102, 102);
   --primary-foreground: rgb(0, 0, 0);
-  --secondary: rgb(253, 241, 0);
+  --secondary: var(--lfp-yellow);
   --secondary-foreground: rgb(0, 0, 0);
   --muted: rgb(51, 51, 51);
   --muted-foreground: rgb(204, 204, 204);
@@ -74,7 +82,7 @@
   --input: rgb(255, 255, 255);
   --ring: rgb(255, 102, 102);
   --chart-1: rgb(255, 102, 102);
-  --chart-2: rgb(253, 241, 0);
+  --chart-2: var(--lfp-yellow);
   --chart-3: rgb(51, 153, 255);
   --chart-4: rgb(51, 204, 51);
   --chart-5: rgb(204, 51, 204);
@@ -157,4 +165,10 @@
 /* Added as overrides, not included in Tailwind or shadcn theme */
 @theme inline {
   --text-xs: 10px;
+
+  --color-lfp-yellow: var(--lfp-yellow);
+  --color-lfp-blue: var(--lfp-blue);
+
+  /* Specific new vars not neatly covered by existing Tailwind theme */
+  --color-dark-mode-muted-highlight: rgb(30, 30, 30);
 }

@@ -14,7 +14,7 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-20 bg-secondary border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-in-out ${scrolled ? 'py-2' : 'py-4'}`}>
+    <header className={`fixed text-foreground top-0 left-0 right-0 z-20 bg-lfp-yellow dark:bg-lfp-blue border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)] transition-all duration-300 ease-in-out ${scrolled ? 'py-2' : 'py-4'}`}>
       <div className="max-w-3xl mx-auto px-6 flex justify-between items-center">
         {/* Left: Hamburger Menu */}
         <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
@@ -22,12 +22,12 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
             <Button 
               variant="ghost" 
               size="icon"
-              className={`transition-all duration-200 ${scrolled ? 'size-8' : 'size-10'}`}
+              className={`cursor-pointer transition-all duration-200 ${scrolled ? 'size-8' : 'size-10'}`}
             >
               <HamburgerMenuIcon className={`transition-all duration-200 ${scrolled ? 'size-5' : 'size-6'}`} />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 sm:max-w-80">
+          <SheetContent side="left" className="w-80 sm:max-w-80 font-mono">
             <SheetHeader>
               <SheetTitle>Menu</SheetTitle>
               <SheetDescription>
@@ -108,10 +108,10 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
 
         {/* Right: Title and Subtitle */}
         <div className="text-right flex-1 ml-4">
-          <h1 className={`font-bold text-secondary-foreground transition-all duration-200 ${scrolled ? 'text-xl mb-0' : 'text-2xl mb-1'}`}>
+          <h1 className={`font-bold transition-all duration-200 ${scrolled ? 'text-xl mb-0' : 'text-2xl mb-1'}`}>
             Listen, Fair Play
           </h1>
-          <p className={`text-xs text-secondary-foreground italic transition-all duration-200 ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
+          <p className={`text-xs italic transition-all duration-200 ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
             search the <a href="https://podfollow.com/new-football-cliches" className="underline" target="_blank" rel="noopener noreferrer">Football Clichés</a> record books
           </p>
         </div>

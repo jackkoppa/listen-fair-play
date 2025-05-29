@@ -19,6 +19,9 @@ export function useTheme() {
     
     // Add the current theme class
     root.classList.add(theme)
+
+    // set PWA theme color
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#1e5cb7' : '#fdf100')
     
     // Store in localStorage
     localStorage.setItem('theme', theme)

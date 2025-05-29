@@ -277,7 +277,7 @@ function HomePage() {
   }, [sortOption, selectedEpisodeIds]);
 
   return (
-    <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-28">
+    <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-28 min-h-screen">
       <AppHeader scrolled={scrolled} />
 
       <SearchInput

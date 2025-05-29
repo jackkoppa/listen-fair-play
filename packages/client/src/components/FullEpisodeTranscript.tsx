@@ -110,9 +110,18 @@ export default function FullEpisodeTranscript({
         } else if (isCurrentlyPlaying(entry)) {
             return baseClass + ' bg-blue-100 border-l-4 border-blue-500 font-semibold';
         } else {
-            return baseClass + ' text-muted-foreground hover:bg-gray-100 cursor-pointer';
+            return baseClass + ' text-muted-foreground hover:bg-muted cursor-pointer';
         }
     }
+
+    function getBadgeClassName(entry: SearchEntry) {
+        const baseClass = 'my-1';
+        if (isUrlBasedTarget(entry) || isCurrentlyPlaying(entry)) {
+            return baseClass + ' dark:text-background';
+        }
+        return baseClass;
+    }
+
 
     function getEntryRef(entry: SearchEntry) {
         if (isCurrentlyPlaying(entry)) {
@@ -136,7 +145,7 @@ export default function FullEpisodeTranscript({
                             className={getEntryClassName(entry)}
                             onClick={() => onEntryClick(entry)}
                         >
-                            <Badge variant="outline" className="my-1"><em>{formatMillisecondsToMMSS(entry.startTimeMs)} - {formatMillisecondsToMMSS(entry.endTimeMs)}</em></Badge>
+                            <Badge variant="outline" className={getBadgeClassName(entry)}><em>{formatMillisecondsToMMSS(entry.startTimeMs)} - {formatMillisecondsToMMSS(entry.endTimeMs)}</em></Badge>
                             <p className="text-sm">{entry.text}</p>
                         </div>
                     ))}

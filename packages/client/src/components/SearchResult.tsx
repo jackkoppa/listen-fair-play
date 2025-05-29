@@ -41,7 +41,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData }) => {
 
   return (
     <Card 
-      className="mb-4 border-foreground border-2 gap-2 cursor-pointer hover:bg-muted" 
+      className="mb-4 border-foreground border-2 gap-2 cursor-pointer hover:bg-muted dark:hover:bg-dark-mode-muted-highlight" 
       onClick={handleLoadHere}
     >
       <CardContent>

@@ -253,7 +253,7 @@ export default function EpisodeRoute() {
   return (
     <Sheet open={true} onOpenChange={handleOpenChange}>
       <SheetContent className="font-mono overflow-y-auto w-[90%] md:w-140 lg:w-180 max-w-[90%] md:max-w-140 lg:max-w-180">
-        <SheetHeader className="sticky top-0 bg-gradient-to-b from-white from-85% to-transparent pb-4">
+        <SheetHeader className="sticky top-0 bg-gradient-to-b from-background from-85% to-transparent pb-4">
           <EpisodeDetailsHeaderControls
             formattedPublishedAt={formattedPublishedAt}
             summary={summary}
