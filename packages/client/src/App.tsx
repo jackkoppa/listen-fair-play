@@ -1,11 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router'
 import HomePage from './routes/HomePage'
 import EpisodeRoute from './routes/EpisodeRoute'
+import { log } from '@listen-fair-play/logging'
+import { useTheme } from './hooks/useTheme'
 
 /**
  * Main App component that sets up routing configuration.
  */
 function App() {
+  const { theme } = useTheme()
+  log.info('theme', { theme })
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />}>

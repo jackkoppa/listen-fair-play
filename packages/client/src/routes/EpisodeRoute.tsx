@@ -15,6 +15,7 @@ import FullEpisodeTranscript from '../components/FullEpisodeTranscript'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatDate } from '@/utils/date'
 import { formatMillisecondsToMMSS } from '@/utils/time'
+import { useAudioSource } from '@/hooks/useAudioSource'
 
 // Add a simple check for whether this is iOS or Mac, vs anything else:
 const isIOSOrMac = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -71,7 +72,7 @@ function EpisodeDetailsHeaderControls({
         <PopoverTrigger>
           <Button variant="link" size="icon" className="cursor-pointer">{isIOSOrMac ? <Share2Icon className="size-6" /> : <Share1Icon className="size-6" />}</Button>
         </PopoverTrigger>
-        <PopoverContent align="center" side="bottom" className="w-70 p-2 mr-4">
+        <PopoverContent align="center" side="bottom" className="w-70 p-2 mr-4 font-mono">
           {copySuccess ? (
             <div className="text-green-600 font-bold flex items-center gap-2 justify-center text-md"><CheckCircledIcon /> Share link copied!</div>
           ) : (
@@ -116,6 +117,7 @@ export default function EpisodeRoute() {
   const navigate = useNavigate()
   const startTime = searchParams.get('start')
   const startTimeMs = startTime ? Number(startTime) : null
+  const { audioSource } = useAudioSource()
 
   const [episodeData, setEpisodeData] = useState<EpisodeInManifest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -237,16 +239,18 @@ export default function EpisodeRoute() {
     )
   }
 
-  const { title, summary, publishedAt } = episodeData
+  const { title, summary, publishedAt, originalAudioURL } = episodeData
   const formattedPublishedAt = publishedAt ? formatDate(publishedAt) : null
 
+  let baseAudioUrl = ''
+  if (audioSource === 'rssFeedURL') {
+    // Use the .mp3 file from the RSS feed
+    baseAudioUrl = originalAudioURL
+  } else {
+    // Use the .mp3 file from the S3 bucket, that was used to generate the transcript
+    baseAudioUrl = `${S3_HOSTED_FILES_BASE_URL}audio/${episodeData.podcastId}/${episodeData.fileKey}.mp3`
+  }
 
-  /**
-   * Potential future enhancement: allow users to toggle between the original (RSS-feed-provided) .mp3,
-   * and the audio used to generate the transcript.
-   * For now: always load the .mp3 used to generate the transcript, to guarantee timestamps match up correctly.
-   */
-  const baseAudioUrl = `${S3_HOSTED_FILES_BASE_URL}audio/${episodeData.podcastId}/${episodeData.fileKey}.mp3`
   /** Create audio URL with start time if available */
   const audioUrlToLoad = startTimeMs ? `${baseAudioUrl}#t=${formatMillisecondsToMMSS(startTimeMs)}` : baseAudioUrl
 
