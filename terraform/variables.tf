@@ -52,3 +52,15 @@ variable "enable_custom_domain_on_cloudfront" {
   type        = bool
   default     = false
 }
+
+variable "enable_search_lambda_warming" {
+  description = "Whether to enable scheduled warming of the search lambda to reduce cold starts"
+  type        = bool
+  default     = false
+}
+
+variable "search_lambda_warming_schedule" {
+  description = "Schedule expression for search lambda warming (e.g., 'rate(10 minutes)' or 'cron(*/7 * * * ? *)')"
+  type        = string
+  default     = "rate(10 minutes)"
+}

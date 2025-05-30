@@ -228,6 +228,17 @@ module "search_lambda" {
   lambda_architecture  = ["arm64"]
 }
 
+# EventBridge schedule for search lambda warming (conditional)
+module "search_lambda_warming_schedule" {
+  count  = var.enable_search_lambda_warming ? 1 : 0
+  source = "./modules/eventbridge"
+  
+  schedule_name        = "search-lambda-warming"
+  schedule_expression  = var.search_lambda_warming_schedule
+  lambda_function_arn  = module.search_lambda.lambda_function_arn
+  environment          = var.environment
+}
+
 # API Gateway for Search Lambda
 resource "aws_apigatewayv2_api" "search_api" {
   name          = "search-transcripts-api-${var.environment}"

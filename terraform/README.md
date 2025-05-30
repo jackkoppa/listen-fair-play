@@ -16,6 +16,23 @@ The infrastructure consists of the following components:
 4. **API Gateway**: Provides an HTTP endpoint for the search Lambda
 5. **EventBridge Scheduler**: Triggers the RSS Lambda function daily
 
+## Search Lambda Warming
+
+To improve user experience by reducing cold start delays, the search Lambda can be configured with an automated warming schedule:
+
+- **Purpose**: Keeps the search Lambda warm by invoking it periodically
+- **Benefits**: Eliminates 10+ second cold start delays for the first search query
+- **Configuration**: Controlled by the `enable_search_lambda_warming` variable
+- **Schedule**: Configurable via `search_lambda_warming_schedule` (default: every 10 minutes)
+- **Cost**: Minimal additional Lambda invocations vs. significant UX improvement
+
+To enable lambda warming:
+1. Set `enable_search_lambda_warming = true` in your `.tfvars` file
+2. Optionally adjust `search_lambda_warming_schedule` (e.g., `"rate(5 minutes)"` or `"cron(*/7 * * * ? *)"`)
+3. Deploy with `terraform apply`
+
+To disable: set `enable_search_lambda_warming = false` and redeploy.
+
 ## Environment Strategy
 
 To minimize costs and match expected usage patterns:

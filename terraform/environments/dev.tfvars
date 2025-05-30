@@ -6,3 +6,6 @@ custom_domain_name              = "listenfairplay.com"
 root_domain_name                = "listenfairplay.com"
 enable_custom_domain_on_cloudfront = true
 # openai_api_key = "sk-..." # Don't store this in the file, use environment variable or AWS Secrets Manager 
+
+# Enable search lambda warming for dev environment
+enable_search_lambda_warming = true 
