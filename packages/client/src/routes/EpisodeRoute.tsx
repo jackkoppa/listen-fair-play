@@ -60,16 +60,18 @@ function EpisodeDetailsHeaderControls({
     <div className="flex flex-row gap-2 items-center">
       <Badge variant="destructive">{formattedPublishedAt}</Badge>
       <Popover onOpenChange={setIsDescriptionOpen}>
-        <PopoverTrigger className="cursor-pointer -mt-1">
-          <Badge variant="outline" className="hover:bg-accent hover:text-accent-foreground">
-            Summary
-            {isDescriptionOpen ? <MinusCircledIcon /> : <CaretSortIcon />}
-          </Badge>
+        <PopoverTrigger asChild>
+          <div className="cursor-pointer -mt-1">
+            <Badge variant="outline" className="hover:bg-accent hover:text-accent-foreground">
+              Summary
+              {isDescriptionOpen ? <MinusCircledIcon /> : <CaretSortIcon />}
+            </Badge>
+          </div>
         </PopoverTrigger>
         <PopoverContent align="center" side="bottom" className="text-sm"><em>{summary}</em></PopoverContent>
       </Popover>
       <Popover open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <PopoverTrigger>
+        <PopoverTrigger asChild>
           <Button variant="link" size="icon" className="cursor-pointer">{isIOSOrMac ? <Share2Icon className="size-6" /> : <Share1Icon className="size-6" />}</Button>
         </PopoverTrigger>
         <PopoverContent align="center" side="bottom" className="w-70 p-2 mr-4 font-mono">
@@ -278,6 +280,7 @@ export default function EpisodeRoute() {
             />
           </div>
           <SheetDescription>
+            Episode transcript with audio playback. Use the player controls to navigate through the episode.
           </SheetDescription>
         </SheetHeader>
         <FullEpisodeTranscript

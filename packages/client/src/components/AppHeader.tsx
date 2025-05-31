@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { Button } from '../components/ui/button'
 import ResponsiveDrawerOrDialog from './ResponsiveDrawerOrDialog'
 import { ThemeToggle } from './ThemeToggle'
@@ -7,17 +8,10 @@ import BlueskyLogo from '../icons/bluesky-logo.svg'
 import { InfoCircledIcon, GitHubLogoIcon, GearIcon } from '@radix-ui/react-icons'
 import { AudioSourceSelect } from './AudioSourceSelect'
 
-
 function InfoDrawer() {
-  const childTrigger = (
-    <Button variant="ghost" size="icon">
-      <InfoCircledIcon className="size-6" />
-    </Button>
-  )
-
   return (
     <ResponsiveDrawerOrDialog
-      childTrigger={childTrigger}
+      iconTrigger={<InfoCircledIcon className="size-6" />}
       title="About"
       description="About the application"
       descriptionHidden={true}
@@ -48,15 +42,10 @@ function InfoDrawer() {
 }
 
 function SettingsDrawer() {
-  const childTrigger = (
-    <Button variant="ghost" size="icon">
-      <GearIcon className="size-6" />
-    </Button>
-  )
 
   return (
     <ResponsiveDrawerOrDialog 
-      childTrigger={childTrigger} 
+      iconTrigger={<GearIcon className="size-6" />}
       title="Settings" 
       description="App settings and information"
       descriptionHidden={true}
