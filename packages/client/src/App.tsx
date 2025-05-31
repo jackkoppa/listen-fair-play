@@ -9,7 +9,6 @@ import { useTheme } from './hooks/useTheme'
  */
 function App() {
   const { theme } = useTheme()
-  log.info('theme', { theme })
 
   return (
     <Routes>
