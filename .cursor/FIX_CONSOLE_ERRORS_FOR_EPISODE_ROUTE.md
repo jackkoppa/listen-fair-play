@@ -10,7 +10,7 @@
 - Enhanced the descriptions to be meaningful for screen readers
 - Files modified: `packages/client/src/routes/EpisodeRoute.tsx`
 
-### 2. Fixed Nested Button Issue
+### 2. Fixed Nested Button Issue in AudioPlayer
 **Issue**: `<button> cannot be a descendant of <button>` causing hydration errors in AudioPlayer.
 
 **Root Cause**: The `react-h5-audio-player` library wraps custom icons in its own `<button>` elements, but we were passing `Button` components (which render as `<button>` elements) as the custom icons.
@@ -21,7 +21,17 @@
 - Changed `PlayButton` and `PauseButton` to `PlayIconElement` and `PauseIconElement`
 - Files modified: `packages/client/src/components/AudioPlayer/AudioPlayer.tsx`
 
-### 3. Created VisuallyHidden Component
+### 3. Fixed Nested Button Issue in Share Popover
+**Issue**: `<button> cannot be a descendant of <button>` in the share functionality popover.
+
+**Root Cause**: `PopoverTrigger` renders as a `<button>` by default, but we were placing a `Button` component inside it, creating nested buttons.
+
+**Solution**:
+- Added `asChild` prop to `PopoverTrigger` so it doesn't render its own button element
+- The child `Button` component now becomes the actual trigger element
+- Files modified: `packages/client/src/routes/EpisodeRoute.tsx` (line 69)
+
+### 4. Created VisuallyHidden Component
 **Created**: `packages/client/src/components/ui/visually-hidden.tsx`
 - Added for potential future use when hiding dialog titles while maintaining accessibility
 - Uses standard sr-only classes for screen reader accessibility
@@ -29,11 +39,12 @@
 ## Testing Results
 - ✅ TypeScript build passes without errors
 - ✅ Development server starts successfully
-- ✅ No more nested button warnings
+- ✅ No more nested button warnings (AudioPlayer fixed)
+- ✅ No more nested button warnings (Share Popover fixed)
 - ✅ No more DialogContent accessibility warnings
 
 ## Key Files Modified
-1. `packages/client/src/routes/EpisodeRoute.tsx` - Added proper SheetDescription for accessibility
+1. `packages/client/src/routes/EpisodeRoute.tsx` - Added proper SheetDescription for accessibility + fixed share popover nested button
 2. `packages/client/src/components/AudioPlayer/AudioPlayer.tsx` - Fixed nested button issue
 3. `packages/client/src/components/ui/visually-hidden.tsx` - Created new component (unused but available)
 

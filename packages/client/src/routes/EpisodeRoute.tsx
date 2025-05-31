@@ -67,7 +67,7 @@ function EpisodeDetailsHeaderControls({
         <PopoverContent align="center" side="bottom" className="text-sm"><em>{summary}</em></PopoverContent>
       </Popover>
       <Popover open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <PopoverTrigger>
+        <PopoverTrigger asChild>
           <Button variant="link" size="icon" className="cursor-pointer">{isIOSOrMac ? <Share2Icon className="size-6" /> : <Share1Icon className="size-6" />}</Button>
         </PopoverTrigger>
         <PopoverContent align="center" side="bottom" className="w-70 p-2 mr-4 font-mono">
