@@ -185,9 +185,6 @@ export default function EpisodeRoute() {
       navigate(queryString ? `/?${queryString}` : '/')
     }
   }
-  const handleCloseButton = () => {
-    handleOpenChange(false)
-  }
 
   const handleListen = (currentTimeMs: number) => {
     // Only track current playing time if user has interacted with the audio
@@ -215,6 +212,12 @@ export default function EpisodeRoute() {
     return (
       <Sheet open={true} onOpenChange={handleOpenChange}>
         <SheetContent className="font-mono overflow-y-auto w-[350px]">
+          <SheetHeader>
+            <SheetTitle>Loading Episode</SheetTitle>
+            <SheetDescription>
+              Please wait while the episode data is being loaded.
+            </SheetDescription>
+          </SheetHeader>
           <div className="flex items-center justify-center h-32">
             <p>Loading episode...</p>
           </div>
@@ -228,6 +231,12 @@ export default function EpisodeRoute() {
     return (
       <Sheet open={true} onOpenChange={handleOpenChange}>
         <SheetContent className="font-mono overflow-y-auto w-[350px]">
+          <SheetHeader>
+            <SheetTitle>Error Loading Episode</SheetTitle>
+            <SheetDescription>
+              {error || 'Episode not found'}. Please try again or go back to the home page.
+            </SheetDescription>
+          </SheetHeader>
           <div className="flex items-center justify-center h-32">
             <div className="text-center">
               <p className="text-red-600 mb-2">Error loading episode</p>
@@ -277,6 +286,7 @@ export default function EpisodeRoute() {
             />
           </div>
           <SheetDescription>
+            Episode audio player and transcript for {title}. Published on {formattedPublishedAt}.
           </SheetDescription>
         </SheetHeader>
         <FullEpisodeTranscript

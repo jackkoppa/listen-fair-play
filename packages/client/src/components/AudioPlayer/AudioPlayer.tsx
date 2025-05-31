@@ -1,28 +1,19 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import AudioPlayerH5, { RHAP_UI } from 'react-h5-audio-player';
 import { PlayIcon, PauseIcon } from '@radix-ui/react-icons';
-import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 
-// Custom play/pause button components
-const PlayButton = (
-  <Button
-    variant="default"
-    size="icon"
-    className='absolute top-0 left-0'
-  >
-    <PlayIcon />
-  </Button>
+// Custom play/pause icon elements (NOT buttons - the library will wrap them in buttons)
+const PlayIconElement = (
+  <div className="flex items-center justify-center w-5 h-5">
+    <PlayIcon className="w-4 h-4" />
+  </div>
 );
 
-const PauseButton = (
-  <Button
-    variant="destructive"
-    size="icon"
-    className='absolute top-0 left-0'
-  >
-    <PauseIcon />
-  </Button>
+const PauseIconElement = (
+  <div className="flex items-center justify-center w-5 h-5">
+    <PauseIcon className="w-4 h-4" />
+  </div>
 );
 
 interface AudioPlayerProps {
@@ -99,8 +90,8 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         customVolumeControls={[]}
         customAdditionalControls={[]}
         customIcons={{
-          play: PlayButton,
-          pause: PauseButton,
+          play: PlayIconElement,
+          pause: PauseIconElement,
         }}
         loop={false}
         muted={false}

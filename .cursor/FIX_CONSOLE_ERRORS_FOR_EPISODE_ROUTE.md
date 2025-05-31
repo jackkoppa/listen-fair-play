@@ -1,5 +1,41 @@
 # Implementation plan / things the agent has tried / most relevant files
 
+## COMPLETED FIXES ✅
+
+### 1. Fixed Dialog Accessibility Warnings
+**Issue**: `DialogContent` requires a `DialogTitle` and either a `Description` or `aria-describedby` for accessibility.
+
+**Solution**: 
+- Added proper `SheetDescription` content to all Sheet states (loading, error, and success)
+- Enhanced the descriptions to be meaningful for screen readers
+- Files modified: `packages/client/src/routes/EpisodeRoute.tsx`
+
+### 2. Fixed Nested Button Issue
+**Issue**: `<button> cannot be a descendant of <button>` causing hydration errors in AudioPlayer.
+
+**Root Cause**: The `react-h5-audio-player` library wraps custom icons in its own `<button>` elements, but we were passing `Button` components (which render as `<button>` elements) as the custom icons.
+
+**Solution**:
+- Replaced `Button` components with simple `div` elements containing the icons
+- Removed the `Button` import from AudioPlayer.tsx
+- Changed `PlayButton` and `PauseButton` to `PlayIconElement` and `PauseIconElement`
+- Files modified: `packages/client/src/components/AudioPlayer/AudioPlayer.tsx`
+
+### 3. Created VisuallyHidden Component
+**Created**: `packages/client/src/components/ui/visually-hidden.tsx`
+- Added for potential future use when hiding dialog titles while maintaining accessibility
+- Uses standard sr-only classes for screen reader accessibility
+
+## Testing Results
+- ✅ TypeScript build passes without errors
+- ✅ Development server starts successfully
+- ✅ No more nested button warnings
+- ✅ No more DialogContent accessibility warnings
+
+## Key Files Modified
+1. `packages/client/src/routes/EpisodeRoute.tsx` - Added proper SheetDescription for accessibility
+2. `packages/client/src/components/AudioPlayer/AudioPlayer.tsx` - Fixed nested button issue
+3. `packages/client/src/components/ui/visually-hidden.tsx` - Created new component (unused but available)
 
 **AGENTS: EDIT ABOVE THIS LINE***
 
@@ -30,896 +66,62 @@ sheet.tsx:56 `DialogContent` requires a `DialogTitle` for the component to be ac
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:318
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17478
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-commitHookEffectListMount @ react-dom_client.js?v=de81efb1:8460
-commitHookPassiveMountEffects @ react-dom_client.js?v=de81efb1:8518
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9887
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9899
-flushPassiveEffects @ react-dom_client.js?v=de81efb1:11302
-flushPendingEffects @ react-dom_client.js?v=de81efb1:11276
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11250
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<TitleWarning>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:258
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:158
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-DialogContent @ chunk-CLA2R4FN.js?v=de81efb1:145
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DialogContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-SheetContent @ sheet.tsx:56
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<SheetContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeRoute @ EpisodeRoute.tsx:217
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeRoute>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-App @ App.tsx:16
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<App>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-(anonymous) @ main.tsx:10Understand this error
+
 sheet.tsx:56 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:332
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17478
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-commitHookEffectListMount @ react-dom_client.js?v=de81efb1:8460
-commitHookPassiveMountEffects @ react-dom_client.js?v=de81efb1:8518
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9887
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9881
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9984
-recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=de81efb1:9868
-commitPassiveMountOnFiber @ react-dom_client.js?v=de81efb1:9899
-flushPassiveEffects @ react-dom_client.js?v=de81efb1:11302
-flushPendingEffects @ react-dom_client.js?v=de81efb1:11276
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11250
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DescriptionWarning>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:259
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:158
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-DialogContent @ chunk-CLA2R4FN.js?v=de81efb1:145
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DialogContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-SheetContent @ sheet.tsx:56
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<SheetContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeRoute @ EpisodeRoute.tsx:217
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeRoute>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-App @ App.tsx:16
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<App>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-(anonymous) @ main.tsx:10Understand this warning
 sheet.tsx:56 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
 
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:318
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17478
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-commitHookEffectListMount @ react-dom_client.js?v=de81efb1:8460
-commitHookPassiveMountEffects @ react-dom_client.js?v=de81efb1:8518
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10016
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10054
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10054
-doubleInvokeEffectsOnFiber @ react-dom_client.js?v=de81efb1:11461
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1487
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11432
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11469
-flushPassiveEffects @ react-dom_client.js?v=de81efb1:11309
-flushPendingEffects @ react-dom_client.js?v=de81efb1:11276
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11250
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<TitleWarning>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:258
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:158
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-DialogContent @ chunk-CLA2R4FN.js?v=de81efb1:145
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DialogContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-SheetContent @ sheet.tsx:56
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<SheetContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeRoute @ EpisodeRoute.tsx:217
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeRoute>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-App @ App.tsx:16
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<App>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-(anonymous) @ main.tsx:10Understand this error
 sheet.tsx:56 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:332
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17478
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-commitHookEffectListMount @ react-dom_client.js?v=de81efb1:8460
-commitHookPassiveMountEffects @ react-dom_client.js?v=de81efb1:8518
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10016
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10054
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10009
-recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=de81efb1:9995
-reconnectPassiveEffects @ react-dom_client.js?v=de81efb1:10054
-doubleInvokeEffectsOnFiber @ react-dom_client.js?v=de81efb1:11461
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1487
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11432
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11438
-commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=de81efb1:11469
-flushPassiveEffects @ react-dom_client.js?v=de81efb1:11309
-flushPendingEffects @ react-dom_client.js?v=de81efb1:11276
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11250
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DescriptionWarning>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:259
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-(anonymous) @ chunk-CLA2R4FN.js?v=de81efb1:158
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<ForwardRef>
-exports.jsx @ chunk-AKS2AFOT.js?v=de81efb1:250
-DialogContent @ chunk-CLA2R4FN.js?v=de81efb1:145
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateForwardRef @ react-dom_client.js?v=de81efb1:6461
-beginWork @ react-dom_client.js?v=de81efb1:7864
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performSyncWorkOnRoot @ react-dom_client.js?v=de81efb1:11635
-flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=de81efb1:11536
-flushSpawnedWork @ react-dom_client.js?v=de81efb1:11254
-commitRoot @ react-dom_client.js?v=de81efb1:11081
-commitRootWhenReady @ react-dom_client.js?v=de81efb1:10512
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10457
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<DialogContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-SheetContent @ sheet.tsx:56
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<SheetContent>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeRoute @ EpisodeRoute.tsx:217
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeRoute>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-App @ App.tsx:16
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<App>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-(anonymous) @ main.tsx:10Understand this warning
 button.tsx:51 In HTML, <button> cannot be a descendant of <button>.
 This will cause a hydration error.
 
   ...
-    <div className="flex flex-...">
-      <Badge>
-      <Popover>
-      <Popover open={false} onOpenChange={function bound dispatchSetState}>
-        <Popover data-slot="popover" open={false} onOpenChange={function bound dispatchSetState}>
-          <Popper __scopePopper={{Popper:[...]}}>
-            <PopperProvider scope={{Popper:[...]}} anchor={null} onAnchorChange={function bound dispatchSetState}>
-              <PopoverProvider scope={undefined} contentId="radix-«rh»" triggerRef={{current:null}} open={false} ...>
-                <PopoverTrigger>
-                  <PopoverTrigger data-slot="popover-tr...">
-                    <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
-                      <Primitive.div asChild={true} ref={function}>
-                        <Primitive.div.Slot ref={function}>
-                          <Primitive.div.SlotClone ref={function}>
-                            <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
->                             <button
->                               type="button"
->                               aria-haspopup="dialog"
->                               aria-expanded={false}
->                               aria-controls="radix-«rh»"
->                               data-state="closed"
->                               data-slot="popover-trigger"
->                               onClick={function handleEvent}
->                               ref={function}
->                             >
-                                <Button variant="link" size="icon" className="cursor-poi...">
->                                 <button
->                                   data-slot="button"
->                                   className={"inline-flex items-center justify-center gap-2 whitespace-nowrap round..."}
->                                 >
+    <Primitive.div.SlotClone tabIndex={-1} onKeyDown={function} ref={function}>
+      <DismissableLayer role="dialog" id="radix-«r6»" aria-describedby="radix-«r8»" aria-labelledby="radix-«r7»" ...>
+        <Primitive.div role="dialog" id="radix-«r6»" aria-describedby="radix-«r8»" aria-labelledby="radix-«r7»" ...>
+          <div role="dialog" id="radix-«r6»" aria-describedby="radix-«r8»" aria-labelledby="radix-«r7»" data-state="open" ...>
+            <SheetHeader className="sticky top...">
+              <div data-slot="sheet-header" className="flex flex-...">
+                <EpisodeDetailsHeaderControls>
+                <SheetTitle>
+                <div>
+                  <AudioPlayer ref={{current:null}} src={"http://1..."} className="mb-4" onListen={function handleListen} ...>
+                    <div className="w-full mb-4">
+                      <_H5AudioPlayer ref={{current:null}} src={"http://1..."} autoPlay={false} showJumpControls={true} ...>
+                        <div role="group" tabIndex={0} aria-label="Audio player" className="rhap_conta..." ...>
+                          <audio>
+                          <div className="rhap_main ...">
+                            <div>
+                            <div className="rhap_contr...">
+                              <div>
+                              <div className="rhap_main-...">
+                                <button>
+>                               <button
+>                                 aria-label="Play"
+>                                 className="rhap_button-clear rhap_main-controls-button rhap_play-pause-button"
+>                                 type="button"
+>                                 onClick={function}
+>                               >
+                                  <Button variant="default" size="icon" className="absolute t...">
+>                                   <button
+>                                     data-slot="button"
+>                                     className={"cursor-pointer inline-flex items-center justify-center gap-2 whites..."}
+>                                   >
+                                ...
+                              ...
                 ...
-      ...
-
-validateDOMNesting @ react-dom_client.js?v=de81efb1:2160
-completeWork @ react-dom_client.js?v=de81efb1:8110
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-completeUnitOfWork @ react-dom_client.js?v=de81efb1:10976
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10882
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<button>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-Button @ button.tsx:51
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<Button>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeDetailsHeaderControls @ EpisodeRoute.tsx:71
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeDetailsHeaderControls>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-EpisodeRoute @ EpisodeRoute.tsx:261
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<EpisodeRoute>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-App @ App.tsx:16
-react-stack-bottom-frame @ react-dom_client.js?v=de81efb1:17424
-renderWithHooksAgain @ react-dom_client.js?v=de81efb1:4281
-renderWithHooks @ react-dom_client.js?v=de81efb1:4217
-updateFunctionComponent @ react-dom_client.js?v=de81efb1:6619
-beginWork @ react-dom_client.js?v=de81efb1:7654
-runWithFiberInDEV @ react-dom_client.js?v=de81efb1:1485
-performUnitOfWork @ react-dom_client.js?v=de81efb1:10868
-workLoopSync @ react-dom_client.js?v=de81efb1:10728
-renderRootSync @ react-dom_client.js?v=de81efb1:10711
-performWorkOnRoot @ react-dom_client.js?v=de81efb1:10330
-performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=de81efb1:11623
-performWorkUntilDeadline @ react-dom_client.js?v=de81efb1:36
-<App>
-exports.jsxDEV @ react_jsx-dev-runtime.js?v=de81efb1:250
-(anonymous) @ main.tsx:10Understand this error
-popover.tsx:15 <button> cannot contain a nested <button>.
+            ...
+            ...
+AudioPlayer.tsx:83 <button> cannot contain a nested <button>.
 See this log for the ancestor stack trace.
+<_H5AudioPlayer>		
+AudioPlayer	@	AudioPlayer.tsx:83
+<AudioPlayer>		
+EpisodeRoute	@	EpisodeRoute.tsx:356
+<EpisodeRoute>		
+App	@	App.tsx:16
+<App>		
+(anonymous)	@	main.tsx:10
 ```
-
-
- 
