@@ -1,14 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router'
 import HomePage from './routes/HomePage'
 import EpisodeRoute from './routes/EpisodeRoute'
-import { log } from './utils/logging';
 import { useTheme } from './hooks/useTheme'
 
 /**
  * Main App component that sets up routing configuration.
  */
 function App() {
-  const { theme } = useTheme()
+  useTheme()
 
   return (
     <Routes>
