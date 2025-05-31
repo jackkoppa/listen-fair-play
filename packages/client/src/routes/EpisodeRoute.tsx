@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router'
 import { useState, useEffect, useRef } from 'react'
-import { EpisodeInManifest, EpisodeManifest } from '@listen-fair-play/types'
+import { EpisodeInManifest } from '@listen-fair-play/types'
 import { CaretSortIcon, MinusCircledIcon, Share1Icon, Share2Icon, Cross2Icon, CopyIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
 import { log } from '../utils/logging';
@@ -16,6 +16,7 @@ import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatDate } from '@/utils/date'
 import { formatMillisecondsToMMSS } from '@/utils/time'
 import { useAudioSource } from '@/hooks/useAudioSource'
+import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
 
 // Add a simple check for whether this is iOS or Mac, vs anything else:
 const isIOSOrMac = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -119,6 +120,9 @@ export default function EpisodeRoute() {
   const startTimeMs = startTime ? Number(startTime) : null
   const { audioSource } = useAudioSource()
 
+  // Use the shared episode manifest hook
+  const { episodeManifest, isLoading: isManifestLoading, error: manifestError } = useEpisodeManifest()
+
   const [episodeData, setEpisodeData] = useState<EpisodeInManifest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -136,22 +140,29 @@ export default function EpisodeRoute() {
         return
       }
 
+      // Wait for manifest to be available
+      if (isManifestLoading) {
+        return
+      }
+
+      if (manifestError) {
+        setError(`Failed to load episode manifest: ${manifestError}`)
+        setIsLoading(false)
+        return
+      }
+
+      if (!episodeManifest) {
+        setError('Episode manifest not available')
+        setIsLoading(false)
+        return
+      }
+
       try {
         setIsLoading(true)
         setError(null)
 
-        // Fetch episode manifest to find the episode by sequential ID
-        const manifestPath = `${S3_HOSTED_FILES_BASE_URL}episode-manifest/full-episode-manifest.json`
-        const response = await fetch(manifestPath)
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch episode manifest: ${response.status}`)
-        }
-
-        const manifestData: EpisodeManifest = await response.json()
-
         // Find episode by sequential ID (converted to number for comparison)
-        const episode = manifestData.episodes.find(ep => ep.sequentialId === parseInt(eID, 10))
+        const episode = episodeManifest.episodes.find(ep => ep.sequentialId === parseInt(eID, 10))
 
         if (!episode) {
           throw new Error(`Episode with ID ${eID} not found`)
@@ -167,7 +178,7 @@ export default function EpisodeRoute() {
     }
 
     fetchEpisodeData()
-  }, [eID])
+  }, [eID, episodeManifest, isManifestLoading, manifestError])
 
   useEffect(() => {
     hideSheetBuiltInCloseButton()

@@ -2,16 +2,16 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '../utils/logging';
-import { ApiSearchResultHit, EpisodeManifest, SearchResponse } from '@listen-fair-play/types'
+import { ApiSearchResultHit, SearchResponse } from '@listen-fair-play/types'
 
 import '../App.css'
-import { S3_HOSTED_FILES_BASE_URL } from '../constants';
 
 import AppHeader from '../components/AppHeader'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import { performSearch, performHealthCheck } from '../utils/search'
 import { SortOption } from '../types/search'
+import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
 
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
@@ -43,13 +43,15 @@ function HomePage() {
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [episodeManifest, setEpisodeManifest] = useState<EpisodeManifest | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
   const [isLambdaWarm, setIsLambdaWarm] = useState(false);
   const [showColdStartLoader, setShowColdStartLoader] = useState(false);
   const [mostRecentSuccessfulSearchQuery, setMostRecentSuccessfulSearchQuery] = useState<string | null>(null);
+
+  // Use the shared episode manifest hook
+  const { episodeManifest } = useEpisodeManifest();
 
   // Local state for search input (not synced to URL until search is performed)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
@@ -97,28 +99,6 @@ function HomePage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
-
-  /**
-   * Fetch episode manifest on component mount for episode filtering functionality
-   */
-  useEffect(() => {
-    const fetchEpisodeManifest = async () => {
-      try {
-        const manifestPath = `${S3_HOSTED_FILES_BASE_URL}episode-manifest/full-episode-manifest.json`;
-        const response = await fetch(manifestPath);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch episode manifest: ${response.status}`);
-        }
-        const manifestData = await response.json();
-        setEpisodeManifest(manifestData);
-      } catch (e: any) {
-        log.error('[HomePage.tsx] Failed to fetch episode manifest:', e);
-        // Don't set error state to avoid blocking the main UI functionality
-      }
-    };
-
-    fetchEpisodeManifest();
-  }, []);
 
   /**
    * Perform health check on app initialization to warm up the Lambda
