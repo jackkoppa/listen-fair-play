@@ -3,15 +3,19 @@ import AudioPlayerH5, { RHAP_UI } from 'react-h5-audio-player';
 import { PlayIcon, PauseIcon } from '@radix-ui/react-icons';
 import { cn } from '@/lib/utils';
 
+const baseIconButtonStyle = 'flex items-center justify-center w-8 h-8 -mt-1';
+
 // Custom play/pause icon elements (NOT buttons - the library will wrap them in buttons)
 const PlayIconElement = (
-  <div className="flex items-center justify-center w-5 h-5">
+  // Given that we can't use <Button> here, we'll roughly attempt to match the styling from `../ui/button.tsx`
+  <div className={cn(baseIconButtonStyle, 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90')}>
     <PlayIcon className="w-4 h-4" />
   </div>
 );
 
 const PauseIconElement = (
-  <div className="flex items-center justify-center w-5 h-5">
+  // Given that we can't use <Button> here, we'll roughly attempt to match the styling from `../ui/button.tsx`
+  <div className={cn(baseIconButtonStyle, 'bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60')}>
     <PauseIcon className="w-4 h-4" />
   </div>
 );
