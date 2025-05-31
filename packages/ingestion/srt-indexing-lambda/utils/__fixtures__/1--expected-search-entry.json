@@ -1,11 +1,19 @@
 [
     {
       "id": "123_86720",
-      "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!",
+      "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like.",
       "sequentialEpisodeIdAsString": "123",
       "startTimeMs": 86720,
-      "endTimeMs": 104800,
+      "endTimeMs": 94560,
       "episodePublishedUnixTimestamp": 1579773600000
+    },
+    {
+        "id": "123_95520",
+        "text": "Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!",
+        "sequentialEpisodeIdAsString": "123",
+        "startTimeMs": 95520,
+        "endTimeMs": 104800,
+        "episodePublishedUnixTimestamp": 1579773600000
     },
     {
         "id": "123_104800",
@@ -17,9 +25,17 @@
     },
     {
         "id": "123_120400",
-        "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful.",
+        "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass!",
         "sequentialEpisodeIdAsString": "123",
         "startTimeMs": 120400,
+        "endTimeMs": 129760,
+        "episodePublishedUnixTimestamp": 1579773600000
+    },
+    {
+        "id": "123_130480",
+        "text": "This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful.",
+        "sequentialEpisodeIdAsString": "123",
+        "startTimeMs": 130480,
         "endTimeMs": 137920,
         "episodePublishedUnixTimestamp": 1579773600000
     },

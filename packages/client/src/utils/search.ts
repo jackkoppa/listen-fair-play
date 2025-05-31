@@ -4,22 +4,16 @@ import { SortOption } from '../types/search';
 export interface SearchParams {
   query: string;
   sortOption: SortOption;
-  selectedEpisodeIds: number[];
   searchApiBaseUrl: string;
   searchLimit: number;
 }
 
 /**
- * Performs a search API request with the specified parameters
- * 
- * @param params - Search parameters including query, sorting, filtering, and API configuration
- * @returns Promise that resolves to the search response data
- * @throws Error if the API request fails
+ * Perform a search request to the search API
  */
-export const performSearch = async (params: SearchParams): Promise<SearchResponse> => {
-  const { query, sortOption, selectedEpisodeIds, searchApiBaseUrl, searchLimit } = params;
-  
-  // Prepare search request with Orama parameters
+export async function performSearch(params: SearchParams): Promise<SearchResponse> {
+  const { query, sortOption, searchApiBaseUrl, searchLimit } = params;
+
   const searchRequest: SearchRequest = {
     query: query.trim(),
     limit: searchLimit,
@@ -36,13 +30,7 @@ export const performSearch = async (params: SearchParams): Promise<SearchRespons
   }
   // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
 
-  // Add episode filtering if episodes are selected
-  if (selectedEpisodeIds.length > 0) {
-    searchRequest.episodeIds = selectedEpisodeIds;
-  }
-
-  // Make API request using POST for complex search parameters
-  const response = await fetch(`${searchApiBaseUrl}/`, {
+  const response = await fetch(`${searchApiBaseUrl}/search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -51,12 +39,11 @@ export const performSearch = async (params: SearchParams): Promise<SearchRespons
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+    throw new Error(`Search request failed: ${response.status} ${response.statusText}`);
   }
 
-  const data: SearchResponse = await response.json();
-  return data;
-};
+  return response.json();
+}
 
 /**
  * Performs a health check request to warm up the search Lambda
@@ -67,11 +54,12 @@ export const performSearch = async (params: SearchParams): Promise<SearchRespons
  */
 export const performHealthCheck = async (searchApiBaseUrl: string): Promise<void> => {
   const healthCheckRequest: SearchRequest = {
-    query: '',
+    query: 'health check',
+    limit: 1,
     isHealthCheckOnly: true
   };
 
-  const response = await fetch(`${searchApiBaseUrl}/`, {
+  const response = await fetch(`${searchApiBaseUrl}/search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -80,7 +68,7 @@ export const performHealthCheck = async (searchApiBaseUrl: string): Promise<void
   });
 
   if (!response.ok) {
-    throw new Error(`Health check failed with status ${response.status}`);
+    throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
   }
 
   // We don't need to process the response, just that it succeeded

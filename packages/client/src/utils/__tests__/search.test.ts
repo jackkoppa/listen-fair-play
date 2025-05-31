@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { performHealthCheck, performSearch } from '../search';
+import { SearchResponse } from '@listen-fair-play/types';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -15,108 +16,93 @@ describe('Search Utils', () => {
   });
 
   describe('performHealthCheck', () => {
-    it('makes a POST request with health check parameter', async () => {
-      // Mock successful response
+    const mockSearchApiBaseUrl = 'http://test-api.com';
+
+    it('makes a POST request to the health check endpoint', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ 
-          hits: [], 
-          totalHits: 0, 
-          processingTimeMs: 250,
-          query: 'health-check' 
-        }),
-      });
+        json: async () => ({ status: 'healthy' }),
+      } as Response);
 
-      const baseUrl = 'https://api.example.com';
-      await performHealthCheck(baseUrl);
+      await performHealthCheck(mockSearchApiBaseUrl);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${baseUrl}/`,
+        `${mockSearchApiBaseUrl}/search`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            query: '',
+            query: 'health check',
+            limit: 1,
             isHealthCheckOnly: true,
           }),
         }
       );
     });
 
-    it('throws error when response is not ok', async () => {
+    it('throws an error when the health check fails', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        status: 500,
-      });
+        status: 503,
+        statusText: 'Service Unavailable',
+      } as Response);
 
-      const baseUrl = 'https://api.example.com';
-      
-      await expect(performHealthCheck(baseUrl)).rejects.toThrow(
-        'Health check failed with status 500'
+      await expect(performHealthCheck(mockSearchApiBaseUrl)).rejects.toThrow(
+        'Health check failed: 503 Service Unavailable'
       );
     });
 
     it('throws error when fetch fails', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      const baseUrl = 'https://api.example.com';
       
-      await expect(performHealthCheck(baseUrl)).rejects.toThrow('Network error');
+      await expect(performHealthCheck(mockSearchApiBaseUrl)).rejects.toThrow('Network error');
     });
 
     it('processes response JSON even if not needed', async () => {
-      const mockJson = vi.fn().mockResolvedValue({ status: 'ok' });
+      const mockJsonResponse = { status: 'healthy' };
+      const mockJson = vi.fn().mockResolvedValue(mockJsonResponse);
+      
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: mockJson,
-      });
+      } as unknown as Response);
 
-      const baseUrl = 'https://api.example.com';
-      await performHealthCheck(baseUrl);
-
+      await performHealthCheck(mockSearchApiBaseUrl);
+      
+      // Verify that json() was called even though we don't use the result
       expect(mockJson).toHaveBeenCalled();
     });
   });
 
   describe('performSearch', () => {
-    it('makes a POST request with correct search parameters', async () => {
-      const mockResponse = {
-        hits: [
-          {
-            id: 'test-1',
-            text: 'test quote',
-            sequentialEpisodeIdAsString: '1',
-            startTimeMs: 1000,
-            endTimeMs: 2000,
-            episodePublishedUnixTimestamp: 1640995200,
-          }
-        ],
-        totalHits: 1,
-        processingTimeMs: 150,
+    const mockSearchApiBaseUrl = 'http://test-api.com';
+
+    const defaultParams = {
+      query: 'test query',
+      sortOption: 'relevance' as const,
+      searchApiBaseUrl: mockSearchApiBaseUrl,
+      searchLimit: 10,
+    };
+
+    it('makes a POST request to the correct endpoint', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs: 100,
         query: 'test query',
-        sortBy: 'episodePublishedUnixTimestamp',
-        sortOrder: 'DESC',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      });
+      } as Response);
 
-      const searchParams = {
-        query: 'test query',
-        sortOption: 'newest' as const,
-        selectedEpisodeIds: [1, 2],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
-      };
-
-      const result = await performSearch(searchParams);
+      await performSearch(defaultParams);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.example.com/',
+        `${mockSearchApiBaseUrl}/search`,
         {
           method: 'POST',
           headers: {
@@ -125,117 +111,139 @@ describe('Search Utils', () => {
           body: JSON.stringify({
             query: 'test query',
             limit: 10,
-            sortBy: 'episodePublishedUnixTimestamp',
-            sortOrder: 'DESC',
-            episodeIds: [1, 2],
+            searchFields: ['text'],
           }),
         }
       );
-
-      expect(result).toEqual(mockResponse);
     });
 
     it('handles relevance sort option correctly', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs: 100,
+        query: 'test query',
+      };
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ hits: [], totalHits: 0, processingTimeMs: 100 }),
-      });
+        json: async () => mockResponse,
+      } as Response);
 
       await performSearch({
-        query: 'test',
+        ...defaultParams,
         sortOption: 'relevance',
-        selectedEpisodeIds: [],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
       });
 
-      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody.sortBy).toBeUndefined();
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
+      expect(requestBody).not.toHaveProperty('sortBy');
+      expect(requestBody).not.toHaveProperty('sortOrder');
+    });
+
+    it('handles newest sort option correctly', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs: 100,
+        query: 'test query',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      await performSearch({
+        ...defaultParams,
+        sortOption: 'newest',
+      });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
+      expect(requestBody.sortBy).toBe('episodePublishedUnixTimestamp');
       expect(requestBody.sortOrder).toBe('DESC');
     });
 
     it('handles oldest sort option correctly', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs: 100,
+        query: 'test query',
+      };
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ hits: [], totalHits: 0, processingTimeMs: 100 }),
-      });
+        json: async () => mockResponse,
+      } as Response);
 
       await performSearch({
-        query: 'test',
+        ...defaultParams,
         sortOption: 'oldest',
-        selectedEpisodeIds: [],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
       });
 
-      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
       expect(requestBody.sortBy).toBe('episodePublishedUnixTimestamp');
       expect(requestBody.sortOrder).toBe('ASC');
     });
 
-    it('throws error when response is not ok', async () => {
+    it('trims the query string', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [],
+        totalHits: 0,
+        processingTimeMs: 100,
+        query: 'test query',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      await performSearch({
+        ...defaultParams,
+        query: '  test query  ',
+      });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
+      expect(requestBody.query).toBe('test query');
+    });
+
+    it('throws an error when the response is not ok', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-      });
+        status: 500,
+        statusText: 'Internal Server Error',
+      } as Response);
 
-      await expect(performSearch({
-        query: 'test',
-        sortOption: 'relevance',
-        selectedEpisodeIds: [],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
-      })).rejects.toThrow('Search request failed: 400 Bad Request');
+      await expect(performSearch(defaultParams)).rejects.toThrow(
+        'Search request failed: 500 Internal Server Error'
+      );
     });
 
-    it('throws error when network request fails', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
+    it('returns the parsed JSON response', async () => {
+      const mockResponse: SearchResponse = {
+        hits: [
+          {
+            id: '1',
+            text: 'test result',
+            sequentialEpisodeIdAsString: '1',
+            startTimeMs: 1000,
+            endTimeMs: 2000,
+            episodePublishedUnixTimestamp: 1234567890,
+          },
+        ],
+        totalHits: 1,
+        processingTimeMs: 150,
+        query: 'test query',
+      };
 
-      await expect(performSearch({
-        query: 'test',
-        sortOption: 'relevance',
-        selectedEpisodeIds: [],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
-      })).rejects.toThrow('Connection refused');
-    });
-
-    it('excludes episodeIds when array is empty', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ hits: [], totalHits: 0, processingTimeMs: 100 }),
-      });
+        json: async () => mockResponse,
+      } as Response);
 
-      await performSearch({
-        query: 'test',
-        sortOption: 'relevance',
-        selectedEpisodeIds: [],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 10,
-      });
-
-      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody).not.toHaveProperty('episodeIds');
-    });
-
-    it('includes episodeIds when array has values', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ hits: [], totalHits: 0, processingTimeMs: 100 }),
-      });
-
-      await performSearch({
-        query: 'test',
-        sortOption: 'relevance',
-        selectedEpisodeIds: [1, 5, 10],
-        searchApiBaseUrl: 'https://api.example.com',
-        searchLimit: 25,
-      });
-
-      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody.episodeIds).toEqual([1, 5, 10]);
-      expect(requestBody.limit).toBe(25);
+      const result = await performSearch(defaultParams);
+      expect(result).toEqual(mockResponse);
     });
   });
 }); 

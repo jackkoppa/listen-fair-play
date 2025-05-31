@@ -6,6 +6,7 @@
   "scripts": {
     "all:build": "pnpm --filter @listen-fair-play/* build",
     "all:build:dev": "pnpm --filter @listen-fair-play/* build:dev",
+    "all:test": "pnpm --filter @listen-fair-play/* test",
     "rss-retrieval-lambda:build-for-aws": "pnpm --filter @listen-fair-play/rss-retrieval-lambda --prod deploy packages/ingestion/rss-retrieval-lambda/aws-dist",
     "client:dev": "concurrently \"pnpm --filter @listen-fair-play/client _vite-dev\" \"pnpm --filter @listen-fair-play/client _serve-s3-assets\" \"pnpm search-lambda:dev:local\"",
     "client:build": "pnpm --filter client build",

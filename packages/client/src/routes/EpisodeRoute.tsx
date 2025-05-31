@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { EpisodeInManifest, EpisodeManifest } from '@listen-fair-play/types'
 import { CaretSortIcon, MinusCircledIcon, Share1Icon, Share2Icon, Cross2Icon, CopyIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
-import { log } from '@listen-fair-play/logging'
+import { log } from '../utils/logging';
 import { SearchEntry } from '@listen-fair-play/types'
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'

@@ -14,7 +14,6 @@
     "_serve-s3-assets": "http-server ../../aws-local-dev/s3 --cors --port 8080"
   },
   "dependencies": {
-    "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/types": "workspace:*",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -27,6 +26,7 @@
     "@tailwindcss/vite": "^4.1.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "loglevel": "catalog:",
     "lucide-react": "^0.511.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

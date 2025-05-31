@@ -1,9 +1,17 @@
 [
   {
     "id": "456_86720",
-    "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like. Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!",
+    "text": "I'm sorry, you can sit there and look and play with all your silly machines as much as you like.",
     "sequentialEpisodeIdAsString": "456",
     "startTimeMs": 86720,
+    "endTimeMs": 94560,
+    "episodePublishedUnixTimestamp": 1581777000000
+  },
+  {
+    "id": "456_95520",
+    "text": "Is Gascoigne going to have a crack? He is, you know. Oh, he's there! Brilliant! The change!",
+    "sequentialEpisodeIdAsString": "456",
+    "startTimeMs": 95520,
     "endTimeMs": 104800,
     "episodePublishedUnixTimestamp": 1581777000000
   },
@@ -17,33 +25,65 @@
   },
   {
     "id": "456_120400",
-    "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass! This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful.",
+    "text": "Oh, I say! It's amazing! He does it time, and time, and time again. Crank up the music! Charge a glass!",
     "sequentialEpisodeIdAsString": "456",
     "startTimeMs": 120400,
+    "endTimeMs": 129760,
+    "episodePublishedUnixTimestamp": 1581777000000
+  },
+  {
+    "id": "456_130480",
+    "text": "This nation is going to dance all night! A lovely brace of shot urging from the travelling Watford faithful.",
+    "sequentialEpisodeIdAsString": "456",
+    "startTimeMs": 130480,
     "endTimeMs": 137920,
     "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_137920",
-    "text": "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history. This is the second part, you can sit there and look and play with all your silly machines as much as you like.",
+    "text": "Troy Deeney's cruel dig at a Sunday evening TV stalwart. Seamus Coleman produces the most loyal 3.67 seconds in football history.",
     "sequentialEpisodeIdAsString": "456",
     "startTimeMs": 137920,
+    "endTimeMs": 146000,
+    "episodePublishedUnixTimestamp": 1581777000000
+  },
+  {
+    "id": "456_150720",
+    "text": "This is the second part, you can sit there and look and play with all your silly machines as much as you like.",
+    "sequentialEpisodeIdAsString": "456",
+    "startTimeMs": 150720,
     "endTimeMs": 158560,
     "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_159520",
-    "text": "Is Second Gascoigne going to have a crack? He is, you know. Oh, he's definitely there! Super Brilliant! Another change! He's ran the goalkeeper again, he's done it again! Absolutely very incredible! He launched himself twelve feet into the crowd, and Kung Fu kicked another supporter who was eye-whip without any shadow of a doubt giving him more lip.",
+    "text": "Is Second Gascoigne going to have a crack? He is, you know. Oh, he's definitely there! Super Brilliant! Another change!",
     "sequentialEpisodeIdAsString": "456",
     "startTimeMs": 159520,
+    "endTimeMs": 168800,
+    "episodePublishedUnixTimestamp": 1581777000000
+  },
+  {
+    "id": "456_168800",
+    "text": "He's ran the goalkeeper again, he's done it again! Absolutely very incredible! He launched himself twelve feet into the crowd, and Kung Fu kicked another supporter who was eye-whip without any shadow of a doubt giving him more lip.",
+    "sequentialEpisodeIdAsString": "456",
+    "startTimeMs": 168800,
     "endTimeMs": 184400,
     "episodePublishedUnixTimestamp": 1581777000000
   },
   {
     "id": "456_184400",
-    "text": "Oh, I say again! It's very amazing! He does it time, and time, and time and time again. Crank up more music! Charge another glass! This entire nation is going to dance all night long! A second lovely brace of shot urging from the travelling Watford faithful.",
+    "text": "Oh, I say again! It's very amazing! He does it time, and time, and time and time again. Crank up more music! Charge another glass!",
     "sequentialEpisodeIdAsString": "456",
     "startTimeMs": 184400,
+    "endTimeMs": 193760,
+    "episodePublishedUnixTimestamp": 1581777000000
+  },
+  {
+    "id": "456_194480",
+    "text": "This entire nation is going to dance all night long! A second lovely brace of shot urging from the travelling Watford faithful.",
+    "sequentialEpisodeIdAsString": "456",
+    "startTimeMs": 194480,
     "endTimeMs": 201920,
     "episodePublishedUnixTimestamp": 1581777000000
   },

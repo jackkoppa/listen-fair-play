@@ -63,9 +63,6 @@ importers:
 
   packages/client:
     dependencies:
-      '@listen-fair-play/logging':
-        specifier: workspace:*
-        version: link:../logging
       '@listen-fair-play/types':
         specifier: workspace:*
         version: link:../types
@@ -102,6 +99,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      loglevel:
+        specifier: 'catalog:'
+        version: 1.9.2
       lucide-react:
         specifier: ^0.511.0
         version: 0.511.0(react@18.3.1)

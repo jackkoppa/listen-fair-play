@@ -28,7 +28,6 @@ export interface SearchRequest {
   sortBy?: keyof SearchEntry;           // Field to sort by
   sortOrder?: 'ASC' | 'DESC';          // Sort order (default: 'DESC' for date) - converted to uppercase internally
   searchFields?: (keyof SearchEntry)[]; // Fields to search in (default: ['text'])
-  episodeIds?: number[];                // Filter by specific episode IDs (from client-side manifest filtering)
   isHealthCheckOnly?: boolean;          // If true, only initialize the Lambda and return immediately (for warming up)
 }
 
