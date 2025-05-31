@@ -30,7 +30,7 @@ export async function performSearch(params: SearchParams): Promise<SearchRespons
   }
   // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
 
-  const response = await fetch(`${searchApiBaseUrl}/search`, {
+  const response = await fetch(`${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const performHealthCheck = async (searchApiBaseUrl: string): Promise<void
     isHealthCheckOnly: true
   };
 
-  const response = await fetch(`${searchApiBaseUrl}/search`, {
+  const response = await fetch(`${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

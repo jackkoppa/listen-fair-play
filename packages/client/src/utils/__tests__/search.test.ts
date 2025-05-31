@@ -27,7 +27,7 @@ describe('Search Utils', () => {
       await performHealthCheck(mockSearchApiBaseUrl);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${mockSearchApiBaseUrl}/search`,
+        `${mockSearchApiBaseUrl}/`,
         {
           method: 'POST',
           headers: {
@@ -102,7 +102,7 @@ describe('Search Utils', () => {
       await performSearch(defaultParams);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${mockSearchApiBaseUrl}/search`,
+        `${mockSearchApiBaseUrl}/`,
         {
           method: 'POST',
           headers: {
