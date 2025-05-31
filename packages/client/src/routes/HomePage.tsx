@@ -16,8 +16,6 @@ import { SortOption } from '../types/search'
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
-console.log('log level is:', log.getLevel());
-
 const SEARCH_LIMIT = 50;
 
 // Estimated time for Lambda cold start - if more than this time has passed since page load,
@@ -35,8 +33,6 @@ const ESTIMATED_TIME_FOR_LAMBDA_COLD_START = 10000; // 10 seconds
  * - Renders Outlet for child routes (episode sheet overlay)
  */
 function HomePage() {
-  log.info('[HomePage.tsx] HomePage component rendering/re-rendering');
-  
   const [searchParams, setSearchParams] = useSearchParams();
   
   // URL-driven state - read from search params
@@ -67,18 +63,15 @@ function HomePage() {
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
-    log.info('[HomePage.tsx] useEffect [searchQuery] (URL sync): searchQuery changed to:', searchQuery, 'updating localSearchQuery from:', localSearchQuery, 'to:', searchQuery);
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
   // URL update functions
   const updateSearchQuery = (query: string) => {
-    log.info('[HomePage.tsx] updateSearchQuery called: updating localSearchQuery from:', localSearchQuery, 'to:', query);
     setLocalSearchQuery(query);
   };
 
   const updateSortOption = (sort: SortOption) => {
-    log.info('[HomePage.tsx] updateSortOption called: updating sort from:', sortOption, 'to:', sort);
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       if (sort !== 'relevance') {
@@ -139,10 +132,8 @@ function HomePage() {
       healthCheckInitiated.current = true;
       
       try {
-        log.info('[HomePage.tsx] Initiating Lambda health check to warm up search...');
         await performHealthCheck(SEARCH_API_BASE_URL);
         setIsLambdaWarm(true);
-        log.info('[HomePage.tsx] Lambda health check completed - Lambda is now warm');
       } catch (e: any) {
         log.warn('[HomePage.tsx] Lambda health check failed, but continuing normally:', e);
         // Set as warm anyway to prevent blocking search functionality
@@ -158,11 +149,9 @@ function HomePage() {
    */
   const handleSearch = async () => {
     const trimmedQuery = localSearchQuery.trim();
-    log.info('[HomePage.tsx] handleSearch called with query:', trimmedQuery);
 
     // Clear results if query is too short
     if (trimmedQuery.length < 2) {
-      log.info('[HomePage.tsx] handleSearch: Query too short, clearing results');
       setSearchResults([]);
       setError(null);
       setTotalHits(0);
@@ -179,7 +168,6 @@ function HomePage() {
       return;
     }
 
-    log.info('[HomePage.tsx] handleSearch: Updating URL with search query:', trimmedQuery);
     // Update URL with the search query
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
@@ -192,13 +180,11 @@ function HomePage() {
     const shouldShowColdStart = !isLambdaWarm && timeSincePageLoad < ESTIMATED_TIME_FOR_LAMBDA_COLD_START;
     
     if (shouldShowColdStart) {
-      log.info('[HomePage.tsx] handleSearch: Showing cold start loader - Lambda not yet warm');
       setShowColdStartLoader(true);
       // Don't proceed with search until Lambda is warm
       return;
     }
 
-    log.info('[HomePage.tsx] handleSearch: Proceeding with search request');
     // Perform the search
     await performSearchRequest(trimmedQuery);
   };
@@ -214,11 +200,8 @@ function HomePage() {
     if (lastParams && 
         lastParams.query === currentSearchParams.query && 
         lastParams.sort === currentSearchParams.sort) {
-      log.info('[HomePage.tsx] performSearchRequest: Skipping duplicate search with same parameters:', currentSearchParams);
       return;
     }
-
-    log.info('[HomePage.tsx] performSearchRequest called with query:', query, 'sortOption:', sortOption);
     
     // Update the last search params before starting the search
     lastSearchParams.current = currentSearchParams;
@@ -235,7 +218,6 @@ function HomePage() {
       });
       
       if (data && data.hits) {
-        log.info('[HomePage.tsx] performSearchRequest: Search successful, got', data.hits.length, 'results out of', data.totalHits, 'total hits');
         setSearchResults(data.hits);
         setTotalHits(data.totalHits || 0);
         setProcessingTimeMs(data.processingTimeMs || 0);
@@ -270,11 +252,9 @@ function HomePage() {
    */
   useEffect(() => {
     const trimmedQuery = localSearchQuery.trim();
-    log.info('[HomePage.tsx] useEffect [isLambdaWarm, showColdStartLoader, localSearchQuery, sortOption]: isLambdaWarm:', isLambdaWarm, 'showColdStartLoader:', showColdStartLoader, 'trimmedQuery:', trimmedQuery);
     
     // If Lambda just became warm and user has a valid search query showing cold start loader, perform the search
     if (isLambdaWarm && trimmedQuery.length >= 2 && showColdStartLoader) {
-      log.info('[HomePage.tsx] Lambda is now warm - performing pending search with query:', trimmedQuery);
       performSearchRequest(trimmedQuery);
     }
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery, sortOption]);
@@ -284,10 +264,8 @@ function HomePage() {
    */
   useEffect(() => {
     const trimmedQuery = localSearchQuery.trim();
-    log.info('[HomePage.tsx] useEffect [isLambdaWarm, showColdStartLoader, localSearchQuery] (hide cold start): isLambdaWarm:', isLambdaWarm, 'showColdStartLoader:', showColdStartLoader, 'trimmedQuery:', trimmedQuery);
     
     if (isLambdaWarm && showColdStartLoader && trimmedQuery.length < 2) {
-      log.info('[HomePage.tsx] Lambda is now warm but no valid search query - hiding cold start loader');
       setShowColdStartLoader(false);
     }
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
@@ -297,13 +275,9 @@ function HomePage() {
    */
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
-    log.info('[HomePage.tsx] useEffect [sortOption]: sortOption:', sortOption, 'searchQuery:', searchQuery, 'trimmedQuery:', trimmedQuery);
     
     if (trimmedQuery.length >= 2) {
-      log.info('[HomePage.tsx] Re-running search due to sort change with query:', trimmedQuery);
       performSearchRequest(trimmedQuery);
-    } else {
-      log.info('[HomePage.tsx] Not re-running search - query too short or empty');
     }
   }, [sortOption]);
 
