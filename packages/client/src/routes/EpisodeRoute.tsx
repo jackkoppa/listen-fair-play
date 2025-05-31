@@ -285,7 +285,7 @@ export default function EpisodeRoute() {
               onPlay={handlePlay}
             />
           </div>
-          <SheetDescription>
+          <SheetDescription className="sr-only">
             Episode audio player and transcript for {title}. Published on {formattedPublishedAt}.
           </SheetDescription>
         </SheetHeader>
