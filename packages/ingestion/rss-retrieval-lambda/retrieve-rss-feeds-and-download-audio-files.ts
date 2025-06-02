@@ -1,9 +1,10 @@
 import * as xml2js from 'xml2js';
 import * as path from 'path';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@listen-fair-play/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
 import { RSS_CONFIG } from '@listen-fair-play/config';
-import { EpisodeManifest, EpisodeInManifest, LlmAnnotations } from '@listen-fair-play/types';
+import { EpisodeManifest, EpisodeInManifest } from '@listen-fair-play/types';
 import {EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
@@ -29,6 +30,8 @@ interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInM
 const RSS_DIR_PREFIX = 'rss/';
 const AUDIO_DIR_PREFIX = 'audio/';
 const EPISODE_MANIFEST_DIR_PREFIX = 'episode-manifest/';
+const LAMBDA_CLIENT = new LambdaClient({});
+const WHISPER_LAMBDA_NAME = 'process-new-audio-files-via-whisper';
 
 
 // Helper to format date as YYYY-MM-DD
@@ -350,10 +353,21 @@ async function triggerTranscriptionLambda(downloadedAudioS3Keys: string[]): Prom
     log.debug('No new audio files were downloaded, so no transcription to trigger.');
     return;
   }
-  log.info('New audio files to transcribe (S3 Keys):', downloadedAudioS3Keys);
-  // In AWS environment, this would use AWS SDK to trigger another Lambda
-  // For local dev, we'll just log the files
-  log.debug('Would trigger Lambda-2 (transcription) with these S3 keys:', downloadedAudioS3Keys);
+  log.info(`New audio files to transcribe (S3 Keys): ${downloadedAudioS3Keys.join(', ')}`);
+  
+  try {
+    const payload = { audioFiles: downloadedAudioS3Keys };
+    const command = new InvokeCommand({
+      FunctionName: WHISPER_LAMBDA_NAME,
+      InvocationType: 'Event', // Asynchronous invocation
+      Payload: JSON.stringify(payload),
+    });
+    await LAMBDA_CLIENT.send(command);
+    log.info(`Successfully invoked ${WHISPER_LAMBDA_NAME} with ${downloadedAudioS3Keys.length} audio file(s).`);
+  } catch (error) {
+    log.error(`Error invoking ${WHISPER_LAMBDA_NAME}:`, error);
+    // Decide if this error should be re-thrown or handled (e.g., retry logic)
+  }
 }
 
 // Main handler function
