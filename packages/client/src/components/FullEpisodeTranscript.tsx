@@ -135,7 +135,7 @@ export default function FullEpisodeTranscript({
     return (
         <div>
             {isLoading && null}
-            {!isLoading && searchEntries.length === 0 && <p>Episode transcript not available. Please try refreshing the page.</p>}
+            {!isLoading && searchEntries.length === 0 && <div className="p-4">Episode transcript not available. Please try refreshing the page.</div>}
             {!isLoading && searchEntries.length > 0 && (
                 <div>
                     {searchEntries.map((entry) => (
