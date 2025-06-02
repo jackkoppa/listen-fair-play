@@ -15,9 +15,15 @@ let oramaIndex: OramaSearchDatabase | null = null;
 /**
  * Initialize the Orama search index from S3
  */
-async function initializeOramaIndex(): Promise<OramaSearchDatabase> {
-  if (oramaIndex) {
+async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise<OramaSearchDatabase> {
+  if (oramaIndex && !forceFreshDBFileDownload) {
     return oramaIndex;
+  }
+
+  if (oramaIndex && forceFreshDBFileDownload) {
+    log.info('Forcing fresh DB file download. Clearing existing Orama index from memory.');
+    oramaIndex = null;
+    // Setting to null allows the object to be garbage collected if no other references exist.
   }
 
   log.info('Initializing Orama search index from S3...');
@@ -78,8 +84,19 @@ export async function handler(event: any): Promise<SearchResponse> {
   log.info('Search request received:', JSON.stringify(event));
   const startTime = Date.now();
 
+  // Determine forceFreshDBFileDownload early, as it's needed for initializeOramaIndex
+  let forceFreshDBFileDownload = false;
+  if (event.requestContext?.http?.method === 'GET' && event.queryStringParameters) {
+    forceFreshDBFileDownload = event.queryStringParameters.forceFreshDBFileDownload === 'true';
+  } else if (event.body) {
+    const bodySource = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+    forceFreshDBFileDownload = bodySource.forceFreshDBFileDownload === true;
+  } else if (event.forceFreshDBFileDownload !== undefined) { // For direct invocation with the property
+    forceFreshDBFileDownload = event.forceFreshDBFileDownload === true;
+  }
+
   try {
-    const index = await initializeOramaIndex();
+    const index = await initializeOramaIndex(forceFreshDBFileDownload);
 
     // Extract search parameters from the event
     let searchRequest: SearchRequest = {
@@ -89,7 +106,8 @@ export async function handler(event: any): Promise<SearchResponse> {
       searchFields: ['text'],
       sortBy: undefined,
       sortOrder: 'DESC',
-      isHealthCheckOnly: false
+      isHealthCheckOnly: false,
+      forceFreshDBFileDownload: false // Default to false
     };
 
     // Check if this is an API Gateway v2 event
@@ -106,7 +124,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
           sortBy: queryParams.sortBy || undefined,
           sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
-          isHealthCheckOnly: queryParams.isHealthCheckOnly === 'true'
+          isHealthCheckOnly: queryParams.isHealthCheckOnly === 'true',
+          forceFreshDBFileDownload: queryParams.forceFreshDBFileDownload === 'true'
         };
       } else if (method === 'POST' && event.body) {
         // For POST requests with a body
@@ -121,7 +140,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: body.searchFields || ['text'],
           sortBy: body.sortBy || undefined,
           sortOrder: body.sortOrder || 'DESC',
-          isHealthCheckOnly: body.isHealthCheckOnly || false
+          isHealthCheckOnly: body.isHealthCheckOnly || false,
+          forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
         };
       }
     } else if (event.body) {
@@ -137,7 +157,8 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: body.searchFields || ['text'],
         sortBy: body.sortBy || undefined,
         sortOrder: body.sortOrder || 'DESC',
-        isHealthCheckOnly: body.isHealthCheckOnly || false
+        isHealthCheckOnly: body.isHealthCheckOnly || false,
+        forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
       };
     } else if (typeof event.query === 'string') {
       // For direct invocations with a query property (backward compatibility)
@@ -148,7 +169,8 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: event.searchFields || ['text'],
         sortBy: event.sortBy || undefined,
         sortOrder: event.sortOrder || 'DESC',
-        isHealthCheckOnly: event.isHealthCheckOnly || false
+        isHealthCheckOnly: event.isHealthCheckOnly || false,
+        forceFreshDBFileDownload: event.forceFreshDBFileDownload || false
       };
     }
 
@@ -185,7 +207,8 @@ if (process.argv[1] && process.argv[1].endsWith('search-indexed-transcripts.ts')
     query: 'test query',
     limit: 5,
     sortBy: 'episodePublishedUnixTimestamp',
-    sortOrder: 'DESC'
+    sortOrder: 'DESC',
+    forceFreshDBFileDownload: false // Example, can be true to test
   };
   handler({ body: testQuery })
     .then(result => log.debug('Search results:', JSON.stringify(result, null, 2)))

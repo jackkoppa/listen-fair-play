@@ -30,6 +30,7 @@ export interface SearchRequest {
   sortOrder?: 'ASC' | 'DESC';          // Sort order (default: 'DESC' for date) - converted to uppercase internally
   searchFields?: (keyof SearchEntry)[]; // Fields to search in (default: ['text'])
   isHealthCheckOnly?: boolean;          // If true, only initialize the Lambda and return immediately (for warming up)
+  forceFreshDBFileDownload?: boolean; // If true, force re-download of the S3 DB index file
 }
 
 /**
