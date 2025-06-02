@@ -45,8 +45,12 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# terraform .zip files, e.g. lambda zip files
+# terraform .zip files, e.g. Lambda zip files
 terraform/**/*.zip
+
+# Lambda Layer .tar files
+terraform/lambda-layers/**/*.tar.xz
+
 
 # Test files
 /processing/audio

@@ -1,20 +1,23 @@
 # lambda-layers
 
-For certain npm packages, that require architecture-specific build scripts, it's simpler to use a Lambda Layer, than to try to include that package in node_modules, and/or bundle the package into our dist file.
+For certain NPM packages, that require architecture-specific build scripts, it's simpler to use a Lambda Layer, than to try to include that package in node_modules, and/or bundle the package into our dist file.
 
 Some docs on Lambda Layers:
 https://docs.aws.amazon.com/lambda/latest/dg/nodejs-layers.html
 
-We've used this very helpful site to generate layers (as of writing, just one: `sqlite3`)
+We've used this very helpful site to generate layers for NPM packages:
 https://nodelayer.xyz/
 
-We'll list the original source of each .zip here, but for simplicity / in case there's ever a disruption to the site, we'll commit these layers into source control, for the time being.
+(note: as of 2025-06-02, we are *not* using any NPM packages as Layers, but we could in the future)
+
+We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM packages). We'll list those here as well.
+
 
 
 ## Layers
 
-1. `sqlite3`
-```shell
-# command provided on https://nodelayer.xyz/ 
-curl -L --fail-with-body -o layer.zip "https://api.nodelayer.xyz/arm64/layers/generate?version=v20.19.2&packages=sqlite3"
-```
+1. `ffmpeg` - for media processing
+
+Retrieve from https://johnvansickle.com/ffmpeg/ - `ffmpeg-release-arm64-static.tar.xz`
+
+Saved in this directory (.gitignored) as `/terraform/lambda-layers/ffmpeg-release-arm64-static.tar.xz`
