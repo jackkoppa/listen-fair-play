@@ -27,7 +27,7 @@ export interface FfprobeMetadata {
  */
 function getBinaryPaths(): { ffmpeg: string; ffprobe: string } {
   const isLambda = process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined;
-  
+
   if (isLambda) {
     return {
       ffmpeg: '/opt/bin/ffmpeg',
@@ -47,10 +47,10 @@ function getBinaryPaths(): { ffmpeg: string; ffprobe: string } {
  */
 export async function checkFfmpegAvailability(): Promise<void> {
   const { ffmpeg } = getBinaryPaths();
-  
+
   return new Promise((resolve, reject) => {
     const ffmpegProcess = spawn(ffmpeg, ['-version']);
-    
+
     ffmpegProcess.on('error', (error) => {
       const errorMessage = `
 ❌ FFmpeg not found on system.
@@ -66,7 +66,7 @@ For Lambda deployment:
 
 Original error: ${error.message}
       `.trim();
-      
+
       reject(new Error(errorMessage));
     });
 
@@ -86,7 +86,7 @@ Original error: ${error.message}
 export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadata> {
   await checkFfmpegAvailability();
   const { ffprobe } = getBinaryPaths();
-  
+
   return new Promise((resolve, reject) => {
     const ffprobeProcess = spawn(ffprobe, [
       '-v', 'quiet',
@@ -174,6 +174,10 @@ export async function createAudioChunk(
  * Split audio file into chunks for processing
  */
 export async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
+
+  // TODO: Remove this logging after debugging
+  log.info(`Splitting audio file: ${fileKey}`);
+
   // For ffmpeg to work, we need to download the file to a temporary location
   const tempDir = path.join('/tmp', path.dirname(fileKey));
   const tempFilePath = path.join('/tmp', fileKey);
@@ -181,9 +185,19 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
   // Ensure the temp directory exists
   await fs.ensureDir(tempDir);
 
+
+  // TODO: Remove this logging after debugging
+  log.info(`About to download file: ${fileKey}`);
+
   // Download the file to the temp location
   const audioBuffer = await getFile(fileKey);
+
+  // TODO: Remove this logging after debugging
+  log.info(`Downloaded file: ${fileKey}`);
   await fs.writeFile(tempFilePath, audioBuffer);
+
+  // TODO: Remove this logging after debugging
+  log.info(`Wrote file: ${fileKey}, tempFilePath: ${tempFilePath}`);
 
   // Get audio metadata
   const metadata = await getAudioMetadata(tempFilePath);
@@ -194,11 +208,16 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
   const promises: Promise<void>[] = [];
   let currentStart = 0;
 
+  // TODO: Remove this logging after debugging
+  log.info(`Splitting audio file, about to loop: ${currentStart}, ${duration}`);
+
   while (currentStart < duration) {
     const endTime = Math.min(currentStart + chunkDuration, duration);
     const chunkDurationActual = endTime - currentStart;
     const chunkPath = `${tempFilePath}.part${chunks.length + 1}.mp3`;
 
+    // TODO: Remove this logging after debugging
+    log.info(`Splitting audio file, within loop: endTime: ${endTime}, chunkDurationActual: ${chunkDurationActual}, chunkPath: ${chunkPath}`);
     chunks.push({
       startTime: currentStart,
       endTime: endTime,
@@ -209,7 +228,8 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
     promises.push(
       createAudioChunk(tempFilePath, chunkPath, currentStart, chunkDurationActual)
         .then(() => {
-          log.debug(`Created chunk: ${chunkPath}`);
+          // TODO: Remove this logging after debugging
+          log.info(`Created chunk: ${chunkPath}`);
         })
         .catch((err) => {
           log.error(`Error creating chunk ${chunkPath}:`, err);
@@ -220,8 +240,17 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
     currentStart = endTime;
   }
 
+
+
   try {
+    // TODO: Remove this logging after debugging
+    log.info(`Splitting audio file, about to await promises: ${promises.length}`);
+
     await Promise.all(promises);
+
+    // TODO: Remove this logging after debugging
+    log.info(`Splitting audio file, after await promises: ${chunks.length}`);
+
     return chunks;
   } catch (error) {
     // Clean up any partial chunks on error

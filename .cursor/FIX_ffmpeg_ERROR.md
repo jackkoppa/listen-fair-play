@@ -129,3 +129,33 @@ User: confirmed this is working 🎉
 
 **Next Action Required:**
 Please run `terraform apply` to deploy the ffmpeg Lambda layer and updated whisper function to AWS, then test with actual Lambda execution to verify the ffmpeg functionality works in the cloud environment.
+
+## ⚠️ ISSUE DISCOVERED & FIXED: Layer Directory Structure
+
+**Problem Found:**
+During Lambda testing, encountered error: `spawn /opt/bin/ffmpeg ENOENT`
+
+**Root Cause:**
+The initial ffmpeg layer had incorrect directory structure:
+```
+ffmpeg-layer/          ❌ Wrong - creates /opt/ffmpeg-layer/bin/
+└── bin/
+    ├── ffmpeg
+    └── ffprobe
+```
+
+**Solution Applied:**
+Fixed the zip structure to be:
+```
+bin/                   ✅ Correct - creates /opt/bin/
+├── ffmpeg
+└── ffprobe
+```
+
+**Changes Made:**
+1. ✅ Updated `1-prepare-ffmpeg-layer.sh` - Fixed zip command to use correct structure
+2. ✅ Regenerated `ffmpeg-layer.zip` with proper directory layout
+3. ✅ Verified structure: Layer now contains `bin/ffmpeg` and `bin/ffprobe` at root level
+
+**Action Required:**
+Run `terraform apply` to deploy the corrected ffmpeg layer, then retest Lambda execution.

@@ -58,7 +58,7 @@ rm -f "$LAYER_DIR/GPLv3.txt"
 # Create the zip file
 echo "🗜️  Creating Lambda layer zip file..."
 cd "$SCRIPT_DIR"
-zip -r "ffmpeg-layer.zip" ffmpeg-layer/
+(cd ffmpeg-layer && zip -r ../ffmpeg-layer.zip .)
 
 # Clean up the temporary directory
 echo "🧹 Cleaning up temporary files..."

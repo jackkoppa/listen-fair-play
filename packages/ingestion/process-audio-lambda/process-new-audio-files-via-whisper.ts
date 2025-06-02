@@ -180,7 +180,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   // Transcribe each chunk
   const srtChunks: string[] = [];
   for (const chunk of chunks) {
-    log.debug(`Transcribing chunk: ${chunk.filePath}`);
+    log.info(`Transcribing chunk: ${chunk.filePath}`);
     const srtContent = await transcribeViaWhisper({
       filePath: chunk.filePath,
       whisperApiProvider: WHISPER_API_PROVIDER,
@@ -189,11 +189,14 @@ async function processAudioFile(fileKey: string): Promise<void> {
     srtChunks.push(srtContent);
     // Clean up the individual chunk file
     await fs.remove(chunk.filePath);
-    log.debug(`Transcription complete for chunk: ${chunk.filePath}. SRT saved.`);
+    log.info(`Transcription complete for chunk: ${chunk.filePath}. SRT saved.`);
   }
 
   // Combine SRT files
   const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks) : srtChunks[0];
+
+  // TODO: Remove this logging after debugging
+  log.info(`Combined SRT files: ${srtChunks.length}`);
 
   // Save the combined SRT file to S3
   await saveFile(transcriptKey, Buffer.from(finalSrt));
