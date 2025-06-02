@@ -56,6 +56,18 @@ module "s3_bucket" {
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
+# FFmpeg Lambda Layer for media processing
+resource "aws_lambda_layer_version" "ffmpeg_layer" {
+  filename         = "lambda-layers/ffmpeg-layer.zip"
+  layer_name       = "ffmpeg-${var.environment}"
+  source_code_hash = filebase64sha256("lambda-layers/ffmpeg-layer.zip")
+  
+  compatible_runtimes      = ["nodejs20.x"]
+  compatible_architectures = ["arm64"]
+  
+  description = "FFmpeg static binaries for audio/video processing"
+}
+
 # SSL Certificate for custom domain (must be in us-east-1 for CloudFront)
 resource "aws_acm_certificate" "custom_domain" {
   count = var.custom_domain_name != "" ? 1 : 0
@@ -158,6 +170,7 @@ module "whisper_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
+  layers               = [aws_lambda_layer_version.ffmpeg_layer.arn]
 }
 
 # EventBridge schedule for daily RSS processing

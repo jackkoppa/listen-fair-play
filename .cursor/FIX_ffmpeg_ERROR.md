@@ -83,9 +83,49 @@ But you'll need to update Terraform for the Layer
 ### ✅ CHECKPOINT REACHED: All Tests Passing
 The fluent-ffmpeg dependency has been completely replaced with native CLI calls. 
 
-**🚀 Ready for Local Testing**
+** ✅  Ready for Local Testing**
 Please test `pnpm process-audio-lambda:run:local` to verify functionality before proceeding to Lambda Layer configuration.
 
-### Next Steps (Pending Checkpoint Verification):
-6. Configure Lambda Layer for ffmpeg in Terraform
-7. Test on actual Lambda deployment
+User: confirmed this is working 🎉
+
+## ✅ COMPLETED: Step 6 - Lambda Layer Configuration
+
+### Key Changes Made:
+
+1. **Created FFmpeg Lambda Layer in Terraform** - `terraform/main.tf`:
+   - Added `aws_lambda_layer_version` resource for ffmpeg
+   - Configured for ARM64 architecture and Node.js 20.x runtime
+   - Layer extracts binaries to `/opt/bin/` in Lambda environment
+
+2. **Updated Whisper Lambda Configuration**:
+   - Added `layers = [aws_lambda_layer_version.ffmpeg_layer.arn]` to whisper_lambda module
+   - Lambda now has access to ffmpeg/ffprobe binaries
+
+3. **Enhanced ffmpeg-utils.ts** with environment detection:
+   - `getBinaryPaths()` function detects Lambda vs local environment
+   - Uses `/opt/bin/ffmpeg` and `/opt/bin/ffprobe` in Lambda
+   - Falls back to system PATH for local development
+   - Automatic environment detection via `AWS_LAMBDA_FUNCTION_NAME`
+
+4. **Created automated layer preparation script** - `terraform/lambda-layers/1-prepare-ffmpeg-layer.sh`:
+   - Downloads and extracts ffmpeg static binaries
+   - Creates proper Lambda layer directory structure
+   - Generates optimized `ffmpeg-layer.zip` (49MB)
+   - Includes error handling and progress feedback
+
+5. **Updated documentation** - `terraform/lambda-layers/README.md`:
+   - Complete setup instructions for ffmpeg layer
+   - Download, preparation, and deployment steps
+   - Notes on file sizes and directory structure
+   - Usage guidelines for Lambda functions
+
+### ✅ Infrastructure Ready for Deployment
+- ✅ Terraform configuration validated (`terraform validate` passed)
+- ✅ Lambda function built with updated ffmpeg utilities
+- ✅ FFmpeg layer zip created (49MB, optimized)
+- ✅ All tests passing locally
+
+## 🚀 STEP 7: Ready for Lambda Testing
+
+**Next Action Required:**
+Please run `terraform apply` to deploy the ffmpeg Lambda layer and updated whisper function to AWS, then test with actual Lambda execution to verify the ffmpeg functionality works in the cloud environment.

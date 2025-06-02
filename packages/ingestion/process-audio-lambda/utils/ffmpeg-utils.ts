@@ -21,14 +21,37 @@ export interface FfprobeMetadata {
 }
 
 /**
+ * Get the appropriate binary paths for the current environment
+ * In Lambda with layers, binaries are in /opt/bin/
+ * In local development, they're in the system PATH
+ */
+function getBinaryPaths(): { ffmpeg: string; ffprobe: string } {
+  const isLambda = process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined;
+  
+  if (isLambda) {
+    return {
+      ffmpeg: '/opt/bin/ffmpeg',
+      ffprobe: '/opt/bin/ffprobe'
+    };
+  } else {
+    return {
+      ffmpeg: 'ffmpeg',
+      ffprobe: 'ffprobe'
+    };
+  }
+}
+
+/**
  * Check if ffmpeg is available on the system
  * Throws an error with installation instructions if not available
  */
 export async function checkFfmpegAvailability(): Promise<void> {
+  const { ffmpeg } = getBinaryPaths();
+  
   return new Promise((resolve, reject) => {
-    const ffmpeg = spawn('ffmpeg', ['-version']);
+    const ffmpegProcess = spawn(ffmpeg, ['-version']);
     
-    ffmpeg.on('error', (error) => {
+    ffmpegProcess.on('error', (error) => {
       const errorMessage = `
 ❌ FFmpeg not found on system.
 
@@ -47,7 +70,7 @@ Original error: ${error.message}
       reject(new Error(errorMessage));
     });
 
-    ffmpeg.on('close', (code) => {
+    ffmpegProcess.on('close', (code) => {
       if (code === 0) {
         resolve();
       } else {
@@ -62,9 +85,10 @@ Original error: ${error.message}
  */
 export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadata> {
   await checkFfmpegAvailability();
+  const { ffprobe } = getBinaryPaths();
   
   return new Promise((resolve, reject) => {
-    const ffprobe = spawn('ffprobe', [
+    const ffprobeProcess = spawn(ffprobe, [
       '-v', 'quiet',
       '-print_format', 'json',
       '-show_format',
@@ -74,15 +98,15 @@ export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadat
     let stdout = '';
     let stderr = '';
 
-    ffprobe.stdout.on('data', (data) => {
+    ffprobeProcess.stdout.on('data', (data) => {
       stdout += data.toString();
     });
 
-    ffprobe.stderr.on('data', (data) => {
+    ffprobeProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    ffprobe.on('close', (code) => {
+    ffprobeProcess.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`ffprobe failed with exit code ${code}: ${stderr}`));
         return;
@@ -96,7 +120,7 @@ export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadat
       }
     });
 
-    ffprobe.on('error', (error) => {
+    ffprobeProcess.on('error', (error) => {
       reject(new Error(`ffprobe spawn error: ${error.message}`));
     });
   });
@@ -112,6 +136,7 @@ export async function createAudioChunk(
   duration: number
 ): Promise<void> {
   await checkFfmpegAvailability();
+  const { ffmpeg } = getBinaryPaths();
 
   return new Promise((resolve, reject) => {
     const args = [
@@ -123,15 +148,15 @@ export async function createAudioChunk(
       outputPath
     ];
 
-    const ffmpeg = spawn('ffmpeg', args);
+    const ffmpegProcess = spawn(ffmpeg, args);
 
     let stderr = '';
 
-    ffmpeg.stderr.on('data', (data) => {
+    ffmpegProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    ffmpeg.on('close', (code) => {
+    ffmpegProcess.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`ffmpeg failed with exit code ${code}: ${stderr}`));
         return;
@@ -139,7 +164,7 @@ export async function createAudioChunk(
       resolve();
     });
 
-    ffmpeg.on('error', (error) => {
+    ffmpegProcess.on('error', (error) => {
       reject(new Error(`ffmpeg spawn error: ${error.message}`));
     });
   });
