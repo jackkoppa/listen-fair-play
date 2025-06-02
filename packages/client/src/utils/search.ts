@@ -6,17 +6,19 @@ export interface SearchParams {
   sortOption: SortOption;
   searchApiBaseUrl: string;
   searchLimit: number;
+  searchOffset?: number;
 }
 
 /**
  * Perform a search request to the search API
  */
 export async function performSearch(params: SearchParams): Promise<SearchResponse> {
-  const { query, sortOption, searchApiBaseUrl, searchLimit } = params;
+  const { query, sortOption, searchApiBaseUrl, searchLimit, searchOffset = 0 } = params;
 
   const searchRequest: SearchRequest = {
     query: query.trim(),
     limit: searchLimit,
+    offset: searchOffset,
     searchFields: ['text'], // Search only in transcript text
   };
 

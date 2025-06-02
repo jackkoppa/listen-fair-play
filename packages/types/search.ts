@@ -25,6 +25,7 @@ export interface ApiSearchResultHit extends SearchEntry {
 export interface SearchRequest {
   query: string;                        // Search query text
   limit?: number;                       // Maximum number of results (default: 10)
+  offset?: number;                      // Number of results to skip for pagination (default: 0)
   sortBy?: keyof SearchEntry;           // Field to sort by
   sortOrder?: 'ASC' | 'DESC';          // Sort order (default: 'DESC' for date) - converted to uppercase internally
   searchFields?: (keyof SearchEntry)[]; // Fields to search in (default: ['text'])

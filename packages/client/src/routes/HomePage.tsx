@@ -17,7 +17,7 @@ import { trackEvent } from '@/utils/goatcounter';
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
-const SEARCH_LIMIT = 50;
+const SEARCH_LIMIT = 25;
 
 // Estimated time for Lambda cold start - if more than this time has passed since page load,
 // we won't show the ColdStartLoader and will just use normal loading states
@@ -35,10 +35,11 @@ const ESTIMATED_TIME_FOR_LAMBDA_COLD_START = 10000; // 10 seconds
  */
 function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // URL-driven state - read from search params
   const searchQuery = searchParams.get('q') || '';
   const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   // Local component state
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
@@ -62,7 +63,7 @@ function HomePage() {
   // Ref to track when the page was loaded for cold start timeout logic
   const pageLoadTime = useRef(Date.now());
   // Ref to track the last search parameters to prevent duplicate searches
-  const lastSearchParams = useRef<{query: string, sort: SortOption} | null>(null);
+  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number} | null>(null);
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
@@ -81,6 +82,20 @@ function HomePage() {
         newParams.set('sort', sort);
       } else {
         newParams.delete('sort');
+      }
+      // Reset to page 1 when sort changes
+      newParams.delete('page');
+      return newParams;
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (page > 1) {
+        newParams.set('page', page.toString());
+      } else {
+        newParams.delete('page');
       }
       return newParams;
     });
@@ -153,6 +168,8 @@ function HomePage() {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       newParams.set('q', trimmedQuery);
+      // Reset to page 1 for new searches
+      newParams.delete('page');
       return newParams;
     });
 
@@ -175,12 +192,13 @@ function HomePage() {
    */
   const performSearchRequest = async (query: string) => {
     // Check if we're about to perform the same search as last time
-    const currentSearchParams = { query, sort: sortOption };
+    const currentSearchParams = { query, sort: sortOption, page: currentPage };
     const lastParams = lastSearchParams.current;
     
     if (lastParams && 
         lastParams.query === currentSearchParams.query && 
-        lastParams.sort === currentSearchParams.sort) {
+        lastParams.sort === currentSearchParams.sort &&
+        lastParams.page === currentSearchParams.page) {
       return;
     }
     
@@ -191,11 +209,13 @@ function HomePage() {
     setError(null);
 
     try {
+      const searchOffset = (currentPage - 1) * SEARCH_LIMIT;
       const data: SearchResponse = await performSearch({
         query,
         sortOption,
         searchApiBaseUrl: SEARCH_API_BASE_URL,
         searchLimit: SEARCH_LIMIT,
+        searchOffset,
       });
       
       if (data && data.hits) {
@@ -257,7 +277,7 @@ function HomePage() {
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
 
   /**
-   * Re-run search when sort option changes (but only if we have an active search)
+   * Re-run search when sort option or page changes (but only if we have an active search)
    */
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -265,7 +285,7 @@ function HomePage() {
     if (trimmedQuery.length >= 2) {
       performSearchRequest(trimmedQuery);
     }
-  }, [sortOption]);
+  }, [sortOption, currentPage]);
 
   return (
     <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-28 min-h-screen">
@@ -298,6 +318,9 @@ function HomePage() {
           episodeManifest={episodeManifest}
           sortOption={sortOption}
           onSortChange={updateSortOption}
+          currentPage={currentPage}
+          itemsPerPage={SEARCH_LIMIT}
+          onPageChange={handlePageChange}
         />
       )}
 

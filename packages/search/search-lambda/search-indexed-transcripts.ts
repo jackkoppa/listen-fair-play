@@ -85,6 +85,7 @@ export async function handler(event: any): Promise<SearchResponse> {
     let searchRequest: SearchRequest = {
       query: '',
       limit: 10,
+      offset: 0,
       searchFields: ['text'],
       sortBy: undefined,
       sortOrder: 'DESC',
@@ -102,6 +103,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchRequest = {
           query: queryParams.query || '',
           limit: parseInt(queryParams.limit || '10', 10),
+          offset: parseInt(queryParams.offset || '0', 10),
           searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
           sortBy: queryParams.sortBy || undefined,
           sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
@@ -117,6 +119,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchRequest = {
           query: body.query || '',
           limit: body.limit || 10,
+          offset: body.offset || 0,
           searchFields: body.searchFields || ['text'],
           sortBy: body.sortBy || undefined,
           sortOrder: body.sortOrder || 'DESC',
@@ -133,6 +136,7 @@ export async function handler(event: any): Promise<SearchResponse> {
       searchRequest = {
         query: body.query || '',
         limit: body.limit || 10,
+        offset: body.offset || 0,
         searchFields: body.searchFields || ['text'],
         sortBy: body.sortBy || undefined,
         sortOrder: body.sortOrder || 'DESC',
@@ -144,6 +148,7 @@ export async function handler(event: any): Promise<SearchResponse> {
       searchRequest = {
         query: event.query,
         limit: event.limit || 10,
+        offset: event.offset || 0,
         searchFields: event.searchFields || ['text'],
         sortBy: event.sortBy || undefined,
         sortOrder: event.sortOrder || 'DESC',

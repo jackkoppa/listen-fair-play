@@ -7,6 +7,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { SortOption } from '../types/search'
 
 interface SearchResultsProps {
@@ -20,6 +29,10 @@ interface SearchResultsProps {
   episodeManifest: EpisodeManifest | null;
   sortOption: SortOption;
   onSortChange: (option: SortOption) => void;
+  // Pagination props
+  currentPage: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
 }
 
 interface SearchTimeAndResultCountProps {
@@ -75,6 +88,9 @@ export default function SearchResults({
   episodeManifest,
   sortOption,
   onSortChange,
+  currentPage,
+  itemsPerPage,
+  onPageChange,
 }: SearchResultsProps) {
   // Show error message if there's an error
   if (error) {
@@ -91,6 +107,98 @@ export default function SearchResults({
 
   // Only show this banner area once we've had a successful search
   const showResultsInfo = Boolean(mostRecentSuccessfulSearchQuery);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(totalHits / itemsPerPage);
+  const hasMultiplePages = totalPages > 1;
+
+  const renderPagination = () => {
+    if (!hasMultiplePages || isLoading) return null;
+
+    const maxVisiblePages = 5;
+    const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const adjustedStartPage = Math.max(1, endPage - maxVisiblePages + 1);
+
+    const pages = [];
+    for (let i = adjustedStartPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="mt-8 flex justify-center">
+        <Pagination>
+          <PaginationContent>
+            {currentPage > 1 && (
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => onPageChange(currentPage - 1)}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
+            )}
+            
+            {adjustedStartPage > 1 && (
+              <>
+                <PaginationItem>
+                  <PaginationLink 
+                    onClick={() => onPageChange(1)}
+                    className="cursor-pointer"
+                  >
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+                {adjustedStartPage > 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+              </>
+            )}
+            
+            {pages.map((page) => (
+              <PaginationItem key={page}>
+                <PaginationLink 
+                  onClick={() => onPageChange(page)}
+                  isActive={page === currentPage}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            
+            {endPage < totalPages && (
+              <>
+                {endPage < totalPages - 1 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                <PaginationItem>
+                  <PaginationLink 
+                    onClick={() => onPageChange(totalPages)}
+                    className="cursor-pointer"
+                  >
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            {currentPage < totalPages && (
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => onPageChange(currentPage + 1)}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
+            )}
+          </PaginationContent>
+        </Pagination>
+      </div>
+    );
+  };
 
   return (
     <div className="results-container">
@@ -138,15 +246,18 @@ export default function SearchResults({
           ))}
         </div>
       ) : results.length > 0 ? (
-        <ul className="results-list space-y-6">
-          {results.map((result) => (
-            <SearchResult
-              key={result.id}
-              result={result}
-              episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="results-list space-y-6">
+            {results.map((result) => (
+              <SearchResult
+                key={result.id}
+                result={result}
+                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
+              />
+            ))}
+          </ul>
+          {renderPagination()}
+        </>
       ) : searchQuery.trim().length >= 2 && !error ? (
         <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
           No results found for "{searchQuery}". Try a different term, perhaps something more pedantic?

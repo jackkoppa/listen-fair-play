@@ -70,6 +70,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
     const {
       query,
       limit = 10,
+      offset = 0,
       sortBy,
       sortOrder = 'DESC',
       searchFields = ['text'],
@@ -79,6 +80,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
     const searchOptions: SearchParams<AnyOrama> = {
       term: query,
       limit,
+      offset,
       properties: searchFields,
       // boost: {
       //   // Boost exact matches in text field

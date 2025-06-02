@@ -84,6 +84,7 @@ describe('Search Utils', () => {
       sortOption: 'relevance' as const,
       searchApiBaseUrl: mockSearchApiBaseUrl,
       searchLimit: 10,
+      searchOffset: 0,
     };
 
     it('makes a POST request to the correct endpoint', async () => {
@@ -111,6 +112,7 @@ describe('Search Utils', () => {
           body: JSON.stringify({
             query: 'test query',
             limit: 10,
+            offset: 0,
             searchFields: ['text'],
           }),
         }
