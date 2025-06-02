@@ -118,12 +118,17 @@ export async function createDirectory(prefix: string): Promise<void> {
     const dirPrefix = prefix.endsWith('/') ? prefix : `${prefix}/`;
     const bucketName = getBucketName();
     
-    // Create an empty object with the directory name
-    await s3.putObject({
-      Bucket: bucketName,
-      Key: dirPrefix,
-      Body: '',
+    // Create an empty object with the directory name using Upload
+    const parallelUpload = new Upload({
+      client: s3,
+      params: {
+        Bucket: bucketName,
+        Key: dirPrefix,
+        Body: '',
+      },
     });
+
+    await parallelUpload.done();
   }
 }
 
