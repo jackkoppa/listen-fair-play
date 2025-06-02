@@ -59,6 +59,9 @@ async function transcriptExists(fileKey: string): Promise<boolean> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName, `${audioFileName}.srt`);
 
+  // TODO: Remove this logging after debugging
+  log.info(`Checking if transcript exists for ${transcriptKey}, audioFileName: ${audioFileName}, podcastName: ${podcastName}, TRANSCRIPTS_DIR_PREFIX: ${TRANSCRIPTS_DIR_PREFIX}`);
+
   return fileExists(transcriptKey.normalize('NFC'));
 }
 

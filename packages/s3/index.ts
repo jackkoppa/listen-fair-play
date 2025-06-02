@@ -57,13 +57,21 @@ export async function fileExists(key: string): Promise<boolean> {
     return fs.pathExists(localPath);
   } else {
     const bucketName = getBucketName();
+    // TODO: Remove this logging after debugging
+    log.info(`Checking if fileExists for ${key}, bucketName: ${bucketName}`);
+
     try {
       await s3.headObject({
         Bucket: bucketName,
         Key: key,
       });
+      // TODO: Remove this logging after debugging
+      log.info(`File exists for ${key}, bucketName: ${bucketName}`);
       return true;
     } catch (error) {
+      // TODO: Remove this logging after debugging
+      log.info(`Error checking if fileExists for ${key}, bucketName: ${bucketName}, error: ${error}`);
+      
       // Check if the error is a "NotFound" error
       if (error instanceof Error && (error as any).name === 'NotFound') {
         return false;
