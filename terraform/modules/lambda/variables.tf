@@ -63,4 +63,10 @@ variable "layers" {
   description = "List of Lambda layer ARNs to attach to the function"
   type        = list(string)
   default     = []
+}
+
+variable "cloudfront_distribution_arn" {
+  description = "ARN of the CloudFront distribution, required for invalidation permissions."
+  type        = string
+  default     = "" # Provide a default or make it mandatory
 } 

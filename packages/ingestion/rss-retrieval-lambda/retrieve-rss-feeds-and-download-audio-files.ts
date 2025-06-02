@@ -1,11 +1,12 @@
 import * as xml2js from 'xml2js';
 import * as path from 'path';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { log } from '@listen-fair-play/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
 import { RSS_CONFIG } from '@listen-fair-play/config';
 import { EpisodeManifest, EpisodeInManifest } from '@listen-fair-play/types';
-import {EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
+import { EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
@@ -31,6 +32,7 @@ const RSS_DIR_PREFIX = 'rss/';
 const AUDIO_DIR_PREFIX = 'audio/';
 const EPISODE_MANIFEST_DIR_PREFIX = 'episode-manifest/';
 const LAMBDA_CLIENT = new LambdaClient({});
+const CLOUDFRONT_CLIENT = new CloudFrontClient({});
 const WHISPER_LAMBDA_NAME = 'process-new-audio-files-via-whisper';
 
 
@@ -370,6 +372,38 @@ async function triggerTranscriptionLambda(downloadedAudioS3Keys: string[]): Prom
   }
 }
 
+// Function to invalidate CloudFront cache for the episode manifest
+async function invalidateCloudFrontCacheForManifest(): Promise<void> {
+  const cloudfrontDistributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID;
+  if (!cloudfrontDistributionId) {
+    log.warn('CLOUDFRONT_DISTRIBUTION_ID environment variable not set. Skipping CloudFront cache invalidation.');
+    return;
+  }
+
+  // The path to invalidate must start with a leading '/'
+  const pathKey = EPISODE_MANIFEST_KEY.startsWith('/') ? EPISODE_MANIFEST_KEY : `/${EPISODE_MANIFEST_KEY}`;
+
+  log.info(`Invalidating CloudFront cache for: ${pathKey} in distribution: ${cloudfrontDistributionId}`);
+
+  try {
+    const command = new CreateInvalidationCommand({
+      DistributionId: cloudfrontDistributionId,
+      InvalidationBatch: {
+        Paths: {
+          Quantity: 1,
+          Items: [pathKey],
+        },
+        CallerReference: `manifest-update-${Date.now()}`,
+      },
+    });
+    await CLOUDFRONT_CLIENT.send(command);
+    log.info(`CloudFront invalidation request sent for ${pathKey}.`);
+  } catch (error) {
+    log.error(`Error creating CloudFront invalidation for ${pathKey}:`, error);
+    // Depending on the severity, you might want to re-throw or just log
+  }
+}
+
 // Main handler function
 export async function handler(): Promise<void> {
   log.info(`🟢 Starting retrieve-rss-feeds-and-download-audio-files > handler, with logging level: ${log.getLevel()}`);
@@ -507,6 +541,14 @@ export async function handler(): Promise<void> {
     }
     
     await triggerTranscriptionLambda(allNewlyDownloadedS3AudioKeys);
+
+    // Invalidate CloudFront cache for the manifest if new audio files were downloaded
+    if (allNewlyDownloadedS3AudioKeys.length > 0) {
+      log.info('New audio files were downloaded. Triggering CloudFront cache invalidation for episode manifest.');
+      await invalidateCloudFrontCacheForManifest();
+    } else {
+      log.info('No new audio files downloaded. Skipping CloudFront cache invalidation for episode manifest.');
+    }
     
     const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;
     

@@ -14,6 +14,7 @@ catalog:
   '@orama/orama': ^3.1.7
   '@orama/plugin-data-persistence': ^3.1.7
   typescript: ^5.3.3
+  '@aws-sdk/client-cloudfront': ^3.787.0
   '@aws-sdk/client-lambda': ^3.787.0
   '@aws-sdk/client-s3': ^3.787.0
   '@aws-sdk/credential-provider-sso': ^3.787.0

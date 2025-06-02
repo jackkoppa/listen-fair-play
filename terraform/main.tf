@@ -143,13 +143,15 @@ module "rss_lambda" {
   timeout              = 300
   memory_size          = 2560
   environment_variables = {
-    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
-    LOG_LEVEL          = var.log_level
+    S3_BUCKET_NAME            = module.s3_bucket.bucket_name
+    LOG_LEVEL                 = var.log_level
+    CLOUDFRONT_DISTRIBUTION_ID = module.cloudfront.cloudfront_id
   }
   source_dir           = "../packages/ingestion/rss-retrieval-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   environment          = var.environment
   lambda_architecture  = ["arm64"]
+  cloudfront_distribution_arn = module.cloudfront.cloudfront_arn
 }
 
 # Lambda for Whisper transcription
