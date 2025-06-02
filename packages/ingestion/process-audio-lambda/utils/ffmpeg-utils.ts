@@ -174,8 +174,6 @@ export async function createAudioChunk(
  * Split audio file into chunks for processing
  */
 export async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
-
-  // TODO: Remove this logging after debugging
   log.info(`Splitting audio file: ${fileKey}`);
 
   // For ffmpeg to work, we need to download the file to a temporary location
@@ -185,19 +183,10 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
   // Ensure the temp directory exists
   await fs.ensureDir(tempDir);
 
-
-  // TODO: Remove this logging after debugging
-  log.info(`About to download file: ${fileKey}`);
-
   // Download the file to the temp location
   const audioBuffer = await getFile(fileKey);
 
-  // TODO: Remove this logging after debugging
-  log.info(`Downloaded file: ${fileKey}`);
   await fs.writeFile(tempFilePath, audioBuffer);
-
-  // TODO: Remove this logging after debugging
-  log.info(`Wrote file: ${fileKey}, tempFilePath: ${tempFilePath}`);
 
   // Get audio metadata
   const metadata = await getAudioMetadata(tempFilePath);
@@ -208,16 +197,11 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
   const promises: Promise<void>[] = [];
   let currentStart = 0;
 
-  // TODO: Remove this logging after debugging
-  log.info(`Splitting audio file, about to loop: ${currentStart}, ${duration}`);
-
   while (currentStart < duration) {
     const endTime = Math.min(currentStart + chunkDuration, duration);
     const chunkDurationActual = endTime - currentStart;
     const chunkPath = `${tempFilePath}.part${chunks.length + 1}.mp3`;
 
-    // TODO: Remove this logging after debugging
-    log.info(`Splitting audio file, within loop: endTime: ${endTime}, chunkDurationActual: ${chunkDurationActual}, chunkPath: ${chunkPath}`);
     chunks.push({
       startTime: currentStart,
       endTime: endTime,
@@ -228,7 +212,6 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
     promises.push(
       createAudioChunk(tempFilePath, chunkPath, currentStart, chunkDurationActual)
         .then(() => {
-          // TODO: Remove this logging after debugging
           log.info(`Created chunk: ${chunkPath}`);
         })
         .catch((err) => {
@@ -243,13 +226,9 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
 
 
   try {
-    // TODO: Remove this logging after debugging
-    log.info(`Splitting audio file, about to await promises: ${promises.length}`);
-
+    log.info(`Splitting audio file: ${fileKey}, into ${promises.length} chunks`);
     await Promise.all(promises);
-
-    // TODO: Remove this logging after debugging
-    log.info(`Splitting audio file, after await promises: ${chunks.length}`);
+    log.info(`Completed splitting audio file: ${fileKey}, into ${chunks.length} chunks`);
 
     return chunks;
   } catch (error) {
