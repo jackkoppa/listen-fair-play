@@ -10,6 +10,7 @@ import {
   listFiles,
   createDirectory,
   getDirectorySize,
+  listDirectories,
 } from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 
@@ -58,9 +59,6 @@ async function transcriptExists(fileKey: string): Promise<boolean> {
   const audioFileName = path.basename(fileKey, '.mp3');
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName, `${audioFileName}.srt`);
-
-  // TODO: Remove this logging after debugging
-  log.info(`Checking if transcript exists for ${transcriptKey}, audioFileName: ${audioFileName}, podcastName: ${podcastName}, TRANSCRIPTS_DIR_PREFIX: ${TRANSCRIPTS_DIR_PREFIX}`);
 
   return fileExists(transcriptKey.normalize('NFC'));
 }
@@ -328,12 +326,15 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     log.info(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
   } else {
     // Fallback to original logic structure if event.audioFiles is not present
-    log.debug('Scanning S3 for audio files as no specific files were provided in the event.');
-    const allPodcastDirs = await listFiles(AUDIO_DIR_PREFIX);
-    log.debug(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
+    log.info('Scanning S3 for audio files as no specific files were provided in the event.');
+    const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
+    log.info(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
     
     // Process each podcast directory
     for (const podcastDir of allPodcastDirs) {
+      // TODO: Remove this logging after debugging
+      log.info(`Processing podcast directory: ${podcastDir}`);
+
       if (!podcastDir || podcastDir.endsWith('.DS_Store')) continue; // Skip empty, undefined, or .DS_Store directories
       
       // Get all MP3 files in this podcast directory
@@ -353,6 +354,9 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
       });
       
       stats.totalFiles += mp3Files.length;
+
+      // TODO: Remove this logging after debugging
+      log.info(`Found ${mp3Files.length} MP3 files to process in ${podcastDir}`);
     }
     log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
   }
