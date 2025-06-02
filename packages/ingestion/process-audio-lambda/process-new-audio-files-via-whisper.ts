@@ -205,7 +205,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   await saveFile(transcriptKey, Buffer.from(finalSrt));
 
   log.info(
-    `\n✅ Transcription complete for ${fileKey}.` + 
+    `\n✅ Transcription complete for ${fileKey}.` +
     `\n💾 SRT saved to ${transcriptKey}\n`
   );
 
@@ -224,7 +224,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
  * 
  * @param event - The event object, which can optionally contain a list of audio files to process.
  */
-export async function handler(event: { audioFiles?: string[] } = {}): Promise<void> {
+export async function handler(): Promise<void> {
   log.info(`🟢 Starting process-new-audio-files-via-whisper > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString());
@@ -242,45 +242,40 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
 
   let filesToProcess: string[] = [];
 
-  if (event.audioFiles && event.audioFiles.length > 0) {
-    filesToProcess = event.audioFiles;
-    log.info(`Processing specific audio files provided in event: ${filesToProcess.join(', ')}`);
-  } else {
-    // Fallback to original logic structure if event.audioFiles is not present
-    log.info('Scanning S3 for audio files as no specific files were provided in the event.');
-    const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
-    log.info(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
-    
-    // Process each podcast directory
-    for (const podcastDir of allPodcastDirs) {
-      // TODO: Remove this logging after debugging
-      log.info(`Processing podcast directory: ${podcastDir}`);
+  // Fallback to original logic structure if event.audioFiles is not present
+  log.info('Scanning S3 for audio files as no specific files were provided in the event.');
+  const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
+  log.info(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
 
-      if (!podcastDir || podcastDir.endsWith('.DS_Store')) continue; // Skip empty, undefined, or .DS_Store directories
-      
-      // Get all MP3 files in this podcast directory
-      const mp3Files = await getMp3Files(podcastDir);
-      filesToProcess.push(...mp3Files);
-      
-      // Get total size for this podcast directory
-      const podcastName = path.basename(podcastDir);
-      const dirSize = await getDirectorySize(podcastDir);
-      
-      // Initialize podcast stats
-      stats.podcastStats.set(podcastName, {
-        total: mp3Files.length,
-        skipped: 0,
-        processed: 0,
-        sizeBytes: dirSize
-      });
-      
-      stats.totalFiles += mp3Files.length;
+  // Process each podcast directory
+  for (const podcastDir of allPodcastDirs) {
+    // TODO: Remove this logging after debugging
+    log.info(`Processing podcast directory: ${podcastDir}`);
 
-      // TODO: Remove this logging after debugging
-      log.info(`Found ${mp3Files.length} MP3 files to process in ${podcastDir}`);
-    }
-    log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
+    if (!podcastDir || podcastDir.endsWith('.DS_Store')) continue; // Skip empty, undefined, or .DS_Store directories
+
+    // Get all MP3 files in this podcast directory
+    const mp3Files = await getMp3Files(podcastDir);
+    filesToProcess.push(...mp3Files);
+
+    // Get total size for this podcast directory
+    const podcastName = path.basename(podcastDir);
+    const dirSize = await getDirectorySize(podcastDir);
+
+    // Initialize podcast stats
+    stats.podcastStats.set(podcastName, {
+      total: mp3Files.length,
+      skipped: 0,
+      processed: 0,
+      sizeBytes: dirSize
+    });
+
+    stats.totalFiles += mp3Files.length;
+
+    // TODO: Remove this logging after debugging
+    log.info(`Found ${mp3Files.length} MP3 files to process in ${podcastDir}`);
   }
+  log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
   if (filesToProcess.length === 0) {
     log.info("No audio files found to process.");
@@ -291,7 +286,7 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     try {
       log.debug(`Processing file: ${fileKey}`);
       const podcastName = path.basename(path.dirname(fileKey));
-      
+
       // Check if transcription exists
       if (await transcriptExists(fileKey)) {
         stats.skippedFiles++;
@@ -318,11 +313,11 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   log.info(`\n📁 Total Files Found: ${stats.totalFiles}`);
   log.info(`✅ Successfully Processed: ${stats.processedFiles}`);
   log.info(`⏭️  Skipped (Already Transcribed): ${stats.skippedFiles}`);
-  
+
   log.info('\n📂 Breakdown by Podcast:');
   for (const [podcast, podcastStats] of stats.podcastStats) {
     const podcastSizeMB = podcastStats.sizeBytes / (1024 * 1024);
-    const podcastSizeDisplay = podcastSizeMB >= 1024 
+    const podcastSizeDisplay = podcastSizeMB >= 1024
       ? `${(podcastSizeMB / 1024).toFixed(2)} GB`
       : `${podcastSizeMB.toFixed(2)} MB`;
 

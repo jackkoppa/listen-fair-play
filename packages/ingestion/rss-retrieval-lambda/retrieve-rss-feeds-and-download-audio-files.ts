@@ -349,23 +349,16 @@ async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string>
   }
 }
 
-// Trigger Lambda-2 for transcription (placeholder)
-async function triggerTranscriptionLambda(downloadedAudioS3Keys: string[]): Promise<void> {
-  if (downloadedAudioS3Keys.length === 0) {
-    log.debug('No new audio files were downloaded, so no transcription to trigger.');
-    return;
-  }
-  log.info(`New audio files to transcribe (S3 Keys): ${downloadedAudioS3Keys.join(', ')}`);
-  
+// Trigger process-new-audio-files-via-whisper
+async function triggerTranscriptionLambda(): Promise<void> {
   try {
-    const payload = { audioFiles: downloadedAudioS3Keys };
     const command = new InvokeCommand({
       FunctionName: WHISPER_LAMBDA_NAME,
       InvocationType: 'Event', // Asynchronous invocation
-      Payload: JSON.stringify(payload),
+      Payload: JSON.stringify({}),
     });
     await LAMBDA_CLIENT.send(command);
-    log.info(`Successfully invoked ${WHISPER_LAMBDA_NAME} with ${downloadedAudioS3Keys.length} audio file(s).`);
+    log.info(`Successfully invoked ${WHISPER_LAMBDA_NAME}`);
   } catch (error) {
     log.error(`Error invoking ${WHISPER_LAMBDA_NAME}:`, error);
     // Decide if this error should be re-thrown or handled (e.g., retry logic)
@@ -540,10 +533,12 @@ export async function handler(): Promise<void> {
         log.info('✅ Episode manifest lastUpdated timestamp has been refreshed.');
     }
     
-    await triggerTranscriptionLambda(allNewlyDownloadedS3AudioKeys);
-
-    // Invalidate CloudFront cache for the manifest if new audio files were downloaded
+    
     if (allNewlyDownloadedS3AudioKeys.length > 0) {
+      log.info(`New audio files were downloaded. Triggering transcription Lambda so that ${allNewlyDownloadedS3AudioKeys.join(', ')} audio file(s) are transcribed.`);
+      await triggerTranscriptionLambda();
+
+      // Invalidate CloudFront cache for the manifest if new audio files were downloaded
       log.info('New audio files were downloaded. Triggering CloudFront cache invalidation for episode manifest.');
       await invalidateCloudFrontCacheForManifest();
     } else {
