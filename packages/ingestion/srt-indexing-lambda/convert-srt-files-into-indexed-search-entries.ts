@@ -8,7 +8,7 @@ import {
   type OramaSearchDatabase 
 } from '@listen-fair-play/database';
 import { log } from '@listen-fair-play/logging';
-import { SearchEntry, EpisodeInManifest } from '@listen-fair-play/types';
+import { SearchEntry, EpisodeInManifest, SearchRequest } from '@listen-fair-play/types';
 import {
   fileExists, 
   getFile, 
@@ -18,6 +18,7 @@ import {
   createDirectory
 } from '@listen-fair-play/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
 
@@ -25,6 +26,10 @@ log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with lo
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
 const PROGRESS_LOG_THRESHOLD = 5; // Log progress every 5% of SRT files processed
+const SEARCH_LAMBDA_NAME = 'search-indexed-transcripts'; // The name of the search lambda
+
+// Initialize AWS Lambda Client
+const LAMBDA_CLIENT = new LambdaClient({});
 
 // Structure for episode data from the manifest
 interface EpisodeManifestEntry {
@@ -326,6 +331,29 @@ export async function handler(): Promise<any> {
     log.info(`Uploading Orama index from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
     await saveFile(SEARCH_INDEX_DB_S3_KEY, serializedIndexBuffer);
     log.info(`Orama index successfully saved and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
+
+    // If new entries were added, invoke the search lambda to force a refresh
+    if (newEntriesAddedInThisRun > 0) {
+      log.info(`New entries (${newEntriesAddedInThisRun}) were added. Invoking ${SEARCH_LAMBDA_NAME} to refresh its index.`);
+      try {
+        const invokePayload: Partial<SearchRequest> = {
+          forceFreshDBFileDownload: true
+        };
+        const command = new InvokeCommand({
+          FunctionName: SEARCH_LAMBDA_NAME,
+          InvocationType: 'Event', // Asynchronous invocation
+          Payload: JSON.stringify(invokePayload),
+        });
+        await LAMBDA_CLIENT.send(command);
+        log.info(`${SEARCH_LAMBDA_NAME} invoked successfully with forceFreshDBFileDownload: true.`);
+      } catch (invokeError) {
+        log.error(`Error invoking ${SEARCH_LAMBDA_NAME}:`, invokeError);
+        // Optionally, decide if this error should affect the overall status
+      }
+    } else {
+      log.info('No new entries were added. Search Lambda will not be invoked to refresh.');
+    }
+
   } catch (error: any) {
     log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${LOCAL_DB_PATH} but S3 is not updated.`, error);
     return {
@@ -370,7 +398,7 @@ export async function handler(): Promise<any> {
 const scriptPath = path.resolve(process.argv[1]);
 // Check if the module is being run directly
 if (import.meta.url === `file://${scriptPath}`) {
-  handler({}) 
+  handler() 
     .then(result => {
       log.debug('Local run completed with result:');
       console.dir(result, { depth: null });
