@@ -307,11 +307,9 @@ async function identifyEpisodesToDownload(
 
       if (!existingAudioFilenamesSet.has(normalizedExpectedAudioFilename)) {
         filesToDownload.push(episode);
-        // TODO: Switch back to log.debug  after debugging
         log.info(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}, Normalized: ${normalizedExpectedAudioFilename}) as it's not in S3 set.`);
       } else {
-        // TODO: Switch back to commented out after log.debug after debugging
-        log.info(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
+        // log.debug(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
       }
     }
   } catch (error) {

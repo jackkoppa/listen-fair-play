@@ -11,13 +11,16 @@ import { log } from '@listen-fair-play/logging';
  */
 export type WhisperApiProvider = 'openai' | 'replicate' | 'local-whisper.cpp';
 
+/** For now, we only use .srt, and may try .json later. There are others we could add here as well; check OpenAI types for more. */
+type ResponseFormat = 'srt' | 'json';
+
 interface TranscribeOptions {
   /** The path to the audio file to transcribe */
   filePath: string;
   /** The API provider to use for transcription */
   whisperApiProvider: WhisperApiProvider;
   /** The response format to request - defaults to SRT */
-  responseFormat?: 'srt' | 'json' | 'text' | 'vtt';
+  responseFormat?: ResponseFormat;
   /** The Whisper model to use */
   model?: string;
   /** API key for the selected provider (if not using environment variables) */
@@ -62,7 +65,7 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
  */
 async function transcribeWithOpenAI(
   filePath: string,
-  responseFormat: string,
+  responseFormat: ResponseFormat,
   apiKey?: string
 ): Promise<string> {
   const openai = new OpenAI({ apiKey });
@@ -70,10 +73,13 @@ async function transcribeWithOpenAI(
   // Default for OpenAI usage
   const model = 'whisper-1';
   
+  // CURSOR-TODO: It looks like we're getting some timeout/disconnect errors here. Help me add up to 2 additional retries here, if taking longer than 60 seconds.
+  // Then if the 3rd retry fails, throw an error here.
   const transcription = await openai.audio.transcriptions.create({
     file: fs.createReadStream(filePath),
     model,
-    response_format: responseFormat as any
+    response_format: responseFormat,
+    
   });
 
   // Handle the return type correctly based on OpenAI API
