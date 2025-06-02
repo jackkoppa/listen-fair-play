@@ -1,5 +1,4 @@
 import * as path from 'path';
-import ffmpeg from 'fluent-ffmpeg';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { log } from '@listen-fair-play/logging';
@@ -13,6 +12,7 @@ import {
   listDirectories,
 } from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
+import { splitAudioFile, prepareAudioFile, TranscriptionChunk } from './utils/ffmpeg-utils.js';
 
 log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
 
@@ -24,15 +24,7 @@ const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 // Which Whisper API provider to use (can be configured via environment variable)
 const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
 
-
-
 // Types
-interface TranscriptionChunk {
-  startTime: number;
-  endTime: number;
-  filePath: string;
-}
-
 interface SrtEntry {
   id: string;
   startTime: string;
@@ -40,12 +32,6 @@ interface SrtEntry {
   text: string;
   startSeconds: number;
   endSeconds: number;
-}
-
-interface FfprobeMetadata {
-  format: {
-    duration?: number;
-  };
 }
 
 // Helper function to get all MP3 files in a directory
@@ -63,69 +49,11 @@ async function transcriptExists(fileKey: string): Promise<boolean> {
   return fileExists(transcriptKey.normalize('NFC'));
 }
 
-// Helper function to split audio file into chunks
-async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
-  // For ffmpeg to work, we need to download the file to a temporary location
-  const tempDir = path.join('/tmp', path.dirname(fileKey));
-  const tempFilePath = path.join('/tmp', fileKey);
-
-  // Ensure the temp directory exists
-  await fs.ensureDir(tempDir);
-
-  // Download the file to the temp location
-  const audioBuffer = await getFile(fileKey);
-  await fs.writeFile(tempFilePath, audioBuffer);
-
-  return new Promise((resolve, reject) => {
-    const chunks: TranscriptionChunk[] = [];
-    let currentStart = 0;
-
-    ffmpeg.ffprobe(tempFilePath, async (err: Error | null, metadata: FfprobeMetadata) => {
-      if (err) reject(err);
-
-      const duration = metadata.format.duration || 0;
-      const chunkDuration = CHUNK_DURATION_MINUTES * 60;
-
-      const promises: Promise<void>[] = [];
-
-      while (currentStart < duration) {
-        const endTime = Math.min(currentStart + chunkDuration, duration);
-        const chunkPath = `${tempFilePath}.part${chunks.length + 1}.mp3`;
-
-        chunks.push({
-          startTime: currentStart,
-          endTime: endTime,
-          filePath: chunkPath
-        });
-
-        // Actually create the chunk file using ffmpeg
-        promises.push(new Promise<void>((resolveChunk, rejectChunk) => {
-          ffmpeg(tempFilePath)
-            .setStartTime(currentStart)
-            .setDuration(endTime - currentStart)
-            .output(chunkPath)
-            .on('end', () => {
-              log.debug(`Created chunk: ${chunkPath}`);
-              resolveChunk();
-            })
-            .on('error', (err) => {
-              log.error(`Error creating chunk ${chunkPath}:`, err);
-              rejectChunk(err);
-            })
-            .run();
-        }));
-
-        currentStart = endTime;
-      }
-
-      try {
-        await Promise.all(promises);
-        resolve(chunks);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
+// Helper function to get the file size in MB
+async function getFileSizeMB(fileKey: string): Promise<number> {
+  // Download the file to check its size
+  const buffer = await getFile(fileKey);
+  return buffer.length / (1024 * 1024);
 }
 
 // Helper function to combine SRT files
@@ -215,13 +143,6 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
   return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')},${milliseconds}`;
 }
 
-// Helper function to get the file size in MB
-async function getFileSizeMB(fileKey: string): Promise<number> {
-  // Download the file to check its size
-  const buffer = await getFile(fileKey);
-  return buffer.length / (1024 * 1024);
-}
-
 // Helper function to process a single audio file
 async function processAudioFile(fileKey: string): Promise<void> {
   const podcastName = path.basename(path.dirname(fileKey));
@@ -246,21 +167,13 @@ async function processAudioFile(fileKey: string): Promise<void> {
     log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
     chunks = await splitAudioFile(fileKey);
   } else {
-    // For small files, we still need to download them to a temp location for ffmpeg
-    const tempDir = path.join('/tmp', path.dirname(fileKey));
-    const tempFilePath = path.join('/tmp', fileKey);
-
-    // Ensure the temp directory exists
-    await fs.ensureDir(tempDir);
-
-    // Download the file to the temp location
-    const audioBuffer = await getFile(fileKey);
-    await fs.writeFile(tempFilePath, audioBuffer);
+    // For small files, prepare them for processing
+    const { filePath } = await prepareAudioFile(fileKey);
 
     chunks = [{
       startTime: 0,
       endTime: 0, // Will be determined by ffprobe
-      filePath: tempFilePath
+      filePath: filePath
     }];
   }
 

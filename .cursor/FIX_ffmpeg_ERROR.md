@@ -50,3 +50,40 @@ But you'll need to update Terraform for the Layer
 --- AGENT: DO NOT EDIT ABOVE THIS LINE ---
 
 --- AGENT: EDIT BELOW THIS LINE, WITH PROGRESS NOTES AND/OR KEY DETAILS/FILES ---
+
+## ✅ COMPLETED: Steps 1-5 - FFmpeg Migration
+
+### Key Changes Made:
+1. **Created `ffmpeg-utils.ts`** - New utility module with native CLI ffmpeg calls:
+   - `checkFfmpegAvailability()` - Validates ffmpeg/ffprobe installation with helpful error messages
+   - `getAudioMetadata()` - Uses `ffprobe` CLI to get audio duration/metadata  
+   - `createAudioChunk()` - Uses `ffmpeg` CLI to split audio files into chunks
+   - `splitAudioFile()` - Main function for splitting large audio files
+   - `prepareAudioFile()` - Prepares small files for processing
+
+2. **Created comprehensive test suite** - `ffmpeg-utils.spec.ts` with:
+   - Mocked child_process spawn calls
+   - Tests for success/failure scenarios 
+   - Error handling and cleanup verification
+   - 11 test cases covering all functionality
+
+3. **Updated main file** - `process-new-audio-files-via-whisper.ts`:
+   - Removed all `fluent-ffmpeg` imports and usage
+   - Updated to use new ffmpeg-utils functions
+   - Maintained same functionality with CLI-based approach
+
+4. **Removed deprecated dependencies**:
+   - Removed `fluent-ffmpeg` and `@types/fluent-ffmpeg` from package.json
+   - Added `vitest` for testing framework
+
+5. **Added error handling** - Clear installation instructions for:
+   - Local development (macOS: `brew install ffmpeg`, Ubuntu, Windows)
+   - Lambda deployment (Lambda Layer configuration)
+
+### Status: Ready for Checkpoint Testing
+The fluent-ffmpeg dependency has been completely replaced with native CLI calls. 
+Please test `pnpm process-audio-lambda:run:local` to verify functionality before proceeding to Lambda Layer configuration.
+
+### Next Steps (Pending Testing):
+6. Configure Lambda Layer for ffmpeg in Terraform
+7. Test on actual Lambda deployment

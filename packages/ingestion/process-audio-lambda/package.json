@@ -10,22 +10,22 @@
     "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "dotenvx run -f ../../../.env.local -- tsx process-new-audio-files-via-whisper.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx process-new-audio-files-via-whisper.ts",
+    "test": "vitest run",
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/process-audio-lambda"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "catalog:",
     "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/s3": "workspace:*",
-    "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
     "srt-parser-2": "^1.2.3",
-    "@types/fluent-ffmpeg": "^2.1.24",
     "@types/fs-extra": "catalog:",
     "@types/node": "^20.0.0",
     "rolldown": "catalog:",
     "typescript": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "vitest": "^1.6.1"
   },
   "engines": {
     "node": ">=20.0.0"
