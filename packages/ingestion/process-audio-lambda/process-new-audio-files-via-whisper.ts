@@ -1,6 +1,7 @@
 import * as path from 'path';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@listen-fair-play/logging';
 import {
   fileExists,
@@ -23,6 +24,8 @@ const MAX_FILE_SIZE_MB = 25;
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 // Which Whisper API provider to use (can be configured via environment variable)
 const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
+const LAMBDA_CLIENT = new LambdaClient({});
+const INDEXING_LAMBDA_NAME = 'convert-srt-files-into-indexed-search-entries';
 
 // Types
 interface SrtEntry {
@@ -228,6 +231,8 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
   log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
   log.info('🔍 Event:', event);
 
+  let newTranscriptsCreated = false;
+
   const stats = {
     totalFiles: 0,
     skippedFiles: 0,
@@ -298,6 +303,7 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
       await processAudioFile(fileKey);
       stats.processedFiles++;
       stats.podcastStats.get(podcastName)!.processed++;
+      newTranscriptsCreated = true;
     } catch (error) {
       log.error(`Error processing file ${fileKey}:`, error);
       // Continue with next file even if one fails (original behavior)
@@ -327,6 +333,23 @@ export async function handler(event: { audioFiles?: string[] } = {}): Promise<vo
     log.info(`   ⏭️  Skipped: ${podcastStats.skipped}`);
   }
   log.info('\n✨ Transcription process finished.');
+
+  // If new transcripts were created, invoke the indexing Lambda
+  if (newTranscriptsCreated) {
+    log.info(`New transcripts were created. Invoking ${INDEXING_LAMBDA_NAME}...`);
+    try {
+      const command = new InvokeCommand({
+        FunctionName: INDEXING_LAMBDA_NAME,
+        InvocationType: 'Event', // Asynchronous invocation
+      });
+      await LAMBDA_CLIENT.send(command);
+      log.info(`${INDEXING_LAMBDA_NAME} invoked successfully.`);
+    } catch (error) {
+      log.error(`Error invoking ${INDEXING_LAMBDA_NAME}:`, error);
+    }
+  } else {
+    log.info('No new transcripts were created. Indexing Lambda will not be invoked.');
+  }
 }
 
 // Run the handler if this file is executed directly
