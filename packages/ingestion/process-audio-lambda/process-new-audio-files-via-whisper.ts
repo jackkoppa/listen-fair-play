@@ -220,16 +220,14 @@ async function processAudioFile(fileKey: string): Promise<void> {
 /**
  * Main Lambda handler function.
  * This function processes new audio files by transcribing them using Whisper.
- * It can be triggered by an S3 event or run manually with a list of audio files.
  * 
- * @param event - The event object, which can optionally contain a list of audio files to process.
+ * When running, we'll scan S3 for all audio files in the `audio/` directory, and process any new ones.
  */
 export async function handler(): Promise<void> {
   log.info(`🟢 Starting process-new-audio-files-via-whisper > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString());
   log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
-  log.info('🔍 Event:', event);
 
   let newTranscriptsCreated = false;
 
@@ -242,14 +240,12 @@ export async function handler(): Promise<void> {
 
   let filesToProcess: string[] = [];
 
-  // Fallback to original logic structure if event.audioFiles is not present
-  log.info('Scanning S3 for audio files as no specific files were provided in the event.');
+  log.info('Scanning S3 for audio files.');
   const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
   log.info(`Found podcast directories: ${allPodcastDirs.join(', ')}`);
 
   // Process each podcast directory
   for (const podcastDir of allPodcastDirs) {
-    // TODO: Remove this logging after debugging
     log.info(`Processing podcast directory: ${podcastDir}`);
 
     if (!podcastDir || podcastDir.endsWith('.DS_Store')) continue; // Skip empty, undefined, or .DS_Store directories

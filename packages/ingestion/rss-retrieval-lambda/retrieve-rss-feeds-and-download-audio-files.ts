@@ -287,6 +287,7 @@ async function identifyEpisodesToDownload(
   episodesFromManifest: EpisodeInManifest[],
   podcastId: string
 ): Promise<EpisodeInManifest[]> {
+  log.info(`Identifying episodes to download for ${podcastId}`);
   const podcastAudioDirS3 = path.join(AUDIO_DIR_PREFIX, podcastId);
   await createDirectory(podcastAudioDirS3); // Ensure podcast-specific audio directory exists in S3
 
@@ -306,9 +307,11 @@ async function identifyEpisodesToDownload(
 
       if (!existingAudioFilenamesSet.has(normalizedExpectedAudioFilename)) {
         filesToDownload.push(episode);
-        log.debug(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}, Normalized: ${normalizedExpectedAudioFilename}) as it's not in S3 set.`);
+        // TODO: Switch back to log.debug  after debugging
+        log.info(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}, Normalized: ${normalizedExpectedAudioFilename}) as it's not in S3 set.`);
       } else {
-        // log.debug(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
+        // TODO: Switch back to commented out after log.debug after debugging
+        log.info(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
       }
     }
   } catch (error) {
@@ -355,7 +358,6 @@ async function triggerTranscriptionLambda(): Promise<void> {
     const command = new InvokeCommand({
       FunctionName: WHISPER_LAMBDA_NAME,
       InvocationType: 'Event', // Asynchronous invocation
-      Payload: JSON.stringify({}),
     });
     await LAMBDA_CLIENT.send(command);
     log.info(`Successfully invoked ${WHISPER_LAMBDA_NAME}`);
