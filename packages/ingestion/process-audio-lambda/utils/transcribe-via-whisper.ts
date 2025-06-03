@@ -284,9 +284,12 @@ function convertDeepgramToSrt(deepgramResponse: any): string {
       segmentStart = wordStart;
     }
     
-    if (currentSegment.length + wordText.length + 1 > maxSegmentLength || i === words.length - 1) {
-      segmentEnd = wordEnd;
-      
+    // Add the current word to the segment
+    currentSegment += (currentSegment ? ' ' : '') + wordText;
+    segmentEnd = wordEnd;
+    
+    // If we hit max length or it's the last word, write out the segment
+    if (currentSegment.length > maxSegmentLength || i === words.length - 1) {
       if (currentSegment.trim()) {
         srtContent += `${segmentIndex}\n`;
         srtContent += `${formatSrtTime(segmentStart)} --> ${formatSrtTime(segmentEnd)}\n`;
@@ -294,10 +297,8 @@ function convertDeepgramToSrt(deepgramResponse: any): string {
         segmentIndex++;
       }
       
-      currentSegment = wordText;
-      segmentStart = wordStart;
-    } else {
-      currentSegment += (currentSegment ? ' ' : '') + wordText;
+      // Reset for the next segment
+      currentSegment = '';
     }
   }
   
