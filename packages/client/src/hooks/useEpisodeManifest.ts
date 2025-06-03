@@ -22,6 +22,19 @@ let manifestCache: {
   promise: null
 }
 
+// Subscribers array to track all active hook instances
+let subscribers: Array<(state: {episodeManifest: EpisodeManifest | null, isLoading: boolean, error: string | null}) => void> = []
+
+// Function to notify all subscribers when cache changes
+const notifySubscribers = () => {
+  const currentState = {
+    episodeManifest: manifestCache.data,
+    isLoading: manifestCache.isLoading,
+    error: manifestCache.error
+  }
+  subscribers.forEach(callback => callback(currentState))
+}
+
 /**
  * Custom hook to manage episode manifest data.
  * Fetches the manifest once and caches it for the entire application lifecycle.
@@ -35,14 +48,34 @@ export function useEpisodeManifest(): UseEpisodeManifestReturn {
   })
 
   useEffect(() => {
-    // If we already have data or are currently loading, don't fetch again
-    if (manifestCache.data || manifestCache.isLoading) {
-      setLocalState({
-        episodeManifest: manifestCache.data,
-        isLoading: manifestCache.isLoading,
-        error: manifestCache.error
-      })
-      return
+    // Subscribe this hook instance to cache updates
+    const updateLocalState = (newState: {episodeManifest: EpisodeManifest | null, isLoading: boolean, error: string | null}) => {
+      setLocalState(newState)
+    }
+    
+    subscribers.push(updateLocalState)
+
+    // Sync with current cache state immediately
+    setLocalState({
+      episodeManifest: manifestCache.data,
+      isLoading: manifestCache.isLoading,
+      error: manifestCache.error
+    })
+
+    // If we already have data, don't fetch again
+    if (manifestCache.data) {
+      return () => {
+        // Cleanup: remove this subscriber
+        subscribers = subscribers.filter(cb => cb !== updateLocalState)
+      }
+    }
+
+    // If already loading, don't start another fetch
+    if (manifestCache.isLoading) {
+      return () => {
+        // Cleanup: remove this subscriber
+        subscribers = subscribers.filter(cb => cb !== updateLocalState)
+      }
     }
 
     const fetchEpisodeManifest = async (): Promise<EpisodeManifest> => {
@@ -61,11 +94,8 @@ export function useEpisodeManifest(): UseEpisodeManifestReturn {
     manifestCache.isLoading = true
     manifestCache.error = null
     
-    setLocalState({
-      episodeManifest: null,
-      isLoading: true,
-      error: null
-    })
+    // Notify all subscribers of loading state
+    notifySubscribers()
 
     // Create the fetch promise if it doesn't exist
     if (!manifestCache.promise) {
@@ -79,11 +109,8 @@ export function useEpisodeManifest(): UseEpisodeManifestReturn {
         manifestCache.isLoading = false
         manifestCache.error = null
         
-        setLocalState({
-          episodeManifest: manifestData,
-          isLoading: false,
-          error: null
-        })
+        // Notify all subscribers of successful load
+        notifySubscribers()
       })
       .catch((e: any) => {
         const errorMessage = e.message || 'Failed to load episode manifest'
@@ -93,12 +120,15 @@ export function useEpisodeManifest(): UseEpisodeManifestReturn {
         manifestCache.error = errorMessage
         manifestCache.promise = null // Reset promise so we can retry later
         
-        setLocalState({
-          episodeManifest: null,
-          isLoading: false,
-          error: errorMessage
-        })
+        // Notify all subscribers of error
+        notifySubscribers()
       })
+
+    // Cleanup function
+    return () => {
+      // Remove this subscriber
+      subscribers = subscribers.filter(cb => cb !== updateLocalState)
+    }
   }, [])
 
   return localState

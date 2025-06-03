@@ -53,7 +53,7 @@ function HomePage() {
   const [mostRecentSuccessfulSearchQuery, setMostRecentSuccessfulSearchQuery] = useState<string | null>(null);
 
   // Use the shared episode manifest hook
-  const { episodeManifest } = useEpisodeManifest();
+  const { episodeManifest, isLoading: isManifestLoading, error: manifestError } = useEpisodeManifest();
 
   // Local state for search input (not synced to URL until search is performed)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
@@ -316,6 +316,8 @@ function HomePage() {
           totalHits={totalHits}
           processingTimeMs={processingTimeMs}
           episodeManifest={episodeManifest}
+          isManifestLoading={isManifestLoading}
+          manifestError={manifestError}
           sortOption={sortOption}
           onSortChange={updateSortOption}
           currentPage={currentPage}

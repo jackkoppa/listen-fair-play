@@ -19,6 +19,8 @@ interface SearchResultsProps {
   totalHits: number;
   processingTimeMs: number;
   episodeManifest: EpisodeManifest | null;
+  isManifestLoading: boolean;
+  manifestError: string | null;
   sortOption: SortOption;
   onSortChange: (option: SortOption) => void;
   // Pagination props
@@ -96,6 +98,8 @@ export default function SearchResults({
   totalHits,
   processingTimeMs,
   episodeManifest,
+  isManifestLoading,
+  manifestError,
   sortOption,
   onSortChange,
   currentPage,
@@ -149,6 +153,14 @@ export default function SearchResults({
         </div>
       )}
 
+      {/* Show warning if manifest failed to load but we have search results */}
+      {manifestError && results.length > 0 && (
+        <div className="warning-message text-yellow-800 bg-yellow-100 border-yellow-600 border-2 p-4 mb-6 shadow-[4px_4px_0px_#ca8a04] rounded-none">
+          <p className="font-semibold">Warning:</p>
+          <p>Failed to retrieve some data for the episodes - please try refreshing?</p>
+        </div>
+      )}
+
       {isLoading && !error ? (
         <div className="loading-skeleton space-y-6">
           {[...Array(4)].map((_, index) => (
@@ -181,6 +193,8 @@ export default function SearchResults({
                 key={result.id}
                 result={result}
                 episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
+                isManifestLoading={isManifestLoading}
+                showManifestError={Boolean(manifestError)}
               />
             ))}
           </ul>
