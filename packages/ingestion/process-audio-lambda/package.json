@@ -14,19 +14,20 @@
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/process-audio-lambda"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-lambda": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
     "@listen-fair-play/logging": "workspace:*",
     "@listen-fair-play/s3": "workspace:*",
+    "@types/fs-extra": "catalog:",
+    "@types/node": "^20.17.25",
+    "@vitest/ui": "^3.2.0",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
-    "srt-parser-2": "^1.2.3",
-    "@types/fs-extra": "catalog:",
-    "@types/node": "^20.0.0",
     "rolldown": "catalog:",
-    "typescript": "catalog:",
+    "srt-parser-2": "^1.2.3",
     "tsx": "catalog:",
-    "vitest": "^1.6.1"
+    "typescript": "catalog:",
+    "vitest": "^3.2.0"
   },
   "engines": {
     "node": ">=20.0.0"
