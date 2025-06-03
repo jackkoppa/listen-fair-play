@@ -6,3 +6,9 @@ export const formatMillisecondsToMMSS = (ms: number): string => {
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
+
+// Utility function to format milliseconds to MM:SS
+export const formatMillisecondsToRoundSeconds = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    return totalSeconds.toString();
+};

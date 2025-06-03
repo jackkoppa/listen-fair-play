@@ -14,7 +14,7 @@ import AudioPlayer, { AudioPlayerRef } from "../components/AudioPlayer/AudioPlay
 import FullEpisodeTranscript from '../components/FullEpisodeTranscript'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatDate } from '@/utils/date'
-import { formatMillisecondsToMMSS } from '@/utils/time'
+import { formatMillisecondsToRoundSeconds } from '@/utils/time'
 import { useAudioSource } from '@/hooks/useAudioSource'
 import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
 import { trackEvent } from '@/utils/goatcounter';
@@ -279,12 +279,14 @@ export default function EpisodeRoute() {
     // Use the .mp3 file from the RSS feed
     baseAudioUrl = originalAudioURL
   } else {
-    // Use the .mp3 file from the S3 bucket, that was used to generate the transcript
     baseAudioUrl = `${S3_HOSTED_FILES_BASE_URL}audio/${episodeData.podcastId}/${episodeData.fileKey}.mp3`
   }
 
-  /** Create audio URL with start time if available */
-  const audioUrlToLoad = startTimeMs ? `${baseAudioUrl}#t=${formatMillisecondsToMMSS(startTimeMs)}` : baseAudioUrl
+  /** 
+   * Create audio URL with start time if available - use rounded seconds
+   * https://stackoverflow.com/a/55583936/4167438
+   */
+  const audioUrlToLoad = startTimeMs ? `${baseAudioUrl}#t=${formatMillisecondsToRoundSeconds(startTimeMs)}` : baseAudioUrl
 
   return (
     <Sheet open={true} onOpenChange={handleOpenChange}>
