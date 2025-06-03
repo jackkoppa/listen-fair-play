@@ -15,7 +15,8 @@ const PLACEHOLDER_OPTIONS = [
   "no disrespect to egg",
   "corridor of uncertainty",
   "football clubbing",
-  "come what February"
+  "come what February",
+  "seegs into"
 ]
 
 // Do this outside of React component, so that we always get the same placeholder for each page load
