@@ -83,7 +83,7 @@ Original error: ${error.message}
 /**
  * Get audio file metadata using ffprobe
  */
-export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadata> {
+export async function getAudioMetadata(filePath: string, timeoutMs: number = 60000): Promise<FfprobeMetadata> {
   await checkFfmpegAvailability();
   const { ffprobe } = getBinaryPaths();
 
@@ -98,6 +98,13 @@ export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadat
     let stdout = '';
     let stderr = '';
 
+    // Set up timeout
+    const timeout = setTimeout(() => {
+      log.warn(`ffprobe process timed out after ${timeoutMs}ms for file ${filePath}`);
+      ffprobeProcess.kill('SIGKILL');
+      reject(new Error(`ffprobe process timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
     ffprobeProcess.stdout.on('data', (data) => {
       stdout += data.toString();
     });
@@ -107,6 +114,7 @@ export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadat
     });
 
     ffprobeProcess.on('close', (code) => {
+      clearTimeout(timeout);
       if (code !== 0) {
         reject(new Error(`ffprobe failed with exit code ${code}: ${stderr}`));
         return;
@@ -121,6 +129,7 @@ export async function getAudioMetadata(filePath: string): Promise<FfprobeMetadat
     });
 
     ffprobeProcess.on('error', (error) => {
+      clearTimeout(timeout);
       reject(new Error(`ffprobe spawn error: ${error.message}`));
     });
   });
@@ -133,7 +142,8 @@ export async function createAudioChunk(
   inputPath: string,
   outputPath: string,
   startTime: number,
-  duration: number
+  duration: number,
+  timeoutMs: number = 30000 // 30 second timeout
 ): Promise<void> {
   await checkFfmpegAvailability();
   const { ffmpeg } = getBinaryPaths();
@@ -152,11 +162,19 @@ export async function createAudioChunk(
 
     let stderr = '';
 
+    // Set up timeout
+    const timeout = setTimeout(() => {
+      log.warn(`ffmpeg process timed out after ${timeoutMs}ms for chunk ${outputPath}`);
+      ffmpegProcess.kill('SIGKILL');
+      reject(new Error(`ffmpeg process timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
     ffmpegProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
     ffmpegProcess.on('close', (code) => {
+      clearTimeout(timeout);
       if (code !== 0) {
         reject(new Error(`ffmpeg failed with exit code ${code}: ${stderr}`));
         return;
@@ -165,6 +183,7 @@ export async function createAudioChunk(
     });
 
     ffmpegProcess.on('error', (error) => {
+      clearTimeout(timeout);
       reject(new Error(`ffmpeg spawn error: ${error.message}`));
     });
   });
@@ -194,12 +213,11 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
   const chunkDuration = CHUNK_DURATION_MINUTES * 60;
 
   const chunks: TranscriptionChunk[] = [];
-  const promises: Promise<void>[] = [];
   let currentStart = 0;
 
+  // Prepare chunk definitions
   while (currentStart < duration) {
     const endTime = Math.min(currentStart + chunkDuration, duration);
-    const chunkDurationActual = endTime - currentStart;
     const chunkPath = `${tempFilePath}.part${chunks.length + 1}.mp3`;
 
     chunks.push({
@@ -208,26 +226,42 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
       filePath: chunkPath
     });
 
-    // Create the chunk file using ffmpeg
-    promises.push(
-      createAudioChunk(tempFilePath, chunkPath, currentStart, chunkDurationActual)
-        .then(() => {
-          log.info(`Created chunk: ${chunkPath}`);
-        })
-        .catch((err) => {
-          log.error(`Error creating chunk ${chunkPath}:`, err);
-          throw err;
-        })
-    );
-
     currentStart = endTime;
   }
 
-
-
   try {
-    log.info(`Splitting audio file: ${fileKey}, into ${promises.length} chunks`);
-    await Promise.all(promises);
+    log.info(`Splitting audio file: ${fileKey}, into ${chunks.length} chunks`);
+    
+    // Process chunks sequentially to avoid resource exhaustion
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkDurationActual = chunk.endTime - chunk.startTime;
+      
+      log.debug(`Creating chunk ${i + 1}/${chunks.length}: ${chunk.filePath} (${chunk.startTime}s - ${chunk.endTime}s, duration: ${chunkDurationActual}s)`);
+      
+      try {
+        await createAudioChunk(tempFilePath, chunk.filePath, chunk.startTime, chunkDurationActual);
+        log.info(`Created chunk: ${chunk.filePath}`);
+        
+        // Small delay between chunks to prevent system overload
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        log.error(`Error creating chunk ${chunk.filePath} (chunk ${i + 1}/${chunks.length}):`, error);
+        
+        // Clean up any created chunks on error
+        for (const createdChunk of chunks.slice(0, i + 1)) {
+          try {
+            await fs.remove(createdChunk.filePath);
+          } catch (cleanupError) {
+            log.warn(`Failed to clean up chunk ${createdChunk.filePath}:`, cleanupError);
+          }
+        }
+        throw new Error(`Failed to create chunk ${i + 1}/${chunks.length} for ${fileKey}: ${error.message}`);
+      }
+    }
+    
     log.info(`Completed splitting audio file: ${fileKey}, into ${chunks.length} chunks`);
 
     return chunks;
