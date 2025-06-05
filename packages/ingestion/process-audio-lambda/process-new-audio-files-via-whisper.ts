@@ -14,6 +14,11 @@ import {
 } from '@listen-fair-play/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk } from './utils/ffmpeg-utils.js';
+import { 
+  applyCorrectionToFile,
+  aggregateCorrectionResults,
+  type ApplyCorrectionsResult
+} from './utils/apply-spelling-corrections.js';
 
 log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
 
@@ -147,7 +152,7 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
 }
 
 // Helper function to process a single audio file
-async function processAudioFile(fileKey: string): Promise<void> {
+async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult | null> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
@@ -159,7 +164,7 @@ async function processAudioFile(fileKey: string): Promise<void> {
   const transcriptKey = path.join(transcriptDirKey, `${audioFileName}.srt`);
   if (await transcriptExists(fileKey)) {
     log.debug(`Transcript already exists for ${fileKey}, skipping`);
-    return;
+    return null;
   }
 
   // Get file size
@@ -215,6 +220,29 @@ async function processAudioFile(fileKey: string): Promise<void> {
     await fs.remove(tempBaseDir);
     log.debug(`Cleaned up temporary directory: ${tempBaseDir}`);
   }
+
+  // Apply spelling corrections
+  const s3FileOperations = {
+    getFileContent: async (filePath: string): Promise<string> => {
+      const buffer = await getFile(filePath);
+      return buffer.toString('utf-8');
+    },
+    saveFileContent: async (filePath: string, content: string): Promise<void> => {
+      await saveFile(filePath, Buffer.from(content, 'utf-8'));
+    }
+  };
+
+  const correctionResult = await applyCorrectionToFile(
+    transcriptKey,
+    s3FileOperations.getFileContent,
+    s3FileOperations.saveFileContent
+  );
+
+  if (correctionResult.totalCorrections > 0) {
+    log.debug(`Applied ${correctionResult.totalCorrections} spelling corrections to ${transcriptKey}`);
+  }
+
+  return correctionResult;
 }
 
 /**
@@ -239,6 +267,7 @@ export async function handler(): Promise<void> {
   };
 
   let filesToProcess: string[] = [];
+  const spellingCorrectionResults: ApplyCorrectionsResult[] = [];
 
   log.info('Scanning S3 for audio files.');
   const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
@@ -291,10 +320,15 @@ export async function handler(): Promise<void> {
         continue;
       }
 
-      await processAudioFile(fileKey);
+      const correctionResult = await processAudioFile(fileKey);
       stats.processedFiles++;
       stats.podcastStats.get(podcastName)!.processed++;
       newTranscriptsCreated = true;
+      
+      // Collect spelling correction results
+      if (correctionResult) {
+        spellingCorrectionResults.push(correctionResult);
+      }
     } catch (error) {
       log.error(`Error processing file ${fileKey}:`, error);
       // Continue with next file even if one fails (original behavior)
@@ -323,6 +357,23 @@ export async function handler(): Promise<void> {
     log.info(`   ✅ Processed: ${podcastStats.processed}`);
     log.info(`   ⏭️  Skipped: ${podcastStats.skipped}`);
   }
+
+  // Log spelling corrections summary
+  if (spellingCorrectionResults.length > 0) {
+    const aggregatedCorrections = aggregateCorrectionResults(spellingCorrectionResults);
+    const totalCorrections = aggregatedCorrections.reduce((sum, result) => sum + result.correctionsApplied, 0);
+
+    if (totalCorrections > 0) {
+      log.info('\n🔤 Spelling Corrections Applied:');
+      log.info(`📝 Total Corrections: ${totalCorrections}`);
+      aggregatedCorrections
+        .sort((a, b) => b.correctionsApplied - a.correctionsApplied)
+        .forEach(result => {
+          log.info(`   "${result.correctedSpelling}": ${result.correctionsApplied} corrections`);
+        });
+    }
+  }
+
   log.info('\n✨ Transcription process finished.');
 
   // If new transcripts were created, invoke the indexing Lambda
