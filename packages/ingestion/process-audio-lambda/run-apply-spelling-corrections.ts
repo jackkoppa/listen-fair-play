@@ -3,7 +3,8 @@ import {
   listFiles,
   getFile,
   saveFile,
-  fileExists
+  fileExists,
+  listDirectories
 } from '@listen-fair-play/s3';
 import {
   applyCorrectionToFile,
@@ -32,8 +33,24 @@ const s3FileOperations = {
  */
 async function getAllSrtFiles(): Promise<string[]> {
   try {
-    const allFiles = await listFiles(TRANSCRIPTS_DIR_PREFIX);
-    return allFiles.filter(file => file.endsWith('.srt'));
+    // First get the podcast directories
+    const podcastDirs = await listDirectories(TRANSCRIPTS_DIR_PREFIX);
+    
+    const allSrtFiles: string[] = [];
+    
+    // For each podcast directory, list the SRT files
+    for (const podcastDir of podcastDirs) {
+      try {
+        const filesInDir = await listFiles(podcastDir);
+        const srtFilesInDir = filesInDir.filter(file => file.endsWith('.srt'));
+        allSrtFiles.push(...srtFilesInDir);
+      } catch (error) {
+        log.error(`Error listing files in ${podcastDir}:`, error);
+        // Continue with other directories
+      }
+    }
+    
+    return allSrtFiles;
   } catch (error) {
     log.error('Error listing transcript files:', error);
     throw error;
