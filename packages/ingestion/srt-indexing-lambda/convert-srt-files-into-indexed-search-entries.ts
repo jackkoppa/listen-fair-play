@@ -31,6 +31,11 @@ const SEARCH_LAMBDA_NAME = 'search-indexed-transcripts'; // The name of the sear
 // Initialize AWS Lambda Client
 const LAMBDA_CLIENT = new LambdaClient({});
 
+// Helper function to detect if we're running in AWS Lambda environment
+function isRunningInLambda(): boolean {
+  return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
+
 // Structure for episode data from the manifest
 interface EpisodeManifestEntry {
   sequentialId: number;
@@ -332,23 +337,27 @@ export async function handler(): Promise<any> {
     await saveFile(SEARCH_INDEX_DB_S3_KEY, serializedIndexBuffer);
     log.info(`Orama index successfully saved and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
 
-    // If new entries were added, invoke the search lambda to force a refresh
+    // If new entries were added, invoke the search lambda to force a refresh (only when running in AWS Lambda)
     if (newEntriesAddedInThisRun > 0) {
-      log.info(`New entries (${newEntriesAddedInThisRun}) were added. Invoking ${SEARCH_LAMBDA_NAME} to refresh its index.`);
-      try {
-        const invokePayload: Partial<SearchRequest> = {
-          forceFreshDBFileDownload: true
-        };
-        const command = new InvokeCommand({
-          FunctionName: SEARCH_LAMBDA_NAME,
-          InvocationType: 'Event', // Asynchronous invocation
-          Payload: JSON.stringify(invokePayload),
-        });
-        await LAMBDA_CLIENT.send(command);
-        log.info(`${SEARCH_LAMBDA_NAME} invoked successfully with forceFreshDBFileDownload: true.`);
-      } catch (invokeError) {
-        log.error(`Error invoking ${SEARCH_LAMBDA_NAME}:`, invokeError);
-        // Optionally, decide if this error should affect the overall status
+      if (isRunningInLambda()) {
+        log.info(`New entries (${newEntriesAddedInThisRun}) were added. Invoking ${SEARCH_LAMBDA_NAME} to refresh its index.`);
+        try {
+          const invokePayload: Partial<SearchRequest> = {
+            forceFreshDBFileDownload: true
+          };
+          const command = new InvokeCommand({
+            FunctionName: SEARCH_LAMBDA_NAME,
+            InvocationType: 'Event', // Asynchronous invocation
+            Payload: JSON.stringify(invokePayload),
+          });
+          await LAMBDA_CLIENT.send(command);
+          log.info(`${SEARCH_LAMBDA_NAME} invoked successfully with forceFreshDBFileDownload: true.`);
+        } catch (invokeError) {
+          log.error(`Error invoking ${SEARCH_LAMBDA_NAME}:`, invokeError);
+          // Optionally, decide if this error should affect the overall status
+        }
+      } else {
+        log.info(`New entries (${newEntriesAddedInThisRun}) were added, but skipping ${SEARCH_LAMBDA_NAME} invocation (running locally).`);
       }
     } else {
       log.info('No new entries were added. Search Lambda will not be invoked to refresh.');

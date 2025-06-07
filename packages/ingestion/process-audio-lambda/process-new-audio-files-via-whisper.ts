@@ -388,18 +388,22 @@ export async function handler(): Promise<void> {
 
   log.info('\n✨ Transcription process finished.');
 
-  // If new transcripts were created, invoke the indexing Lambda
+  // If new transcripts were created, invoke the indexing Lambda (only when running in AWS Lambda)
   if (newTranscriptsCreated) {
-    log.info(`New transcripts were created. Invoking ${INDEXING_LAMBDA_NAME}...`);
-    try {
-      const command = new InvokeCommand({
-        FunctionName: INDEXING_LAMBDA_NAME,
-        InvocationType: 'Event', // Asynchronous invocation
-      });
-      await LAMBDA_CLIENT.send(command);
-      log.info(`${INDEXING_LAMBDA_NAME} invoked successfully.`);
-    } catch (error) {
-      log.error(`Error invoking ${INDEXING_LAMBDA_NAME}:`, error);
+    if (isRunningInLambda()) {
+      log.info(`New transcripts were created. Invoking ${INDEXING_LAMBDA_NAME}...`);
+      try {
+        const command = new InvokeCommand({
+          FunctionName: INDEXING_LAMBDA_NAME,
+          InvocationType: 'Event', // Asynchronous invocation
+        });
+        await LAMBDA_CLIENT.send(command);
+        log.info(`${INDEXING_LAMBDA_NAME} invoked successfully.`);
+      } catch (error) {
+        log.error(`Error invoking ${INDEXING_LAMBDA_NAME}:`, error);
+      }
+    } else {
+      log.info(`New transcripts were created, but skipping ${INDEXING_LAMBDA_NAME} invocation (running locally).`);
     }
   } else {
     log.info('No new transcripts were created. Indexing Lambda will not be invoked.');

@@ -35,6 +35,10 @@ const LAMBDA_CLIENT = new LambdaClient({});
 const CLOUDFRONT_CLIENT = new CloudFrontClient({});
 const WHISPER_LAMBDA_NAME = 'process-new-audio-files-via-whisper';
 
+// Helper function to detect if we're running in AWS Lambda environment
+function isRunningInLambda(): boolean {
+  return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
 
 // Helper to format date as YYYY-MM-DD
 function formatDateYYYYMMDD(date: Date): string {
@@ -535,12 +539,16 @@ export async function handler(): Promise<void> {
     
     
     if (allNewlyDownloadedS3AudioKeys.length > 0) {
-      log.info(`New audio files were downloaded. Triggering transcription Lambda so that ${allNewlyDownloadedS3AudioKeys.join(', ')} audio file(s) are transcribed.`);
-      await triggerTranscriptionLambda();
+      if (isRunningInLambda()) {
+        log.info(`New audio files were downloaded. Triggering transcription Lambda so that ${allNewlyDownloadedS3AudioKeys.join(', ')} audio file(s) are transcribed.`);
+        await triggerTranscriptionLambda();
 
-      // Invalidate CloudFront cache for the manifest if new audio files were downloaded
-      log.info('New audio files were downloaded. Triggering CloudFront cache invalidation for episode manifest.');
-      await invalidateCloudFrontCacheForManifest();
+        // Invalidate CloudFront cache for the manifest if new audio files were downloaded
+        log.info('New audio files were downloaded. Triggering CloudFront cache invalidation for episode manifest.');
+        await invalidateCloudFrontCacheForManifest();
+      } else {
+        log.info(`New audio files were downloaded, but skipping transcription Lambda and CloudFront invalidation (running locally).`);
+      }
     } else {
       log.info('No new audio files downloaded. Skipping CloudFront cache invalidation for episode manifest.');
     }
