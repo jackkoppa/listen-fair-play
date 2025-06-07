@@ -7,6 +7,7 @@
   "type": "module",
   "files": [],
   "scripts": {
+    "test": "vitest run",
     "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "dotenvx run -f ../../../.env.local -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
