@@ -8,6 +8,9 @@ import { RSS_CONFIG } from '@listen-fair-play/config';
 import { EpisodeManifest, EpisodeInManifest } from '@listen-fair-play/types';
 import { EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 
+import { parsePubDate } from './utils/parse-pub-date.js';
+import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
+
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
 // Types
@@ -38,29 +41,6 @@ const WHISPER_LAMBDA_NAME = 'process-new-audio-files-via-whisper';
 // Helper function to detect if we're running in AWS Lambda environment
 function isRunningInLambda(): boolean {
   return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
-}
-
-// Helper to format date as YYYY-MM-DD
-function formatDateYYYYMMDD(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-// Parse pubDate string to Date object
-function parsePubDate(pubDate: string): Date {
-  return new Date(pubDate);
-}
-
-// Get episode fileKey based on pubDate and title (this will be part of the S3 key)
-function getEpisodeFileKey(episodeTitle: string, pubDateStr: string): string {
-  const date = parsePubDate(pubDateStr);
-  const formattedDate = formatDateYYYYMMDD(date);
-  // Replace invalid characters for filenames
-  const sanitizedTitle = episodeTitle
-    .replace(/[/\\?%*:|"<>\.]/g, '-') // Added . to the list of replaced characters
-    .replace(/\s+/g, '-')
-    .substring(0, 50); // Limit title length
-  
-  return `${formattedDate}_${sanitizedTitle}`;
 }
 
 // Helper to get episode audio filename (e.g., 2020-01-23_The-Transfer-Window.mp3)
