@@ -83,7 +83,7 @@ Original error: ${error.message}
 /**
  * Get audio file metadata using ffprobe
  */
-export async function getAudioMetadata(filePath: string, timeoutMs: number = 60000): Promise<FfprobeMetadata> {
+export async function getAudioMetadata(filePath: string, timeoutMs: number = 10000): Promise<FfprobeMetadata> {
   await checkFfmpegAvailability();
   const { ffprobe } = getBinaryPaths();
 
@@ -155,35 +155,73 @@ export async function createAudioChunk(
       '-t', duration.toString(),
       '-c', 'copy', // Copy without re-encoding for speed
       '-avoid_negative_ts', 'make_zero',
+      '-fflags', '+discardcorrupt', // Handle corrupted packets gracefully
+      '-err_detect', 'ignore_err', // Ignore minor errors that might cause hangs
       outputPath
     ];
 
+    log.debug(`Running ffmpeg command: ${ffmpeg} ${args.join(' ')}`);
+    const startTime_ms = Date.now();
+
     const ffmpegProcess = spawn(ffmpeg, args);
 
+    let stdout = '';
     let stderr = '';
+
+    // Periodic progress logging
+    const progressInterval = setInterval(() => {
+      const elapsed = ((Date.now() - startTime_ms) / 1000).toFixed(1);
+      log.debug(`ffmpeg still running for ${outputPath} (${elapsed}s elapsed)`);
+    }, 10000); // Log every 10 seconds
 
     // Set up timeout
     const timeout = setTimeout(() => {
-      log.warn(`ffmpeg process timed out after ${timeoutMs}ms for chunk ${outputPath}`);
+      clearInterval(progressInterval);
+      const elapsed = ((Date.now() - startTime_ms) / 1000).toFixed(1);
+      log.warn(`ffmpeg process timed out after ${timeoutMs}ms (${elapsed}s) for chunk ${outputPath}`);
+      log.warn(`ffmpeg stdout during timeout: ${stdout}`);
+      log.warn(`ffmpeg stderr during timeout: ${stderr}`);
       ffmpegProcess.kill('SIGKILL');
       reject(new Error(`ffmpeg process timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
+    ffmpegProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
     ffmpegProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderr += chunk;
+      // Log stderr in real-time for debugging hangs
+      log.debug(`ffmpeg stderr: ${chunk.trim()}`);
     });
 
     ffmpegProcess.on('close', (code) => {
       clearTimeout(timeout);
+      clearInterval(progressInterval);
+      const elapsed = ((Date.now() - startTime_ms) / 1000).toFixed(1);
+      
       if (code !== 0) {
+        log.error(`ffmpeg failed with exit code ${code} after ${elapsed}s`);
+        log.error(`ffmpeg stdout: ${stdout}`);
+        log.error(`ffmpeg stderr: ${stderr}`);
         reject(new Error(`ffmpeg failed with exit code ${code}: ${stderr}`));
         return;
       }
+      
+      // Log successful completion with any warnings
+      if (stderr.trim()) {
+        log.debug(`ffmpeg completed successfully in ${elapsed}s but with stderr: ${stderr.trim()}`);
+      } else {
+        log.debug(`ffmpeg completed successfully in ${elapsed}s`);
+      }
+      
       resolve();
     });
 
     ffmpegProcess.on('error', (error) => {
       clearTimeout(timeout);
+      clearInterval(progressInterval);
       reject(new Error(`ffmpeg spawn error: ${error.message}`));
     });
   });
