@@ -2,6 +2,7 @@ packages:
   - packages/client
   - packages/config
   - packages/constants
+  - packages/linting
   - packages/logging
   - packages/database
   - packages/s3
@@ -26,6 +27,8 @@ catalog:
   rolldown: ^1.0.0-beta.8
   tsx: ^4.7.0
   srt-parser-2: ^1.2.3
+  xml2js: ^0.6.2
+  '@types/xml2js': ^0.4.14
 onlyBuiltDependencies:
   - esbuild
   - rolldown
