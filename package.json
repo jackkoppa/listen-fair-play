@@ -21,8 +21,6 @@
     "srt-indexing-lambda:test": "pnpm --filter @listen-fair-play/srt-indexing-lambda test",
     "search-lambda:dev:local": "pnpm --filter @listen-fair-play/search-lambda dev:local",
     "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local",
-    "process-audio-lambda:run:spelling-corrections:local": "pnpm --filter @listen-fair-play/process-audio-lambda run run:spelling-corrections:local",
-    "process-audio-lambda:run:spelling-corrections:dev-s3": "pnpm --filter @listen-fair-play/process-audio-lambda run run:spelling-corrections:dev-s3",
     "lint:transcripts": "tsx scripts/linting/lint-transcripts.ts"
   },
   "engines": {

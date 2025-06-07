@@ -32,6 +32,11 @@ const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVID
 const LAMBDA_CLIENT = new LambdaClient({});
 const INDEXING_LAMBDA_NAME = 'convert-srt-files-into-indexed-search-entries';
 
+// Helper function to detect if we're running in AWS Lambda environment
+function isRunningInLambda(): boolean {
+  return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
+
 // Types
 interface SrtEntry {
   id: string;
@@ -156,6 +161,13 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
+
+  // Clean up any existing temporary chunks for this podcast to avoid ffmpeg conflicts
+  const tempPodcastDir = path.join('/tmp/audio', podcastName);
+  if (await fs.pathExists(tempPodcastDir)) {
+    log.debug(`Cleaning up existing temporary directory: ${tempPodcastDir}`);
+    await fs.remove(tempPodcastDir);
+  }
 
   // Ensure transcript directory exists
   await createDirectory(transcriptDirKey);

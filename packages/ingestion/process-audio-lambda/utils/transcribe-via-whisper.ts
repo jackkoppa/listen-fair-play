@@ -48,16 +48,66 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
     throw new Error(`File not found: ${filePath}`);
   }
 
-  switch (whisperApiProvider) {
-    case 'openai':
-      return transcribeWithOpenAI(filePath, responseFormat, apiKey);
-    case 'replicate':
-      return transcribeWithReplicate(filePath, apiKey);
-    case 'local-whisper.cpp':
-      return transcribeWithLocalWhisperCpp(filePath, responseFormat, whisperCppPath);
-    default:
-      throw new Error(`Unsupported API provider: ${whisperApiProvider}`);
+  const MAX_ATTEMPTS = 3;
+  const TIMEOUT_MS = 120 * 1000; // 2 minutes
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      log.info(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} for ${path.basename(filePath)} using ${whisperApiProvider}`);
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Transcription timed out after ${TIMEOUT_MS / 1000} seconds`));
+        }, TIMEOUT_MS);
+      });
+
+      // Create the transcription promise based on provider
+      let transcriptionPromise: Promise<string>;
+      switch (whisperApiProvider) {
+        case 'openai':
+          transcriptionPromise = transcribeWithOpenAI(filePath, responseFormat, apiKey);
+          break;
+        case 'replicate':
+          transcriptionPromise = transcribeWithReplicate(filePath, apiKey);
+          break;
+        case 'local-whisper.cpp':
+          transcriptionPromise = transcribeWithLocalWhisperCpp(filePath, responseFormat, whisperCppPath);
+          break;
+        default:
+          throw new Error(`Unsupported API provider: ${whisperApiProvider}`);
+      }
+
+      // Race between timeout and transcription
+      const result = await Promise.race([transcriptionPromise, timeoutPromise]);
+      
+      log.info(`Transcription attempt ${attempt} succeeded for ${path.basename(filePath)}`);
+      return result;
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.warn(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} failed for ${path.basename(filePath)}: ${errorMessage}`);
+      
+      // If this was the last attempt, throw a detailed error
+      if (attempt === MAX_ATTEMPTS) {
+        throw new Error(
+          `Transcription failed after ${MAX_ATTEMPTS} attempts for file: ${filePath}\n` +
+          `Provider: ${whisperApiProvider}\n` +
+          `Response format: ${responseFormat}\n` +
+          `Last error: ${errorMessage}\n` +
+          `File size: ${fs.statSync(filePath).size} bytes`
+        );
+      }
+      
+      // Wait a bit before retrying (exponential backoff)
+      const retryDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s...
+      log.info(`Waiting ${retryDelay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
   }
+
+  // This should never be reached due to the throw above, but TypeScript needs it
+  throw new Error('Unexpected error in transcription retry loop');
 }
 
 /**
