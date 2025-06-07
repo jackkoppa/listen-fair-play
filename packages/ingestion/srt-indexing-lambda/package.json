@@ -22,7 +22,7 @@
     "@listen-fair-play/types": "workspace:*",
     "@orama/orama": "catalog:",
     "@orama/plugin-data-persistence": "catalog:",
-    "srt-parser-2": "^1.2.3",
+    "srt-parser-2": "catalog:",
     "rolldown": "catalog:",
     "vitest": "^1.6.1",
     "tsx": "catalog:"

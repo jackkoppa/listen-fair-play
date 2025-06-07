@@ -25,6 +25,7 @@ catalog:
   loglevel: ^1.9.2
   rolldown: ^1.0.0-beta.8
   tsx: ^4.7.0
+  srt-parser-2: ^1.2.3
 onlyBuiltDependencies:
   - esbuild
   - rolldown

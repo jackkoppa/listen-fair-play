@@ -26,7 +26,7 @@
     "@listen-fair-play/logging": "workspace:*",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",
-    "srt-parser-2": "^1.2.3",
+    "srt-parser-2": "catalog:",
     "xml2js": "^0.6.2",
     "@listen-fair-play/types": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",

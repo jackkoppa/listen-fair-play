@@ -1,0 +1,22 @@
+{
+    "name": "@listen-fair-play/linting",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Linting utilities for the Listen Fair Play project",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "test": "vitest run",
+        "lint:all": "pnpm lint:s3-files-metadata && pnpm lint:transcript-files-content",
+        "lint:s3-files-metadata": "tsx ./lint-s3-files-metadata.ts",
+        "lint:transcript-files-content": "tsx ./lint-transcript-files-content.ts"
+    },
+    "devDependencies": {
+        "typescript": "catalog:",
+        "srt-parser-2": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+  }

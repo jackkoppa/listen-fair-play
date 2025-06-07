@@ -22,7 +22,7 @@
     "@listen-fair-play/s3": "workspace:*",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
-    "srt-parser-2": "^1.2.3",
+    "srt-parser-2": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/node": "^20.0.0",
     "rolldown": "catalog:",

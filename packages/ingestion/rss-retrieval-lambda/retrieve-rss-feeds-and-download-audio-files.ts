@@ -280,18 +280,16 @@ async function identifyEpisodesToDownload(
   try {
     const existingAudioFilesS3 = (await listFiles(podcastAudioDirS3)).map(filePath => path.basename(filePath));
     // Normalize filenames from S3 to NFC before adding to the set
-    const existingAudioFilenamesSet = new Set(existingAudioFilesS3.map(name => name.normalize('NFC')));
+    const existingAudioFilenamesSet = new Set(existingAudioFilesS3);
 
     for (const episode of episodesFromManifest) {
       if (episode.podcastId !== podcastId) continue; 
 
       const expectedAudioFilename = getEpisodeAudioFilename(episode.fileKey);
-      // Normalize the expected filename to NFC before checking the set
-      const normalizedExpectedAudioFilename = expectedAudioFilename.normalize('NFC');
 
-      if (!existingAudioFilenamesSet.has(normalizedExpectedAudioFilename)) {
+      if (!existingAudioFilenamesSet.has(expectedAudioFilename)) {
         filesToDownload.push(episode);
-        log.info(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}, Normalized: ${normalizedExpectedAudioFilename}) as it's not in S3 set.`);
+        log.info(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}) as it's not in S3 set.`);
       } else {
         // log.debug(`Audio for "${episode.title}" (${normalizedExpectedAudioFilename}) already exists in S3. Skipping download.`);
       }
