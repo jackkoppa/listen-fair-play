@@ -9,12 +9,14 @@
         "build": "tsc",
         "test": "vitest run",
         "lint:all": "pnpm lint:s3-files-metadata && pnpm lint:transcript-files-content",
-        "lint:s3-files-metadata": "tsx ./lint-s3-files-metadata.ts",
         "lint:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./lint-s3-files-metadata.ts",
+        "lint:s3-files-metadata:dev-s3": "dotenvx run -f ../../.env.dev-s3 -- tsx ./lint-s3-files-metadata.ts",
         "lint:transcript-files-content": "tsx ./lint-transcript-files-content.ts"
     },
     "devDependencies": {
         "typescript": "catalog:",
+        "vitest": "^1.6.1",
+        "tsx": "catalog:",
         "srt-parser-2": "catalog:",
         "xml2js": "catalog:",
         "@types/xml2js": "catalog:"

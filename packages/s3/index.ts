@@ -10,9 +10,9 @@ import { log } from '@listen-fair-play/logging';
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
-// CURSOR-TODO: Can we set this relative to where this file currently is, rather than the running process?
-// Currently, this breaks if the package importing this file moves
-const LOCAL_S3_PATH = path.join(process.cwd(), '../../../aws-local-dev/s3');
+// Fixed: Set path relative to this file's location instead of process.cwd()
+// This allows the package to work regardless of where the importing script is run from
+const LOCAL_S3_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), '../../../aws-local-dev/s3');
 
 // IMPORTANT!!! CURSOR-TODO: This needs to be set at build time (rolldown) when building for Lambda deployment
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'dev-s3';

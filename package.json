@@ -22,8 +22,8 @@
     "search-lambda:dev:local": "pnpm --filter @listen-fair-play/search-lambda dev:local",
     "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local",
     "lint:transcripts": "tsx scripts/linting/lint-transcripts.ts",
-    "lint:s3-metadata:local": "FILE_STORAGE_ENV=local pnpm --filter @listen-fair-play/linting lint:s3-files-metadata",
-    "lint:s3-metadata:dev-s3": "FILE_STORAGE_ENV=dev-s3 pnpm --filter @listen-fair-play/linting lint:s3-files-metadata"
+    "lint:s3-metadata:local": "pnpm --filter @listen-fair-play/linting lint:s3-files-metadata:local",
+    "lint:s3-metadata:dev-s3": "pnpm --filter @listen-fair-play/linting lint:s3-files-metadata:dev-s3"
   },
   "engines": {
     "node": ">=20.0.0",
