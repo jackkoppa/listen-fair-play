@@ -4,10 +4,15 @@ import SrtParser from "srt-parser-2";
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
+import { fileURLToPath } from "url";
 
 const readdir = promisify(fs.readdir);
 const readFile = promisify(fs.readFile);
 const stat = promisify(fs.stat);
+
+// Get the directory name for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Directory containing transcript files
 const TRANSCRIPTS_DIR = path.resolve(__dirname, "../../aws-local-dev/s3/transcripts");

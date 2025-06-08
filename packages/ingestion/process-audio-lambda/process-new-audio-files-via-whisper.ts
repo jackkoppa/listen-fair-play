@@ -416,7 +416,10 @@ const scriptPath = path.resolve(process.argv[1]);
 if (import.meta.url === `file://${scriptPath}`) {
   log.info('Starting audio processing via Whisper directly...');
   handler()
-    .then(() => log.info('Processing completed successfully (direct run)'))
+    .then(() => {
+      log.info('Processing completed successfully (direct run)');
+      process.exit(0);
+    })
     .catch(error => {
       log.error('Processing failed (direct run):', error);
       process.exit(1);

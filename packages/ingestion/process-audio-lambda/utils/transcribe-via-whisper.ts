@@ -4,6 +4,9 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { log } from '@listen-fair-play/logging';
+
+const WHISPER_PROMPT = `Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe.I am your host, Adam Hurrey. Let's begin!`;
+
 /**
  * `openai` has been confirmed to work
  * `replicate` partially works, but the response format likely needs tweaking
@@ -129,7 +132,7 @@ async function transcribeWithOpenAI(
     file: fs.createReadStream(filePath),
     model,
     response_format: responseFormat,
-    
+    prompt: WHISPER_PROMPT
   });
 
   // Handle the return type correctly based on OpenAI API
@@ -252,7 +255,7 @@ async function transcribeWithLocalWhisperCpp(
   
   try {
     // Run whisper.cpp command
-    const command = `cd "${whisperDir}" && "${whisperCliBin}" -m "${modelPath}" -f "${filePath}" ${formatFlag} -of "${tempOutputFile}" --prompt "Hello. Welcome to the Football Clichés podcast! I am your host, Adam Hurrey. Let's begin."`;
+    const command = `cd "${whisperDir}" && "${whisperCliBin}" -m "${modelPath}" -f "${filePath}" ${formatFlag} -of "${tempOutputFile}" --prompt "${WHISPER_PROMPT}"`;
 
     const { stdout, stderr } = await execPromise(command);
     

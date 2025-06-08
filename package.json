@@ -7,7 +7,8 @@
     "all:build": "pnpm --filter @listen-fair-play/* build",
     "all:build:dev": "pnpm --filter @listen-fair-play/* build:dev",
     "all:test": "pnpm --filter @listen-fair-play/* test",
-    "rss-retrieval-lambda:build-for-aws": "pnpm --filter @listen-fair-play/rss-retrieval-lambda --prod deploy packages/ingestion/rss-retrieval-lambda/aws-dist",
+    "lint:local": "pnpm --filter @listen-fair-play/linting lint:all:local",
+    "lint:dev-s3": "pnpm --filter @listen-fair-play/linting lint:all:dev-s3",
     "client:dev": "concurrently \"pnpm --filter @listen-fair-play/client _vite-dev\" \"pnpm --filter @listen-fair-play/client _serve-s3-assets\" \"pnpm search-lambda:dev:local\"",
     "client:build": "pnpm --filter client build",
     "client:lint": "pnpm --filter client lint",
@@ -20,10 +21,7 @@
     "srt-indexing-lambda:run:dev-s3": "pnpm --filter @listen-fair-play/srt-indexing-lambda run run:dev-s3",
     "srt-indexing-lambda:test": "pnpm --filter @listen-fair-play/srt-indexing-lambda test",
     "search-lambda:dev:local": "pnpm --filter @listen-fair-play/search-lambda dev:local",
-    "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local",
-    "lint:transcripts": "tsx scripts/linting/lint-transcripts.ts",
-    "lint:s3-metadata:local": "pnpm --filter @listen-fair-play/linting lint:s3-files-metadata:local",
-    "lint:s3-metadata:dev-s3": "pnpm --filter @listen-fair-play/linting lint:s3-files-metadata:dev-s3"
+    "search-lambda:test:local": "pnpm --filter @listen-fair-play/search-lambda test:local"
   },
   "engines": {
     "node": ">=20.0.0",
