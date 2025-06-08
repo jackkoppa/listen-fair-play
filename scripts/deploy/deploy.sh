@@ -106,6 +106,27 @@ async function main() {
         console.log('Running prerequisite checks...');
         await runCommand('./scripts/deploy/check-prerequisites.sh');
 
+        // Ask user about optional pre-deployment steps
+        const optionsResponse = await prompts({
+            type: 'multiselect',
+            name: 'selectedOptions',
+            message: 'Select pre-deployment steps to run:',
+            choices: [
+                { title: 'Run tests (pnpm all:test)', value: 'test', selected: true },
+                { title: 'Run linting (pnpm lint:dev-s3)', value: 'lint', selected: true },
+                { title: 'Deploy client files to S3', value: 'client', selected: true }
+            ],
+            hint: '- Space to select/deselect. Return to continue'
+        });
+
+        if (!optionsResponse.selectedOptions) {
+            console.log('Deployment cancelled.');
+            process.exit(0);
+        }
+
+        const selectedOptions = optionsResponse.selectedOptions;
+        console.log('Selected options:', selectedOptions);
+
         // Load environment variables
         loadEnvFile();
 
@@ -130,6 +151,17 @@ async function main() {
                 console.log(`Please run: aws sso login --profile ${process.env.AWS_PROFILE}`);
                 process.exit(1);
             }
+        }
+
+        // Run optional pre-deployment steps based on user selection
+        if (selectedOptions.includes('test')) {
+            console.log('Running all tests...');
+            await runCommand('pnpm', ['all:test']);
+        }
+
+        if (selectedOptions.includes('lint')) {
+            console.log('Running linting...');
+            await runCommand('pnpm', ['lint:dev-s3']);
         }
 
         console.log(`Building all packages for ${ENV} environment...`);
@@ -209,18 +241,16 @@ async function main() {
             process.chdir('..');
             console.log(`Returned to ${process.cwd()}`);
             
-            console.log('');
-            console.log('=== Optional: Upload client files to S3 ===');
-            console.log('');
-
-            // Ask if user wants to upload client files
-            const uploadConfirmed = await askConfirmation('Do you want to upload the client files to S3?');
-            
-            if (uploadConfirmed) {
+            // Upload client files if selected at the beginning
+            if (selectedOptions.includes('client')) {
+                console.log('');
+                console.log('=== Uploading client files to S3 ===');
                 console.log('Uploading client files...');
                 await runCommand('./scripts/deploy/upload-client.sh', [ENV]);
             } else {
-                console.log(`Skipping client upload. You can run it later with: ./scripts/deploy/upload-client.sh ${ENV}`);
+                console.log('');
+                console.log('=== Skipping client upload ===');
+                console.log(`Client upload was not selected. You can run it later with: ./scripts/deploy/upload-client.sh ${ENV}`);
             }
         } else {
             console.log('Deployment cancelled.');
