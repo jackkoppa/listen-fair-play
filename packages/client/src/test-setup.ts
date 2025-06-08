@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// Mock SVG imports with ?react syntax
+vi.mock('*.svg?react', () => ({
+  default: vi.fn().mockImplementation(() => 'svg'),
+}))
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -32,4 +37,7 @@ Object.defineProperty(window, 'localStorage', {
 })
 
 // Mock scrollIntoView
-Element.prototype.scrollIntoView = vi.fn() 
+Element.prototype.scrollIntoView = vi.fn()
+
+// Global fetch mock setup
+global.fetch = vi.fn() as any 
