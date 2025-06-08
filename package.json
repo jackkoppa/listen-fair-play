@@ -7,6 +7,7 @@
     "all:build": "pnpm --filter @listen-fair-play/* build",
     "all:build:dev": "pnpm --filter @listen-fair-play/* build:dev",
     "all:test": "pnpm --filter @listen-fair-play/* test",
+    "all:deploy": "./scripts/deploy/deploy.sh",
     "lint:local": "pnpm --filter @listen-fair-play/linting lint:all:local",
     "lint:dev-s3": "pnpm --filter @listen-fair-play/linting lint:all:dev-s3",
     "client:dev": "concurrently \"pnpm --filter @listen-fair-play/client _vite-dev\" \"pnpm --filter @listen-fair-play/client _serve-s3-assets\" \"pnpm search-lambda:dev:local\"",

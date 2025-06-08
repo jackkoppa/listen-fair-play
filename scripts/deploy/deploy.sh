@@ -1,135 +1,229 @@
-#!/bin/bash
+#!/usr/bin/env node
 
-set -e
+const prompts = require('prompts');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-# Default environment is dev
-ENV=${1:-dev}
+// Load environment variables from .env.dev if it exists
+function loadEnvFile() {
+    const envFile = path.join(process.cwd(), '.env.dev');
+    if (fs.existsSync(envFile)) {
+        console.log('Loading environment variables from .env.dev');
+        const envContent = fs.readFileSync(envFile, 'utf8');
+        envContent.split('\n').forEach(line => {
+            const [key, value] = line.split('=');
+            if (key && value) {
+                process.env[key.trim()] = value.trim();
+            }
+        });
+    } else {
+        console.log('Warning: .env.dev file not found. Make sure to create it with necessary credentials.');
+    }
+}
 
+// Run a shell command and return a promise
+function runCommand(command, args = [], options = {}) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, args, {
+            stdio: 'inherit',
+            shell: true,
+            ...options
+        });
 
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(`Command failed with exit code ${code}`));
+            }
+        });
 
-# Terraform configuration
-TF_DIR="terraform"
-TF_STATE_FILENAME="terraform.tfstate" # Basename of the state file, e.g., terraform.tfstate
-TF_STATE_BUCKET="listen-fair-play-terraform-state-$ENV"
+        child.on('error', (error) => {
+            reject(error);
+        });
+    });
+}
 
-# Variables to be exported for use by manage-tfstate.sh
-export TF_STATE_FILENAME
-export S3_TFSTATE_URI="s3://$TF_STATE_BUCKET/$TF_STATE_FILENAME"
-# AWS_PROFILE will be exported later if it's set
+// Check if AWS SSO session is active
+async function checkAWSAuth(profile) {
+    return new Promise((resolve) => {
+        const stsCmd = spawn('aws', ['sts', 'get-caller-identity', '--profile', profile], {
+            stdio: 'pipe'
+        });
+        stsCmd.on('close', (code) => {
+            resolve(code === 0);
+        });
+    });
+}
 
-# Run prerequisite check
-./scripts/deploy/check-prerequisites.sh
-if [ $? -ne 0 ]; then
-  echo "Prerequisite check failed. Please address the issues above before deploying."
-  exit 1
-fi
+// Ask for user confirmation
+async function askConfirmation(message) {
+    const response = await prompts({
+        type: 'confirm',
+        name: 'confirmed',
+        message: message,
+        initial: false
+    });
+    return response.confirmed;
+}
 
-# Check if .env.dev exists and source it
-if [ -f ".env.dev" ]; then
-  echo "Loading environment variables from .env.dev"
-  source .env.dev
-else
-  echo "Warning: .env.dev file not found. Make sure to create it with necessary credentials."
-fi
+async function main() {
+    try {
+        // Environment selection prompt
+        const envResponse = await prompts({
+            type: 'select',
+            name: 'environment',
+            message: 'Select deployment environment:',
+            choices: [
+                { title: 'Development', value: 'dev' },
+                { title: 'Production', value: 'prod' }
+            ],
+            initial: 0
+        });
 
-# Validate required environment variables
-if [ -z "$OPENAI_API_KEY" ]; then
-  echo "Error: OpenAI API key is missing."
-  echo "Make sure .env.dev contains:"
-  echo "  OPENAI_API_KEY=your_openai_api_key"
-  exit 1
-fi
+        if (!envResponse.environment) {
+            console.log('Deployment cancelled.');
+            process.exit(0);
+        }
 
-# Set AWS region if not already set
-export AWS_REGION=${AWS_REGION:-us-east-1}
+        const ENV = envResponse.environment;
+        console.log(`Deploying to ${ENV} environment...`);
 
-# Set AWS profile if specified and export it for sourced scripts
-if [ -n "$AWS_PROFILE" ]; then
-  echo "Using AWS SSO profile: $AWS_PROFILE"
-  export AWS_PROFILE # Export for manage-tfstate.sh and aws cli
-  
-  # Check if SSO session is active
-  if ! aws sts get-caller-identity --profile "$AWS_PROFILE" &> /dev/null; then
-    echo "AWS SSO session is not active or has expired for profile $AWS_PROFILE"
-    echo "Please run: aws sso login --profile $AWS_PROFILE"
-    exit 1
-  fi
-fi
+        // Set environment variables for child processes
+        process.env.ENV = ENV;
 
-# Source the Terraform state management script
-# Ensure it's executable, though sourcing doesn't strictly require it.
-chmod +x ./scripts/deploy/manage-tfstate.sh
-source ./scripts/deploy/manage-tfstate.sh
+        // Terraform configuration
+        const TF_DIR = "terraform";
+        const TF_STATE_FILENAME = "terraform.tfstate";
+        const TF_STATE_BUCKET = `listen-fair-play-terraform-state-${ENV}`;
 
-echo "Building all packages for $ENV environment..."
-pnpm install
-# Build shared packages
-pnpm all:build
-# Build /packages/processing lambdas, /packages/search lambdas, and /packages/client UI app
-pnpm all:build:$ENV
+        // Variables to be exported for use by manage-tfstate.sh
+        process.env.TF_STATE_FILENAME = TF_STATE_FILENAME;
+        process.env.S3_TFSTATE_URI = `s3://${TF_STATE_BUCKET}/${TF_STATE_FILENAME}`;
 
-# --- Terraform Deployment ---
-echo "Navigating to Terraform directory: $TF_DIR"
-cd "$TF_DIR"
+        // Run prerequisite check
+        console.log('Running prerequisite checks...');
+        await runCommand('./scripts/deploy/check-prerequisites.sh');
 
-# --- Terraform State Sync ---
-# This function is from manage-tfstate.sh and assumes CWD is the Terraform directory.
-compare_tf_states
+        // Load environment variables
+        loadEnvFile();
 
-# Initialize Terraform (if needed)
-echo "Initializing Terraform..."
-terraform init
+        // Validate required environment variables
+        if (!process.env.OPENAI_API_KEY) {
+            console.log('Error: OpenAI API key is missing.');
+            console.log('Make sure .env.dev contains:');
+            console.log('  OPENAI_API_KEY=your_openai_api_key');
+            process.exit(1);
+        }
 
-# Validate Terraform configuration
-echo "Validating Terraform configuration..."
-terraform validate
+        // Set AWS region if not already set
+        process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-# Set profile flag for Terraform commands if using AWS profile
-TERRAFORM_PROFILE_FLAG=""
-if [ -n "$AWS_PROFILE" ]; then
-  TERRAFORM_PROFILE_FLAG="-var=aws_profile=$AWS_PROFILE"
-fi
+        // Set AWS profile if specified and export it for sourced scripts
+        if (process.env.AWS_PROFILE) {
+            console.log(`Using AWS SSO profile: ${process.env.AWS_PROFILE}`);
+            
+            // Check if SSO session is active
+            if (!(await checkAWSAuth(process.env.AWS_PROFILE))) {
+                console.log(`AWS SSO session is not active or has expired for profile ${process.env.AWS_PROFILE}`);
+                console.log(`Please run: aws sso login --profile ${process.env.AWS_PROFILE}`);
+                process.exit(1);
+            }
+        }
 
-# Plan the deployment
-terraform plan \
-  -var-file=environments/$ENV.tfvars \
-  -var="openai_api_key=$OPENAI_API_KEY" \
-  $TERRAFORM_PROFILE_FLAG \
-  -out=tfplan
+        // Make manage-tfstate.sh executable and source it
+        await runCommand('chmod', ['+x', './scripts/deploy/manage-tfstate.sh']);
 
-# Ask for confirmation before applying
-read -p "Do you want to apply this Terraform plan? (y/N): " confirm
-if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-  echo "Applying Terraform plan..."
-  terraform apply -auto-approve tfplan
-  
-  echo "Terraform apply completed."
-  # Upload state backup. This function is from manage-tfstate.sh.
-  upload_tf_state_backup
+        console.log(`Building all packages for ${ENV} environment...`);
+        await runCommand('pnpm', ['install']);
+        
+        // Build shared packages
+        await runCommand('pnpm', ['all:build']);
+        
+        // Build /packages/processing lambdas, /packages/search lambdas, and /packages/client UI app
+        await runCommand('pnpm', [`all:build:${ENV}`]);
 
-  # Display outputs
-  echo "======= Deployment Complete ======="
-  terraform output
+        // --- Terraform Deployment ---
+        console.log(`Navigating to Terraform directory: ${TF_DIR}`);
+        process.chdir(TF_DIR);
 
-  # Return to the project root before running upload script
-  cd ..
-  echo "Returned to $(pwd)" 
-  
-  echo ""
-  echo "=== Optional: Upload client files to S3 ==="
-  echo ""
+        // --- Terraform State Sync ---
+        console.log('Comparing Terraform states...');
+        await runCommand('bash', ['-c', 'source ../scripts/deploy/manage-tfstate.sh && compare_tf_states']);
 
-  # Ask if user wants to upload client files
-  read -p "Do you want to upload the client files to S3? (y/N): " upload_confirm
-  if [[ $upload_confirm == [yY] || $upload_confirm == [yY][eE][sS] ]]; then
-    echo "Uploading client files..."
-    ./scripts/deploy/upload-client.sh "$ENV"
-  else
-    echo "Skipping client upload. You can run it later with: ./scripts/deploy/upload-client.sh $ENV"
-  fi
-else
-  echo "Deployment cancelled."
-  cd ..
-  echo "Returned to $(pwd)" 
-  # If deployment is cancelled, no state change, so no need to upload state.
-fi
+        // Initialize Terraform (if needed)
+        console.log('Initializing Terraform...');
+        await runCommand('terraform', ['init']);
+
+        // Validate Terraform configuration
+        console.log('Validating Terraform configuration...');
+        await runCommand('terraform', ['validate']);
+
+        // Set profile flag for Terraform commands if using AWS profile
+        const terraformArgs = [
+            'plan',
+            `-var-file=environments/${ENV}.tfvars`,
+            `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
+            '-out=tfplan'
+        ];
+
+        if (process.env.AWS_PROFILE) {
+            terraformArgs.splice(-1, 0, `-var=aws_profile=${process.env.AWS_PROFILE}`);
+        }
+
+        // Plan the deployment
+        await runCommand('terraform', terraformArgs);
+
+        // Ask for confirmation before applying
+        const applyConfirmed = await askConfirmation('Do you want to apply this Terraform plan?');
+        
+        if (applyConfirmed) {
+            console.log('Applying Terraform plan...');
+            await runCommand('terraform', ['apply', '-auto-approve', 'tfplan']);
+            
+            console.log('Terraform apply completed.');
+            
+            // Upload state backup
+            await runCommand('bash', ['-c', 'source ../scripts/deploy/manage-tfstate.sh && upload_tf_state_backup']);
+
+            // Display outputs
+            console.log('======= Deployment Complete =======');
+            await runCommand('terraform', ['output']);
+
+            // Return to the project root before running upload script
+            process.chdir('..');
+            console.log(`Returned to ${process.cwd()}`);
+            
+            console.log('');
+            console.log('=== Optional: Upload client files to S3 ===');
+            console.log('');
+
+            // Ask if user wants to upload client files
+            const uploadConfirmed = await askConfirmation('Do you want to upload the client files to S3?');
+            
+            if (uploadConfirmed) {
+                console.log('Uploading client files...');
+                await runCommand('./scripts/deploy/upload-client.sh', [ENV]);
+            } else {
+                console.log(`Skipping client upload. You can run it later with: ./scripts/deploy/upload-client.sh ${ENV}`);
+            }
+        } else {
+            console.log('Deployment cancelled.');
+            process.chdir('..');
+            console.log(`Returned to ${process.cwd()}`);
+        }
+
+    } catch (error) {
+        console.error('Deployment failed:', error.message);
+        process.exit(1);
+    }
+}
+
+// Handle Ctrl+C gracefully
+process.on('SIGINT', () => {
+    console.log('\nDeployment cancelled...');
+    process.exit(0);
+});
+
+main();
