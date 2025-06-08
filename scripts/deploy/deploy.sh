@@ -132,9 +132,6 @@ async function main() {
             }
         }
 
-        // Make manage-tfstate.sh executable and source it
-        await runCommand('chmod', ['+x', './scripts/deploy/manage-tfstate.sh']);
-
         console.log(`Building all packages for ${ENV} environment...`);
         await runCommand('pnpm', ['install']);
         
@@ -150,7 +147,16 @@ async function main() {
 
         // --- Terraform State Sync ---
         console.log('Comparing Terraform states...');
-        await runCommand('bash', ['-c', 'source ../scripts/deploy/manage-tfstate.sh && compare_tf_states']);
+        // Set all required environment variables and source the script in the correct context
+        const manageTfStateCmd = `
+            export TF_STATE_FILENAME="${TF_STATE_FILENAME}"
+            export S3_TFSTATE_URI="${process.env.S3_TFSTATE_URI}"
+            export AWS_PROFILE="${process.env.AWS_PROFILE || ''}"
+            export AWS_REGION="${process.env.AWS_REGION}"
+            source ../scripts/deploy/manage-tfstate.sh
+            compare_tf_states
+        `;
+        await runCommand('bash', ['-c', manageTfStateCmd]);
 
         // Initialize Terraform (if needed)
         console.log('Initializing Terraform...');
@@ -185,7 +191,15 @@ async function main() {
             console.log('Terraform apply completed.');
             
             // Upload state backup
-            await runCommand('bash', ['-c', 'source ../scripts/deploy/manage-tfstate.sh && upload_tf_state_backup']);
+            const uploadStateCmd = `
+                export TF_STATE_FILENAME="${TF_STATE_FILENAME}"
+                export S3_TFSTATE_URI="${process.env.S3_TFSTATE_URI}"
+                export AWS_PROFILE="${process.env.AWS_PROFILE || ''}"
+                export AWS_REGION="${process.env.AWS_REGION}"
+                source ../scripts/deploy/manage-tfstate.sh
+                upload_tf_state_backup
+            `;
+            await runCommand('bash', ['-c', uploadStateCmd]);
 
             // Display outputs
             console.log('======= Deployment Complete =======');
