@@ -1,5 +1,6 @@
 import * as xml2js from 'xml2js';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { log } from '@listen-fair-play/logging';
 import { 
   fileExists, 
@@ -142,6 +143,41 @@ function extractEpisodesFromRSS(parsedFeed: any, podcastId: string): ExpectedEpi
 }
 
 /**
+ * Check AWS SSO credentials for non-local environments
+ */
+async function checkAWSCredentials(): Promise<void> {
+  const fileStorageEnv = process.env.FILE_STORAGE_ENV;
+  
+  // Only check credentials for AWS environments
+  if (fileStorageEnv === 'local') {
+    return;
+  }
+
+  const awsProfile = process.env.AWS_PROFILE;
+  
+  if (!awsProfile) {
+    log.error('❌ AWS_PROFILE is not set');
+    log.error('  Please add AWS_PROFILE to your environment variables for AWS SSO authentication');
+    log.error('  Run \'aws configure sso\' to set up an SSO profile if needed');
+    process.exit(1);
+  }
+
+  try {
+    // Test SSO authentication with the specified profile
+    execSync(`aws sts get-caller-identity --profile "${awsProfile}"`, { 
+      stdio: 'pipe',
+      timeout: 10000
+    });
+    log.info(`✅ AWS SSO authentication verified with profile: ${awsProfile}`);
+  } catch (error) {
+    log.error('❌ AWS SSO credentials are not working or expired.');
+    log.error(`  Please run 'aws sso login --profile ${awsProfile}' to authenticate`);
+    log.error('  Then retry the linting command.');
+    process.exit(1);
+  }
+}
+
+/**
  * Load episode manifest
  */
 async function loadEpisodeManifest(): Promise<EpisodeManifest | null> {
@@ -158,46 +194,47 @@ async function loadEpisodeManifest(): Promise<EpisodeManifest | null> {
 }
 
 /**
- * Check if a file exists, including checking normalized version
+ * Check if a file exists in the provided file list, including checking normalized version
  */
-async function checkFileExistsWithNormalization(filePath: string): Promise<{
+function checkFileExistsInList(filePath: string, allFiles: Set<string>): {
   exists: boolean;
   actualPath?: string;
   needsNormalization?: boolean;
-}> {
+} {
+  log.debug(`Checking file existence in list: ${filePath}`);
+  
   // First check exact path
-  if (await fileExists(filePath)) {
+  if (allFiles.has(filePath)) {
+    log.debug(`File exists at exact path: ${filePath}`);
     return { exists: true, actualPath: filePath, needsNormalization: false };
   }
 
   // Check if a normalized version exists
   const normalizedPath = filePath.normalize('NFC');
-  if (normalizedPath !== filePath && await fileExists(normalizedPath)) {
+  if (normalizedPath !== filePath && allFiles.has(normalizedPath)) {
+    log.debug(`File exists at normalized path: ${normalizedPath}`);
     return { exists: true, actualPath: normalizedPath, needsNormalization: true };
   }
 
-  // Check directory and look for similar files
-  const dir = path.dirname(filePath);
+  // Check for files that would match when normalized
   const expectedFilename = path.basename(filePath);
+  const dir = path.dirname(filePath);
   
-  try {
-    const filesInDir = await listFiles(dir);
-    const actualFilenames = filesInDir.map(f => path.basename(f));
-    
-    for (const actualFilename of actualFilenames) {
-      if (actualFilename.normalize('NFC') === expectedFilename.normalize('NFC')) {
-        const actualPath = path.join(dir, actualFilename);
+  for (const existingFile of allFiles) {
+    if (existingFile.startsWith(dir + '/') || existingFile.startsWith(dir + path.sep)) {
+      const existingFilename = path.basename(existingFile);
+      if (existingFilename.normalize('NFC') === expectedFilename.normalize('NFC')) {
+        log.debug(`Found matching file with normalization: ${existingFile}`);
         return { 
           exists: true, 
-          actualPath, 
-          needsNormalization: actualFilename !== expectedFilename.normalize('NFC')
+          actualPath: existingFile, 
+          needsNormalization: existingFilename !== expectedFilename.normalize('NFC')
         };
       }
     }
-  } catch (error) {
-    // Directory might not exist, that's fine
   }
 
+  log.debug(`File not found: ${filePath}`);
   return { exists: false };
 }
 
@@ -282,10 +319,26 @@ async function validateEpisodes(
   manifest: EpisodeManifest | null,
   s3Files: { audioFiles: string[]; transcriptFiles: string[]; searchEntryFiles: string[] }
 ): Promise<LintIssue[]> {
+  log.debug(`Starting validation of ${expectedEpisodes.length} episodes...`);
   const issues: LintIssue[] = [];
   const processedFiles = new Set<string>();
 
-  for (const episode of expectedEpisodes) {
+  // Create a Set of all files for fast lookup (filter out directories)
+  const allFiles = new Set<string>([
+    ...s3Files.audioFiles.filter(f => !f.endsWith('/')),
+    ...s3Files.transcriptFiles.filter(f => !f.endsWith('/')),
+    ...s3Files.searchEntryFiles.filter(f => !f.endsWith('/'))
+  ]);
+  log.debug(`Created file lookup set with ${allFiles.size} files (directories excluded)`);
+
+  for (let i = 0; i < expectedEpisodes.length; i++) {
+    const episode = expectedEpisodes[i];
+    log.debug(`Validating episode ${i + 1}/${expectedEpisodes.length}: ${episode.title}`);
+    
+    // Progress indicator for every 50 episodes
+    if ((i + 1) % 50 === 0) {
+      log.info(`📋 Validation progress: ${i + 1}/${expectedEpisodes.length} episodes checked`);
+    }
     const { podcastId, title, fileKey } = episode;
 
     // Check manifest entry
@@ -320,8 +373,10 @@ async function validateEpisodes(
       { path: path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastId, `${fileKey}.json`), type: 'search-entry' }
     ];
 
+    log.debug(`Checking ${requiredFiles.length} required files for episode: ${title}`);
     for (const { path: filePath, type } of requiredFiles) {
-      const result = await checkFileExistsWithNormalization(filePath);
+      log.debug(`Checking ${type} file for episode: ${filePath}`);
+      const result = checkFileExistsInList(filePath, allFiles);
       
       if (!result.exists) {
         issues.push({
@@ -350,14 +405,11 @@ async function validateEpisodes(
   }
 
   // Check for orphaned files
-  const allS3Files = [
-    ...s3Files.audioFiles,
-    ...s3Files.transcriptFiles,
-    ...s3Files.searchEntryFiles
-  ];
-
-  for (const filePath of allS3Files) {
+  log.debug(`Checking for orphaned files...`);
+  log.debug(`Comparing ${allFiles.size} S3 files against ${processedFiles.size} processed files`);
+  for (const filePath of allFiles) {
     if (!processedFiles.has(filePath)) {
+      log.debug(`Found orphaned file: ${filePath}`);
       issues.push({
         type: 'orphaned-file',
         severity: 'warning',
@@ -368,6 +420,7 @@ async function validateEpisodes(
     }
   }
 
+  log.debug(`Validation complete. Found ${issues.length} total issues.`);
   return issues;
 }
 
@@ -580,6 +633,9 @@ export async function lintS3Files(applyFixes: boolean = false): Promise<LintResu
   log.info('🔍 Starting S3 files metadata linting...');
   
   try {
+    // 0. Check AWS credentials for non-local environments
+    await checkAWSCredentials();
+
     // 1. Collect expected episodes from RSS feeds
     log.info('📡 Fetching and parsing RSS feeds...');
     const expectedEpisodes = await collectExpectedEpisodes();
