@@ -29,7 +29,7 @@ interface LintResult {
 }
 
 interface LintIssue {
-  type: 'missing-file' | 'incorrect-filename' | 'unicode-issue' | 'orphaned-file' | 'manifest-mismatch';
+  type: 'missing-file' | 'incorrect-filename' | 'unicode-issue' | 'orphaned-file' | 'manifest-mismatch' | 'manifest-duplicate';
   severity: 'error' | 'warning';
   description: string;
   episodeInfo?: {
@@ -39,7 +39,7 @@ interface LintIssue {
   };
   filePath?: string;
   expectedPath?: string;
-  fixAction?: 'rename' | 'delete' | 'create' | 'update-manifest';
+  fixAction?: 'rename' | 'delete' | 'create' | 'update-manifest' | 'remove-from-manifest';
 }
 
 interface LintSummary {
@@ -194,6 +194,42 @@ async function loadEpisodeManifest(): Promise<EpisodeManifest | null> {
 }
 
 /**
+ * Find all files that match the given file path when normalized
+ */
+function findAllNormalizationMatches(expectedPath: string, allFiles: Set<string>): string[] {
+  const matches: string[] = [];
+  
+  // Add exact match if it exists
+  if (allFiles.has(expectedPath)) {
+    matches.push(expectedPath);
+  }
+
+  // Add normalized version if it exists and is different
+  const normalizedPath = expectedPath.normalize('NFC');
+  if (normalizedPath !== expectedPath && allFiles.has(normalizedPath)) {
+    matches.push(normalizedPath);
+  }
+
+  // Check for files that would match when normalized
+  const expectedFilename = path.basename(expectedPath);
+  const dir = path.dirname(expectedPath);
+  
+  for (const existingFile of allFiles) {
+    if (existingFile.startsWith(dir + '/') || existingFile.startsWith(dir + path.sep)) {
+      const existingFilename = path.basename(existingFile);
+      if (existingFilename.normalize('NFC') === expectedFilename.normalize('NFC')) {
+        // Only add if not already in matches
+        if (!matches.includes(existingFile)) {
+          matches.push(existingFile);
+        }
+      }
+    }
+  }
+
+  return matches;
+}
+
+/**
  * Check if a file exists in the provided file list, including checking normalized version
  */
 function checkFileExistsInList(filePath: string, allFiles: Set<string>): {
@@ -236,6 +272,60 @@ function checkFileExistsInList(filePath: string, allFiles: Set<string>): {
 
   log.debug(`File not found: ${filePath}`);
   return { exists: false };
+}
+
+/**
+ * Check for duplicate episodes in the manifest and identify which ones should be removed
+ */
+function validateManifestForDuplicates(manifestEpisodes: any[]): any[] {
+  const duplicateIssues: any[] = [];
+  
+  // Group episodes by fileKey to find duplicates
+  const episodeGroups = manifestEpisodes.reduce((groups: any, episode: any) => {
+    const key = episode.fileKey;
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(episode);
+    return groups;
+  }, {});
+  
+  // Check each group for duplicates
+  for (const [fileKey, episodes] of Object.entries(episodeGroups)) {
+    const episodeList = episodes as any[];
+    if (episodeList.length > 1) {
+      // Found duplicates - determine which one to keep
+      // Prefer the episode with more complete data (non-empty summary, etc.)
+      const sortedEpisodes = episodeList.sort((a, b) => {
+        // Prefer episode with summary over empty summary
+        if (a.summary && !b.summary) return -1;
+        if (!a.summary && b.summary) return 1;
+        
+        // Prefer lower sequentialId (usually the original)
+        return a.sequentialId - b.sequentialId;
+      });
+      
+      // Mark all except the first (best) one as duplicates
+      for (let i = 1; i < sortedEpisodes.length; i++) {
+        const duplicateEpisode = sortedEpisodes[i];
+        duplicateIssues.push({
+          type: 'manifest-duplicate',
+          severity: 'error' as const,
+          description: `Duplicate episode found in manifest: ${duplicateEpisode.title} (sequentialId: ${duplicateEpisode.sequentialId})`,
+          episodeInfo: { 
+            podcastId: duplicateEpisode.podcastId, 
+            title: duplicateEpisode.title, 
+            fileKey: duplicateEpisode.fileKey 
+          },
+          filePath: `manifest-entry-${duplicateEpisode.sequentialId}`,
+          expectedPath: `manifest-entry-${sortedEpisodes[0].sequentialId}`,
+          fixAction: 'remove-from-manifest' as const
+        });
+      }
+    }
+  }
+  
+  return duplicateIssues;
 }
 
 /**
@@ -397,8 +487,12 @@ async function validateEpisodes(
           expectedPath: filePath,
           fixAction: 'rename'
         });
+        
+        // Only mark the actual file found as processed
+        // The expected normalized path doesn't exist yet, so don't mark it as processed
         processedFiles.add(result.actualPath);
       } else if (result.actualPath) {
+        // Mark only the actual file found as processed
         processedFiles.add(result.actualPath);
       }
     }
@@ -418,6 +512,12 @@ async function validateEpisodes(
         fixAction: 'delete'
       });
     }
+  }
+
+  // Check for duplicate episodes in the manifest
+  if (manifest) {
+    const duplicateIssues = validateManifestForDuplicates(manifest.episodes);
+    issues.push(...duplicateIssues);
   }
 
   log.debug(`Validation complete. Found ${issues.length} total issues.`);
@@ -487,6 +587,9 @@ function previewFixes(issues: LintIssue[]): void {
           break;
         case 'create':
           log.info(`  ➕ Missing file (would need manual intervention): ${issue.expectedPath}`);
+          break;
+        case 'remove-from-manifest':
+          log.info(`  🗑️  Remove from manifest: ${issue.episodeInfo?.title}`);
           break;
       }
     });
