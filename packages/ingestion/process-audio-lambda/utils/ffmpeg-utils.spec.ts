@@ -199,12 +199,19 @@ describe('ffmpeg-utils', () => {
       }, 10);
 
       await expect(promise).resolves.toBeUndefined();
-      expect(mockSpawn).toHaveBeenCalledWith('ffmpeg', [
+      
+      // Verify availability check was called
+      expect(mockSpawn).toHaveBeenNthCalledWith(1, 'ffmpeg', ['-version']);
+      
+      // Verify chunk creation was called with the correct arguments including error handling flags
+      expect(mockSpawn).toHaveBeenNthCalledWith(2, 'ffmpeg', [
         '-i', '/input.mp3',
         '-ss', '30',
         '-t', '60',
         '-c', 'copy',
         '-avoid_negative_ts', 'make_zero',
+        '-fflags', '+discardcorrupt',
+        '-err_detect', 'ignore_err',
         '/output.mp3'
       ]);
     });
