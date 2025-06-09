@@ -95,7 +95,15 @@ export default defineConfig({
     tailwindcss(),
     react(),
     svgr(),
-    transcriptServerPlugin()
+    transcriptServerPlugin(),
+    {
+      name: 'copy-favicon',
+      writeBundle() {
+        const src = path.resolve(__dirname, 'favicon.ico');
+        const dest = path.resolve(__dirname, 'dist', 'favicon.ico');
+        fs.copyFileSync(src, dest);
+      }
+    }
   ],
   build: {
     outDir: 'dist',

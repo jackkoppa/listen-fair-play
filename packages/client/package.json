@@ -51,6 +51,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "http-server": "^14.1.1",
+    "rollup-plugin-copy": "^3.5.0",
     "tw-animate-css": "^1.3.0",
     "typescript": "catalog:",
     "vite": "^5.0.8",

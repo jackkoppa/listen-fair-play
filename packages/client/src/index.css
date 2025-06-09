@@ -13,7 +13,7 @@
 /* Custom colors for the app, can reference if something should stay the same regardless of light/dark mode */
 :root {
   --lfp-yellow: rgb(253, 241, 0);
-  --lfp-blue: rgb(30, 92, 183);
+  --lfp-blue: rgb(19, 108, 186);
 }
 
 :root {
