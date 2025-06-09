@@ -43,27 +43,41 @@ interface AudioPlayerProps {
   src: string;
   onListen: (currentTimeMs: number) => void;
   onPlay?: () => void;
+  onPause?: () => void;
+  onSeek?: () => void;
   className?: string;
+  episodeId?: string;
+  isLimitExceeded?: boolean;
 }
 
 export interface AudioPlayerRef {
   seekTo: (timeMs: number) => void;
+  pause: () => void;
 }
 
 const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   src,
   className,
   onListen,
-  onPlay
+  onPlay,
+  onPause,
+  onSeek,
+  episodeId,
+  isLimitExceeded = false
 }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const playerRef = useRef<AudioPlayerH5>(null);
 
-  // Expose seekTo method to parent component
+  // Expose seekTo and pause methods to parent component
   useImperativeHandle(ref, () => ({
     seekTo: (timeMs: number) => {
       if (playerRef.current?.audio?.current) {
         playerRef.current.audio.current.currentTime = timeMs / 1000; // Convert ms to seconds
+      }
+    },
+    pause: () => {
+      if (playerRef.current?.audio?.current) {
+        playerRef.current.audio.current.pause();
       }
     }
   }));
@@ -87,8 +101,23 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   };
 
   const handlePlay = () => {
+    // Don't allow play if limit exceeded
+    if (isLimitExceeded) return;
+    
     if (onPlay) {
       onPlay();
+    }
+  };
+
+  const handlePause = () => {
+    if (onPause) {
+      onPause();
+    }
+  };
+
+  const handleSeek = () => {
+    if (onSeek) {
+      onSeek();
     }
   };
 
@@ -113,7 +142,10 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         onCanPlay={handleCanPlay}
         onError={handleError}
         onPlay={handlePlay}
+        onPause={handlePause}
         onListen={handleListen}
+        onAbort={handleSeek}
+        onSeeked={handleSeek}
         customVolumeControls={[]}
         customAdditionalControls={[]}
         customIcons={{
@@ -130,7 +162,8 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
         className={cn(
           'rhap_container',
-          isLoading && 'opacity-75'
+          isLoading && 'opacity-75',
+          isLimitExceeded && 'pointer-events-none opacity-50'
         )}
       />
     </div>

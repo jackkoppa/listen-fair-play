@@ -12,11 +12,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popove
 import { Button } from "../components/ui/button"
 import AudioPlayer, { AudioPlayerRef } from "../components/AudioPlayer/AudioPlayer"
 import FullEpisodeTranscript from '../components/FullEpisodeTranscript'
+import PlayTimeLimitDialog from '../components/PlayTimeLimitDialog'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatDate } from '@/utils/date'
 import { formatMillisecondsToRoundSeconds } from '@/utils/time'
 import { useAudioSource } from '@/hooks/useAudioSource'
 import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
+import { usePlayTimeLimit } from '@/hooks/usePlayTimeLimit'
 import { trackEvent } from '@/utils/goatcounter';
 
 // Add a simple check for whether this is iOS or Mac, vs anything else:
@@ -136,8 +138,10 @@ export default function EpisodeRoute() {
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
   const [currentPlayingTimeMs, setCurrentPlayingTimeMs] = useState<number | null>(null)
   const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [showLimitDialog, setShowLimitDialog] = useState(false)
 
   const audioPlayerRef = useRef<AudioPlayerRef>(null)
+  const playTimeLimit = usePlayTimeLimit()
 
   useEffect(() => {
     const fetchEpisodeData = async () => {
@@ -209,16 +213,55 @@ export default function EpisodeRoute() {
     if (hasUserInteracted) {
       setCurrentPlayingTimeMs(currentTimeMs);
     }
+
+    // Check if limit exceeded during playback
+    if (episodeData && hasUserInteracted) {
+      const episodeId = episodeData.sequentialId.toString();
+      if (playTimeLimit.checkAndHandleLimit(episodeId)) {
+        // Limit just exceeded, pause the audio and show dialog
+        if (audioPlayerRef.current?.pause) {
+          audioPlayerRef.current.pause();
+        }
+        setShowLimitDialog(true);
+      }
+    }
   }
 
   const handlePlay = () => {
+    if (!episodeData) return;
+    
+    const episodeId = episodeData.sequentialId.toString();
+    
+    // Check if limit is already exceeded
+    if (playTimeLimit.isLimitExceeded(episodeId)) {
+      setShowLimitDialog(true);
+      return;
+    }
+
     // Mark that user has interacted with the audio
     setHasUserInteracted(true);
+
+    // Track play time
+    playTimeLimit.onPlay(episodeId);
 
     trackEvent({
       eventName: `Play Button Clicked`,
       eventType: 'Play Button Clicked',
     });
+  }
+
+  const handlePause = () => {
+    if (!episodeData) return;
+    
+    const episodeId = episodeData.sequentialId.toString();
+    playTimeLimit.onPause(episodeId);
+  }
+
+  const handleSeek = () => {
+    if (!episodeData) return;
+    
+    const episodeId = episodeData.sequentialId.toString();
+    playTimeLimit.onSeek(episodeId);
   }
 
   const handleEntryClick = (entry: SearchEntry) => {
@@ -308,6 +351,10 @@ export default function EpisodeRoute() {
               className="mb-4"
               onListen={handleListen}
               onPlay={handlePlay}
+              onPause={handlePause}
+              onSeek={handleSeek}
+              episodeId={episodeData.sequentialId.toString()}
+              isLimitExceeded={playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
             />
           </div>
           <SheetDescription className="sr-only">
@@ -321,6 +368,12 @@ export default function EpisodeRoute() {
           onEntryClick={handleEntryClick}
         />
       </SheetContent>
+      
+      <PlayTimeLimitDialog
+        isOpen={showLimitDialog}
+        onOpenChange={setShowLimitDialog}
+        episodeTitle={title}
+      />
     </Sheet>
   )
 } 
