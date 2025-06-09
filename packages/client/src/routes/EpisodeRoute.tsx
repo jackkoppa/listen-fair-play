@@ -207,6 +207,22 @@ export default function EpisodeRoute() {
     }
   }
 
+  // Function to play alert sound with dynamic import
+  const playAlertSound = async () => {
+    try {
+      // Dynamically import the audio file
+      const audioModule = await import('/assets/simple-alert.mp3?url');
+      const audioUrl = audioModule.default;
+      
+      // Create and play the audio
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.5; // Half volume
+      await audio.play();
+    } catch (error) {
+      console.warn('Failed to play alert sound:', error);
+    }
+  };
+
   const handleListen = (currentTimeMs: number) => {
     // Only track current playing time if user has interacted with the audio
     if (hasUserInteracted) {
@@ -222,6 +238,8 @@ export default function EpisodeRoute() {
           audioPlayerRef.current.pause();
         }
         setShowLimitDialog(true);
+        // Play alert sound at half volume
+        playAlertSound();
       }
     }
   }
@@ -312,7 +330,7 @@ export default function EpisodeRoute() {
     )
   }
 
-  const { title, summary, publishedAt, originalAudioURL } = episodeData
+  const { title, summary, publishedAt, originalAudioURL, podcastId } = episodeData
   const formattedPublishedAt = publishedAt ? formatDate(publishedAt) : null
 
   let baseAudioUrl = ''
@@ -372,6 +390,7 @@ export default function EpisodeRoute() {
         onOpenChange={setShowLimitDialog}
         episodeTitle={title}
         formattedPublishedAt={formattedPublishedAt}
+        podcastId={podcastId}
       />
     </Sheet>
   )

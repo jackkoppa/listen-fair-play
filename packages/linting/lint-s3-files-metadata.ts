@@ -11,7 +11,7 @@ import {
   deleteFile 
 } from '@listen-fair-play/s3';
 import { RSS_CONFIG } from '@listen-fair-play/config';
-import { EpisodeManifest, EpisodeInManifest } from '@listen-fair-play/types';
+import { EpisodeManifest, EpisodeInManifest, PodcastId } from '@listen-fair-play/types';
 import { EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
 import { parsePubDate } from './utils/parse-pub-date.js';
@@ -62,7 +62,7 @@ interface RssEpisode {
 }
 
 interface ExpectedEpisode {
-  podcastId: string;
+  podcastId: PodcastId;
   title: string;
   fileKey: string;
   pubDate: string;
@@ -109,7 +109,7 @@ async function fetchRSSFeed(url: string): Promise<string> {
 /**
  * Extract episodes from RSS feed
  */
-function extractEpisodesFromRSS(parsedFeed: any, podcastId: string): ExpectedEpisode[] {
+function extractEpisodesFromRSS(parsedFeed: any, podcastId: PodcastId): ExpectedEpisode[] {
   const rssEpisodes: RssEpisode[] = parsedFeed.rss?.channel?.item || [];
   const episodes: ExpectedEpisode[] = [];
 

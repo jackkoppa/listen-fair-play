@@ -19,29 +19,37 @@ import {
 } from "./ui/drawer";
 import { Badge } from './ui/badge';
 import { trackEvent } from '../utils/goatcounter'
+import { PodcastId } from '@listen-fair-play/types';
 
-const PODFOLLOW_LINK = 'https://podfollow.com/new-football-cliches';
+const PODFOLLOW_LINK_FOOTBALL_CLICHES = 'https://podfollow.com/new-football-cliches';
+const PODFOLLOW_LINK_FOR_OUR_SINS = 'https://podfollow.com/football-cliches';
 
 interface PlayTimeLimitDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   episodeTitle: string;
   formattedPublishedAt: string | null;
+  podcastId: PodcastId;
 }
 
 export default function PlayTimeLimitDialog({
   isOpen,
   onOpenChange,
   episodeTitle,
-  formattedPublishedAt
+  formattedPublishedAt,
+  podcastId
 }: PlayTimeLimitDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handlePodcastLinkClick = () => {
+    const eventType = podcastId === 'football-cliches' ? 
+      'Open In Podcast App Link Clicked [Football Cliches]' : 
+      'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]';
     trackEvent({
-      eventType: 'Open In Podcast App Link Clicked',
+      eventType,
     })
-    window.open(PODFOLLOW_LINK, '_blank');
+    const linkToOpen = podcastId === 'football-cliches' ? PODFOLLOW_LINK_FOOTBALL_CLICHES : PODFOLLOW_LINK_FOR_OUR_SINS;
+    window.open(linkToOpen, '_blank');
     onOpenChange(false);
   };
 

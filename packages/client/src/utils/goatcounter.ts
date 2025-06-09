@@ -12,7 +12,8 @@ interface GoatCounterEvent {
         'Result Clicked' | 
         'Play Button Clicked' | 
         'Play Time Limit Dialog Opened' |
-        'Open In Podcast App Link Clicked';
+        'Open In Podcast App Link Clicked [Football Cliches]' |
+        'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]';
     /** e.g. `Searched: 'football clubbing'`- when you want each event to be tracked separately, provide a unique eventName per-tracked-event. Otherwise, eventType is suffcient.  */
     eventName?: string;
 }

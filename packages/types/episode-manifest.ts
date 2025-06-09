@@ -1,3 +1,5 @@
+export type PodcastId = 'football-cliches' | 'for-our-sins-the-cliches-pod-archive';
+
 export interface LlmAnnotations {
     episodeType?: string;
     panelists?: string[];
@@ -6,7 +8,7 @@ export interface LlmAnnotations {
 
 export interface EpisodeInManifest {
     sequentialId: number;
-    podcastId: string; // e.g., "football-cliches"
+    podcastId: PodcastId; // e.g., "football-cliches"
     title: string;
     fileKey: string; // e.g., "2020-01-23_The-Transfer-Window" (used to construct audio file path)
     originalAudioURL: string;
