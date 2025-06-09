@@ -41,7 +41,6 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
     const queryString = currentParams.toString();
 
     trackEvent({
-      eventName: `Result Clicked`,
       eventType: 'Result Clicked',
     });
 

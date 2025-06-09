@@ -46,7 +46,6 @@ function EpisodeDetailsHeaderControls({
       setCopySuccess(true)
 
       trackEvent({
-        eventName: 'Share Link Copied',
         eventType: 'Share Link Copied',
       });
 
@@ -245,7 +244,6 @@ export default function EpisodeRoute() {
     playTimeLimit.onPlay(episodeId);
 
     trackEvent({
-      eventName: `Play Button Clicked`,
       eventType: 'Play Button Clicked',
     });
   }
@@ -353,6 +351,7 @@ export default function EpisodeRoute() {
               onPlay={handlePlay}
               onPause={handlePause}
               onSeek={handleSeek}
+              onLimitExceededClick={() => setShowLimitDialog(true)}
               episodeId={episodeData.sequentialId.toString()}
               isLimitExceeded={playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
             />
@@ -373,6 +372,7 @@ export default function EpisodeRoute() {
         isOpen={showLimitDialog}
         onOpenChange={setShowLimitDialog}
         episodeTitle={title}
+        formattedPublishedAt={formattedPublishedAt}
       />
     </Sheet>
   )

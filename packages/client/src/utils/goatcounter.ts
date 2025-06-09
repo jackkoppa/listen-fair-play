@@ -6,9 +6,15 @@ import { log } from './logging';
 const GOATCOUNTER_ENABLED = true;
 
 interface GoatCounterEvent {
-    /** e.g. `Searched: 'football clubbing'` or `Share Link Copied` or `Result Clicked` or `Play Button Clicked`  */
-    eventName: string;
-    eventType: 'Search Performed' | 'Share Link Copied' | 'Result Clicked' | 'Play Button Clicked';
+    eventType: 
+        'Search Performed' | 
+        'Share Link Copied' | 
+        'Result Clicked' | 
+        'Play Button Clicked' | 
+        'Play Time Limit Dialog Opened' |
+        'Open In Podcast App Link Clicked';
+    /** e.g. `Searched: 'football clubbing'`- when you want each event to be tracked separately, provide a unique eventName per-tracked-event. Otherwise, eventType is suffcient.  */
+    eventName?: string;
 }
 
 /**
@@ -30,6 +36,9 @@ export const trackEvent = ({ eventName, eventType }: GoatCounterEvent) => {
     Would have sent event: ${eventName} with type: ${eventType}`);
         return;
     }
+
+    // If no eventName was provided, then *both* title & path should be the same - path is what distinguishes uniquely-tracked events.
+    eventName = eventName ?? eventType;
 
     // DOCS: https://www.goatcounter.com/help/events
     goatcounter.count({

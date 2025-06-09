@@ -45,6 +45,7 @@ interface AudioPlayerProps {
   onPlay?: () => void;
   onPause?: () => void;
   onSeek?: () => void;
+  onLimitExceededClick?: () => void;
   className?: string;
   episodeId?: string;
   isLimitExceeded?: boolean;
@@ -62,6 +63,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   onPlay,
   onPause,
   onSeek,
+  onLimitExceededClick,
   episodeId,
   isLimitExceeded = false
 }, ref) => {
@@ -121,8 +123,18 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     }
   };
 
+  const handleLimitExceededClick = () => {
+    if (isLimitExceeded && onLimitExceededClick) {
+      onLimitExceededClick();
+    }
+  };
+
   return (
-    <div className={cn('w-full', className)}>
+    <div 
+      className={cn('w-full', className)}
+      onClick={isLimitExceeded ? handleLimitExceededClick : undefined}
+      style={isLimitExceeded ? { cursor: 'pointer' } : undefined}
+    >
       <AudioPlayerH5
         ref={playerRef}
         src={src}

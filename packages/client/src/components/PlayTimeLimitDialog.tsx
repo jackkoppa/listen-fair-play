@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Button } from './ui/button';
 import {
@@ -17,67 +17,91 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
+import { Badge } from './ui/badge';
+import { trackEvent } from '../utils/goatcounter'
+
+const PODFOLLOW_LINK = 'https://podfollow.com/new-football-cliches';
 
 interface PlayTimeLimitDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   episodeTitle: string;
+  formattedPublishedAt: string | null;
 }
 
-export default function PlayTimeLimitDialog({ 
-  isOpen, 
-  onOpenChange, 
-  episodeTitle 
+export default function PlayTimeLimitDialog({
+  isOpen,
+  onOpenChange,
+  episodeTitle,
+  formattedPublishedAt
 }: PlayTimeLimitDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handlePodcastLinkClick = () => {
-    window.open('https://podfollow.com/new-football-cliches', '_blank');
+    trackEvent({
+      eventType: 'Open In Podcast App Link Clicked',
+    })
+    window.open(PODFOLLOW_LINK, '_blank');
     onOpenChange(false);
   };
+
+  const dialogDescription = (
+    <>
+      <span><em>Listen, Fair Play</em> sets a 5-minute listening limit <strong>per episode</strong>, per session.</span><br /><br />
+      <span>We want <span className="underline" onClick={handlePodcastLinkClick}>Football Clichés</span> to receive all its regular downloads & ad plays.<br />So to keep listening to this episode, please open in your podcast player of choice.</span>
+    </>
+  );
+
+  useEffect(() => { 
+    trackEvent({
+      eventType: 'Play Time Limit Dialog Opened',
+    });
+  }, []);
 
   const dialogContent = (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        <p className="mb-3">
-          You've listened to 5 minutes of this episode. To continue listening, you can:
+        <p className="mb-5">
+          And of course, we still encourage happy hunting across other episodes here!
         </p>
-        <ul className="list-disc list-inside space-y-1 mb-4">
-          <li>Listen to the rest of this episode in your podcast player of choice</li>
-          <li>Continue exploring and searching across other episodes on this site</li>
-        </ul>
       </div>
-      
+
       <div className="flex flex-col gap-2">
-        <Button 
+        <div className="flex gap-2 items-center mt-1">
+          {formattedPublishedAt && <Badge variant="destructive">{formattedPublishedAt}</Badge>}
+          <span className="text-xs text-muted-foreground">{episodeTitle}</span>
+        </div>
+        <Button
           onClick={handlePodcastLinkClick}
           className="w-full"
         >
           Open in Podcast App
         </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={() => onOpenChange(false)}
-          className="w-full"
-        >
-          Continue Browsing Episodes
-        </Button>
       </div>
     </div>
   );
+
+  const continueBrowsingButtonText = 'Continue Searching Here';
 
   if (isDesktop) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px] font-mono bg-background text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-xl">5-Minute Listening Limit Reached</DialogTitle>
+            <DialogTitle className="text-xl">Listening Limit Reached</DialogTitle>
             <DialogDescription>
-              You've reached the 5-minute listening limit for "{episodeTitle}"
+              {dialogDescription}
             </DialogDescription>
           </DialogHeader>
           {dialogContent}
+
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full"
+          >
+            {continueBrowsingButtonText}
+          </Button>
         </DialogContent>
       </Dialog>
     );
@@ -87,9 +111,9 @@ export default function PlayTimeLimitDialog({
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent className="font-mono bg-background text-foreground">
         <DrawerHeader className="text-left">
-          <DrawerTitle className="text-xl">5-Minute Listening Limit Reached</DrawerTitle>
+          <DrawerTitle className="text-xl">Listening Limit Reached</DrawerTitle>
           <DrawerDescription>
-            You've reached the 5-minute listening limit for "{episodeTitle}"
+            {dialogDescription}
           </DrawerDescription>
         </DrawerHeader>
         <div className="p-4">
@@ -97,7 +121,7 @@ export default function PlayTimeLimitDialog({
         </div>
         <DrawerFooter className="pt-2">
           <DrawerClose asChild>
-            <Button variant="outline" size="default">Done</Button>
+            <Button variant="outline" size="default">{continueBrowsingButtonText}</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
