@@ -37,14 +37,16 @@ Element.prototype.scrollIntoView = vi.fn()
 
 // Mock AudioPlayer component to avoid SVG import issues
 vi.mock('@/components/AudioPlayer/AudioPlayer', () => ({
-  default: React.forwardRef((props: any, ref: any) => 
-    React.createElement('div', { 
-      ...props, 
+  default: React.forwardRef((props: any, ref: any) => {
+    // Filter out component-specific props that shouldn't be passed to DOM elements
+    const { onListen, onPlay, src, ...domProps } = props
+    return React.createElement('div', { 
+      ...domProps, 
       ref, 
       'data-testid': 'mock-audio-player',
       children: 'Mock Audio Player'
     })
-  ),
+  }),
 }))
 
 // Mock SVG imports - more comprehensive approach

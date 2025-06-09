@@ -1,11 +1,12 @@
 import React from 'react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter, MemoryRouter } from 'react-router'
 import '@testing-library/jest-dom'
 
 import App from '../../App'
+import { useEpisodeManifest } from '../../hooks/useEpisodeManifest'
 
 // Mock the search API and S3 assets
 const mockSearchResponse = {
@@ -24,6 +25,7 @@ const mockSearchResponse = {
 }
 
 const mockEpisodeManifest = {
+  lastUpdated: '2022-01-01T00:00:00Z',
   episodes: [
     {
       sequentialId: 1,
@@ -32,7 +34,9 @@ const mockEpisodeManifest = {
       publishedAt: '2022-01-01T00:00:00Z',
       originalAudioURL: 'https://example.com/audio1.mp3',
       fileKey: 'test-episode-1',
-      podcastId: 'test-podcast'
+      podcastId: 'test-podcast',
+      hasCompletedLLMAnnotations: false,
+      llmAnnotations: {}
     },
     {
       sequentialId: 2,
@@ -41,7 +45,9 @@ const mockEpisodeManifest = {
       publishedAt: '2022-01-02T00:00:00Z',
       originalAudioURL: 'https://example.com/audio2.mp3',
       fileKey: 'test-episode-2',
-      podcastId: 'test-podcast'
+      podcastId: 'test-podcast',
+      hasCompletedLLMAnnotations: false,
+      llmAnnotations: {}
     }
   ]
 }
@@ -60,11 +66,43 @@ vi.mock('@/utils/goatcounter', () => ({
   trackEvent: vi.fn()
 }))
 
+// Mock the useEpisodeManifest hook to avoid global cache issues between tests
+vi.mock('@/hooks/useEpisodeManifest', () => ({
+  useEpisodeManifest: vi.fn()
+}))
+
+// Mock the logging utility to suppress test logs
+vi.mock('../../utils/logging', () => ({
+  log: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn()
+  }
+}))
+
+// Mock console methods to suppress log output during tests
+const originalConsoleError = console.error
+const originalConsoleWarn = console.warn
+const originalConsoleLog = console.log
+
 // Mock fetch globally
 const mockFetch = global.fetch as any
 
 beforeEach(() => {
   vi.clearAllMocks()
+  
+  // Suppress console output during tests
+  console.error = vi.fn()
+  console.warn = vi.fn()
+  console.log = vi.fn()
+  
+  // Default episode manifest mock - successful by default
+  vi.mocked(useEpisodeManifest).mockReturnValue({
+    episodeManifest: mockEpisodeManifest,
+    isLoading: false,
+    error: null
+  })
   
   // Default fetch mock behavior
   mockFetch.mockImplementation((url: string) => {
@@ -92,6 +130,13 @@ beforeEach(() => {
     // Default: reject unmocked calls
     return Promise.reject(new Error(`Unmocked fetch call to ${url}`))
   })
+})
+
+// Restore console methods after all tests
+afterAll(() => {
+  console.error = originalConsoleError
+  console.warn = originalConsoleWarn
+  console.log = originalConsoleLog
 })
 
 // Helper function to get the search input
@@ -412,23 +457,11 @@ describe('Routing', () => {
     })
 
     it('handles missing episode manifest gracefully', async () => {
-      // Mock fetch to return 404 for manifest
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('episode-manifest') || url.includes('full-episode-manifest')) {
-          return Promise.resolve({
-            ok: false,
-            status: 404
-          })
-        }
-        
-        if (url.includes('search') || url.includes('localhost:3001')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockSearchResponse)
-          })
-        }
-        
-        return Promise.reject(new Error(`Unmocked fetch call to ${url}`))
+      // Mock the episode manifest hook to return an error
+      vi.mocked(useEpisodeManifest).mockReturnValue({
+        episodeManifest: null,
+        isLoading: false,
+        error: 'Failed to fetch episode manifest: 404'
       })
       
       await act(async () => {
@@ -439,9 +472,10 @@ describe('Routing', () => {
         )
       })
       
-      // Should show home page when manifest fails to load
+      // Should show error message in the episode sheet when manifest fails to load
       await waitFor(() => {
-        expect(getSearchInput()).toBeInTheDocument()
+        const errorElements = screen.queryAllByText(/Failed to load episode manifest.*Failed to fetch episode manifest.*404/i)
+        expect(errorElements.length).toBeGreaterThan(0)
       })
     })
   })
