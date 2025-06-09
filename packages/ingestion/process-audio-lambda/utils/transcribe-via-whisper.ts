@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { log } from '@listen-fair-play/logging';
 
-const WHISPER_PROMPT = `Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe. I am your host, Adam Hurrey. Let's begin!`;
+const WHISPER_PROMPT = `Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!`;
 
 /**
  * `openai` has been confirmed to work

@@ -1,4 +1,4 @@
-export type PodcastId = 'football-cliches' | 'for-our-sins-the-cliches-pod-archive';
+export type PodcastId = 'football-cliches' | 'for-our-sins-the-cliches-pod-archive' | 'hard-fork';
 
 export interface LlmAnnotations {
     episodeType?: string;
