@@ -1,9 +1,9 @@
 export const RSS_CONFIG = {
-    'hard-fork': {
-        id: 'hard-fork',
-        rssFeedFile: 'hard-fork.xml',
-        title: 'Hard Fork',
+    'not-another-d-and-d-podcast': {
+        id: 'not-another-d-and-d-podcast',
+        rssFeedFile: 'not-another-d-and-d-podcast.xml',
+        title: 'Not Another D&D Podcast',
         status: 'active',
-        url: 'https://feeds.simplecast.com/l2i9YnTd',
+        url: 'https://rss.art19.com/not-another-d-and-d-podcast',
     },
 } as const;
