@@ -2,6 +2,7 @@ import { log } from '@listen-fair-play/logging';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import spellingCorrectionsConfig from './spelling-corrections.json' assert { type: 'json' };
 
 // Types
 interface SpellingCorrection {
@@ -25,20 +26,11 @@ export interface ApplyCorrectionsResult {
 }
 
 /**
- * Loads the spelling corrections configuration from JSON file
+ * Loads the spelling corrections configuration from imported JSON
  */
 async function loadSpellingCorrections(): Promise<SpellingCorrection[]> {
-  const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  const configPath = path.join(currentDir, 'spelling-corrections.json');
-  
-  if (!await fs.pathExists(configPath)) {
-    throw new Error(`Spelling corrections config not found at: ${configPath}`);
-  }
-  
-  const configContent = await fs.readFile(configPath, 'utf-8');
-  const config: SpellingCorrectionsConfig = JSON.parse(configContent);
-  
-  return config.correctionsToApply;
+  // Use the imported JSON config directly instead of loading from filesystem
+  return spellingCorrectionsConfig.correctionsToApply;
 }
 
 /**
