@@ -4,6 +4,9 @@ This Lambda function processes new audio files by transcribing them using Whispe
 
 ## Spelling Corrections
 
+> [!TIP]
+> Add custom, gitignored spelling corrections at [utils/_custom-spelling-corrections.json](./utils/_custom-spelling-corrections.json)
+
 ### How It Works
 
 The spelling correction system automatically fixes common transcription errors in SRT files based on a configuration file (`utils/spelling-corrections.json`). 

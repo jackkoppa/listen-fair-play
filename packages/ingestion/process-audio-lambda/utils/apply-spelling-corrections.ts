@@ -1,7 +1,4 @@
 import { log } from '@listen-fair-play/logging';
-import fs from 'fs-extra';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import spellingCorrectionsConfig from './spelling-corrections.json' assert { type: 'json' };
 
 // Types
@@ -26,11 +23,28 @@ export interface ApplyCorrectionsResult {
 }
 
 /**
- * Loads the spelling corrections configuration from imported JSON
+ * Loads the spelling corrections configuration from imported JSON and optional custom config
  */
 async function loadSpellingCorrections(): Promise<SpellingCorrection[]> {
-  // Use the imported JSON config directly instead of loading from filesystem
-  return spellingCorrectionsConfig.correctionsToApply;
+  // Start with the base config
+  let allCorrections = [...spellingCorrectionsConfig.correctionsToApply];
+  
+  // Try to load custom config if it exists
+  try {
+    const customConfigModule = await import('./_custom-spelling-corrections.json', { assert: { type: 'json' } });
+    const customConfig = customConfigModule.default as SpellingCorrectionsConfig;
+    
+    if (customConfig && customConfig.correctionsToApply) {
+      log.debug(`Loaded ${customConfig.correctionsToApply.length} custom spelling corrections`);
+      allCorrections.push(...customConfig.correctionsToApply);
+    }
+  } catch (error) {
+    // File doesn't exist or other import error - this is expected and OK
+    log.debug('No custom spelling corrections file found, using base config only');
+  }
+  
+  log.debug(`Total spelling corrections loaded: ${allCorrections.length}`);
+  return allCorrections;
 }
 
 /**
