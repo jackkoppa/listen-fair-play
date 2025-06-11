@@ -166,6 +166,47 @@ async function isFileBeingProcessed(fileKey: string): Promise<boolean> {
   }
 }
 
+async function cleanupStaleProcessDirectories(): Promise<void> {
+  try {
+    const tmpDir = '/tmp';
+    if (!await fs.pathExists(tmpDir)) {
+      return;
+    }
+
+    const entries = await fs.readdir(tmpDir);
+    const staleThresholdMs = 2 * 60 * 60 * 1000; // 2 hours
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const entry of entries) {
+      // Look for process-specific directories (format: process-timestamp-randomid or timestamp-randomid)
+      if ((entry.startsWith('process-') || /^\d{13}-[a-z0-9]+$/.test(entry)) && entry !== PROCESS_ID) {
+        const fullPath = path.join(tmpDir, entry);
+        
+        try {
+          const stats = await fs.stat(fullPath);
+          const age = now - stats.mtime.getTime();
+          
+          if (stats.isDirectory() && age > staleThresholdMs) {
+            await fs.remove(fullPath);
+            cleanedCount++;
+            log.debug(`Cleaned up stale process directory: ${fullPath}`);
+          }
+        } catch (statError) {
+          // Directory might have been removed by another process, ignore
+          log.debug(`Could not stat ${fullPath}, skipping: ${statError}`);
+        }
+      }
+    }
+
+    if (cleanedCount > 0) {
+      log.info(`Cleaned up ${cleanedCount} stale process directories`);
+    }
+  } catch (error) {
+    log.error(`Error cleaning up stale process directories: ${error}`);
+  }
+}
+
 // Helper function to get all MP3 files in a directory
 async function getMp3Files(dirKey: string): Promise<string[]> {
   const files = await listFiles(dirKey);
@@ -296,13 +337,6 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
   }
 
   try {
-    // Clean up any existing temporary chunks for this podcast to avoid ffmpeg conflicts
-    const tempPodcastDir = path.join('/tmp/audio', podcastName);
-    if (await fs.pathExists(tempPodcastDir)) {
-      log.debug(`Cleaning up existing temporary directory: ${tempPodcastDir}`);
-      await fs.remove(tempPodcastDir);
-    }
-
     // Ensure transcript directory exists
     await createDirectory(transcriptDirKey);
 
@@ -318,10 +352,10 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
     let chunks: TranscriptionChunk[] = [];
     if (fileSizeMB > MAX_FILE_SIZE_MB) {
       log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
-      chunks = await splitAudioFile(fileKey);
+      chunks = await splitAudioFile(fileKey, PROCESS_ID);
     } else {
       // For small files, prepare them for processing
-      const { filePath } = await prepareAudioFile(fileKey);
+      const { filePath } = await prepareAudioFile(fileKey, PROCESS_ID);
 
       chunks = [{
         startTime: 0,
@@ -359,11 +393,11 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
       `\n💾 SRT saved to ${transcriptKey}\n`
     );
 
-    // Clean up the temporary directory (original file and its parent directory in /tmp)
-    const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
-    if (await fs.pathExists(tempBaseDir)) {
-      await fs.remove(tempBaseDir);
-      log.debug(`Cleaned up temporary directory: ${tempBaseDir}`);
+    // Clean up the process-specific temporary directory
+    const processSpecificTempDir = path.join('/tmp', PROCESS_ID);
+    if (await fs.pathExists(processSpecificTempDir)) {
+      await fs.remove(processSpecificTempDir);
+      log.debug(`Cleaned up process-specific temporary directory: ${processSpecificTempDir}`);
     }
 
     // Apply spelling corrections
@@ -412,6 +446,9 @@ export async function handler(): Promise<void> {
 
   // Clean up stale lockfile entries from previous runs
   await cleanupStaleEntries();
+
+  // Clean up any stale process-specific temp directories
+  await cleanupStaleProcessDirectories();
 
   let newTranscriptsCreated = false;
 
@@ -537,6 +574,13 @@ export async function handler(): Promise<void> {
   }
 
   log.info('\n✨ Transcription process finished.');
+
+  // Clean up any remaining process-specific temporary files
+  const processSpecificTempDir = path.join('/tmp', PROCESS_ID);
+  if (await fs.pathExists(processSpecificTempDir)) {
+    await fs.remove(processSpecificTempDir);
+    log.debug(`Final cleanup of process-specific temporary directory: ${processSpecificTempDir}`);
+  }
 
   // If new transcripts were created, invoke the indexing Lambda (only when running in AWS Lambda)
   if (newTranscriptsCreated) {

@@ -230,12 +230,13 @@ export async function createAudioChunk(
 /**
  * Split audio file into chunks for processing
  */
-export async function splitAudioFile(fileKey: string): Promise<TranscriptionChunk[]> {
+export async function splitAudioFile(fileKey: string, processId?: string): Promise<TranscriptionChunk[]> {
   log.info(`Splitting audio file: ${fileKey}`);
 
-  // For ffmpeg to work, we need to download the file to a temporary location
-  const tempDir = path.join('/tmp', path.dirname(fileKey));
-  const tempFilePath = path.join('/tmp', fileKey);
+  // Create process-specific temp directory to avoid conflicts between parallel processes
+  const processSpecificDir = processId || `process-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const tempDir = path.join('/tmp', processSpecificDir, path.dirname(fileKey));
+  const tempFilePath = path.join('/tmp', processSpecificDir, fileKey);
 
   // Ensure the temp directory exists
   await fs.ensureDir(tempDir);
@@ -320,9 +321,11 @@ export async function splitAudioFile(fileKey: string): Promise<TranscriptionChun
  * Prepare audio file for processing (download to temp location)
  * Returns the local file path and metadata
  */
-export async function prepareAudioFile(fileKey: string): Promise<{ filePath: string; metadata: FfprobeMetadata }> {
-  const tempDir = path.join('/tmp', path.dirname(fileKey));
-  const tempFilePath = path.join('/tmp', fileKey);
+export async function prepareAudioFile(fileKey: string, processId?: string): Promise<{ filePath: string; metadata: FfprobeMetadata }> {
+  // Create process-specific temp directory to avoid conflicts between parallel processes
+  const processSpecificDir = processId || `process-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const tempDir = path.join('/tmp', processSpecificDir, path.dirname(fileKey));
+  const tempFilePath = path.join('/tmp', processSpecificDir, fileKey);
 
   // Ensure the temp directory exists
   await fs.ensureDir(tempDir);
