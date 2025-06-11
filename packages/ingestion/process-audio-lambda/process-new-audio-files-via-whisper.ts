@@ -461,6 +461,48 @@ export async function handler(): Promise<void> {
 
   let filesToProcess: string[] = [];
   const spellingCorrectionResults: ApplyCorrectionsResult[] = [];
+  let totalBytesProcessed = 0;
+  let incompletedTranscripts = 0;
+
+  // Setup SIGINT handler for graceful exit logging
+  const logSummaryAndExit = () => {
+    const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;
+    const totalSizeMB = totalBytesProcessed / (1024 * 1024);
+    const secondsPer10MB = totalSizeMB > 0 ? (totalLambdaTime / totalSizeMB) * 10 : 0;
+
+    log.info('\n⚠️  Process interrupted with CTRL+C');
+    log.info('\n📊 Transcription Process Summary (Interrupted):');
+    log.info(`\n⏱️  Total Duration: ${totalLambdaTime.toFixed(2)} seconds`);
+    log.info(`\n📁 Total Files Found: ${stats.totalFiles}`);
+    log.info(`✅ Successfully Processed: ${stats.processedFiles}`);
+    log.info(`⏭️  Skipped (Already Transcribed): ${stats.skippedFiles}`);
+    if (incompletedTranscripts > 0) {
+      log.info(`⚠️  Incompleted Transcripts: ${incompletedTranscripts}`);
+    }
+    log.info(`📦 Total Size Processed: ${totalSizeMB.toFixed(2)} MB`);
+    if (totalSizeMB > 0) {
+      log.info(`⏱️  Processing Speed: ${secondsPer10MB.toFixed(2)} seconds per 10 MB`);
+    }
+    
+    log.info('\n📂 Breakdown by Podcast:');
+    for (const [podcast, podcastStats] of stats.podcastStats) {
+      const podcastSizeMB = podcastStats.sizeBytes / (1024 * 1024);
+      const podcastSizeDisplay = podcastSizeMB >= 1024
+        ? `${(podcastSizeMB / 1024).toFixed(2)} GB`
+        : `${podcastSizeMB.toFixed(2)} MB`;
+
+      log.info(`\n🎙️  ${podcast}:`);
+      log.info(`   📁 Total Files: ${podcastStats.total}`);
+      log.info(`   📦 Total Size: ${podcastSizeDisplay}`);
+      log.info(`   ✅ Processed: ${podcastStats.processed}`);
+      log.info(`   ⏭️  Skipped: ${podcastStats.skipped}`);
+    }
+
+    log.info('\n❌ Process terminated by user.');
+    process.exit(130);
+  };
+
+  process.on('SIGINT', logSummaryAndExit);
 
   log.info('Scanning S3 for audio files.');
   const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
@@ -519,10 +561,35 @@ export async function handler(): Promise<void> {
         continue;
       }
 
+      // Track processing time and file size for individual file
+      const fileStartTime = Date.now();
+      const fileSizeMB = await getFileSizeMB(fileKey);
+      const fileSizeBytes = fileSizeMB * 1024 * 1024;
+      
+      // Increment incomplete transcripts counter before processing
+      incompletedTranscripts++;
+      
       const correctionResult = await processAudioFile(fileKey);
+      
+      // Calculate processing time for this file
+      const fileProcessingTime = (Date.now() - fileStartTime) / 1000;
+      const secondsPer10MB = fileSizeMB > 0 ? (fileProcessingTime / fileSizeMB) * 10 : 0;
+      
+      // Log individual file processing stats
+      log.info(
+        `\n⏱️  File Processing Stats for ${path.basename(fileKey)}:` +
+        `\n   📁 Size: ${fileSizeMB.toFixed(2)} MB` +
+        `\n   ⏱️  Time: ${fileProcessingTime.toFixed(2)} seconds` +
+        `\n   🚀 Speed: ${secondsPer10MB.toFixed(2)} seconds per 10 MB\n`
+      );
+      
       stats.processedFiles++;
       stats.podcastStats.get(podcastName)!.processed++;
       newTranscriptsCreated = true;
+      totalBytesProcessed += fileSizeBytes;
+      
+      // Decrement incomplete transcripts counter after successful processing
+      incompletedTranscripts--;
       
       // Collect spelling correction results
       if (correctionResult) {
@@ -530,11 +597,21 @@ export async function handler(): Promise<void> {
       }
     } catch (error) {
       log.error(`Error processing file ${fileKey}:`, error);
+      // If processing failed, we still decrement the incomplete counter
+      // since we're not going to retry this file in this run
+      if (incompletedTranscripts > 0) {
+        incompletedTranscripts--;
+      }
       // Continue with next file even if one fails (original behavior)
     }
   }
 
   const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000; // Convert to seconds
+  const totalSizeMB = totalBytesProcessed / (1024 * 1024);
+  const secondsPer10MB = totalSizeMB > 0 ? (totalLambdaTime / totalSizeMB) * 10 : 0;
+
+  // Remove SIGINT handler since we're completing normally
+  process.removeListener('SIGINT', logSummaryAndExit);
 
   // Log summary with emojis and formatting
   log.info('\n📊 Transcription Process Summary:');
@@ -542,6 +619,10 @@ export async function handler(): Promise<void> {
   log.info(`\n📁 Total Files Found: ${stats.totalFiles}`);
   log.info(`✅ Successfully Processed: ${stats.processedFiles}`);
   log.info(`⏭️  Skipped (Already Transcribed): ${stats.skippedFiles}`);
+  log.info(`📦 Total Size Processed: ${totalSizeMB.toFixed(2)} MB`);
+  if (totalSizeMB > 0) {
+    log.info(`⏱️  Processing Speed: ${secondsPer10MB.toFixed(2)} seconds per 10 MB`);
+  }
 
   log.info('\n📂 Breakdown by Podcast:');
   for (const [podcast, podcastStats] of stats.podcastStats) {
