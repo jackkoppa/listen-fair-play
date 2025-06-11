@@ -25,6 +25,7 @@ log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging leve
 // Constants - S3 paths
 const AUDIO_DIR_PREFIX = 'audio/';
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
+const LOCKFILE_PATH = 'transcripts/.processing-lock.json';
 const MAX_FILE_SIZE_MB = 25;
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
 // Which Whisper API provider to use (can be configured via environment variable)
@@ -45,6 +46,124 @@ interface SrtEntry {
   text: string;
   startSeconds: number;
   endSeconds: number;
+}
+
+// Lockfile management functions
+interface LockfileEntry {
+  fileKey: string;
+  processId: string;
+  timestamp: number;
+}
+
+interface Lockfile {
+  entries: LockfileEntry[];
+  version: number;
+}
+
+// Generate a unique process ID for this run
+const PROCESS_ID = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+async function readLockfile(): Promise<Lockfile> {
+  try {
+    if (await fileExists(LOCKFILE_PATH)) {
+      const buffer = await getFile(LOCKFILE_PATH);
+      const content = buffer.toString('utf-8');
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    log.debug(`Error reading lockfile: ${error}`);
+  }
+  
+  // Return empty lockfile if it doesn't exist or can't be read
+  return { entries: [], version: 1 };
+}
+
+async function writeLockfile(lockfile: Lockfile): Promise<void> {
+  try {
+    const content = JSON.stringify(lockfile, null, 2);
+    await saveFile(LOCKFILE_PATH, Buffer.from(content, 'utf-8'));
+  } catch (error) {
+    log.error(`Error writing lockfile: ${error}`);
+    throw error;
+  }
+}
+
+async function addToLockfile(fileKey: string): Promise<boolean> {
+  try {
+    const lockfile = await readLockfile();
+    
+    // Check if file is already being processed
+    const existingEntry = lockfile.entries.find(entry => entry.fileKey === fileKey);
+    if (existingEntry) {
+      log.debug(`File ${fileKey} is already being processed by process ${existingEntry.processId}`);
+      return false;
+    }
+    
+    // Add new entry
+    lockfile.entries.push({
+      fileKey,
+      processId: PROCESS_ID,
+      timestamp: Date.now()
+    });
+    
+    lockfile.version++;
+    await writeLockfile(lockfile);
+    log.debug(`Added ${fileKey} to lockfile with process ID ${PROCESS_ID}`);
+    return true;
+  } catch (error) {
+    log.error(`Error adding ${fileKey} to lockfile: ${error}`);
+    return false;
+  }
+}
+
+async function removeFromLockfile(fileKey: string): Promise<void> {
+  try {
+    const lockfile = await readLockfile();
+    
+    // Remove the entry for this file and process ID
+    lockfile.entries = lockfile.entries.filter(
+      entry => !(entry.fileKey === fileKey && entry.processId === PROCESS_ID)
+    );
+    
+    lockfile.version++;
+    await writeLockfile(lockfile);
+    log.debug(`Removed ${fileKey} from lockfile for process ID ${PROCESS_ID}`);
+  } catch (error) {
+    log.error(`Error removing ${fileKey} from lockfile: ${error}`);
+  }
+}
+
+async function cleanupStaleEntries(): Promise<void> {
+  try {
+    const lockfile = await readLockfile();
+    const now = Date.now();
+    const staleThresholdMs = 2 * 60 * 60 * 1000; // 2 hours
+    
+    const originalCount = lockfile.entries.length;
+    lockfile.entries = lockfile.entries.filter(entry => {
+      const age = now - entry.timestamp;
+      return age < staleThresholdMs;
+    });
+    
+    const removedCount = originalCount - lockfile.entries.length;
+    if (removedCount > 0) {
+      lockfile.version++;
+      await writeLockfile(lockfile);
+      log.info(`Cleaned up ${removedCount} stale lockfile entries`);
+    }
+  } catch (error) {
+    log.error(`Error cleaning up stale entries: ${error}`);
+  }
+}
+
+async function isFileBeingProcessed(fileKey: string): Promise<boolean> {
+  try {
+    const lockfile = await readLockfile();
+    return lockfile.entries.some(entry => entry.fileKey === fileKey);
+  } catch (error) {
+    log.debug(`Error checking if file is being processed: ${error}`);
+    return false;
+  }
 }
 
 // Helper function to get all MP3 files in a directory
@@ -162,99 +281,120 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
 
-  // Clean up any existing temporary chunks for this podcast to avoid ffmpeg conflicts
-  const tempPodcastDir = path.join('/tmp/audio', podcastName);
-  if (await fs.pathExists(tempPodcastDir)) {
-    log.debug(`Cleaning up existing temporary directory: ${tempPodcastDir}`);
-    await fs.remove(tempPodcastDir);
-  }
-
-  // Ensure transcript directory exists
-  await createDirectory(transcriptDirKey);
-
-  // Check if transcription already exists
+  // Check if transcription already exists (before adding to lockfile)
   const transcriptKey = path.join(transcriptDirKey, `${audioFileName}.srt`);
   if (await transcriptExists(fileKey)) {
     log.debug(`Transcript already exists for ${fileKey}, skipping`);
     return null;
   }
 
-  // Get file size
-  const fileSizeMB = await getFileSizeMB(fileKey);
-
-  let chunks: TranscriptionChunk[] = [];
-  if (fileSizeMB > MAX_FILE_SIZE_MB) {
-    log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
-    chunks = await splitAudioFile(fileKey);
-  } else {
-    // For small files, prepare them for processing
-    const { filePath } = await prepareAudioFile(fileKey);
-
-    chunks = [{
-      startTime: 0,
-      endTime: 0, // Will be determined by ffprobe
-      filePath: filePath
-    }];
+  // Try to add to lockfile - if it fails, another process is working on this file
+  const lockAcquired = await addToLockfile(fileKey);
+  if (!lockAcquired) {
+    log.debug(`Could not acquire lock for ${fileKey}, another process is working on it`);
+    return null;
   }
 
-  // Transcribe each chunk
-  const srtChunks: string[] = [];
-  for (const chunk of chunks) {
-    log.info(`Transcribing chunk: ${chunk.filePath}`);
-    const srtContent = await transcribeViaWhisper({
-      filePath: chunk.filePath,
-      whisperApiProvider: WHISPER_API_PROVIDER,
-      responseFormat: 'srt'
-    });
-    srtChunks.push(srtContent);
-    // Clean up the individual chunk file
-    await fs.remove(chunk.filePath);
-    log.info(`Transcription complete for chunk: ${chunk.filePath}. SRT saved.`);
-  }
-
-  // Combine SRT files
-  const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks) : srtChunks[0];
-
-  // TODO: Remove this logging after debugging
-  log.info(`Combined SRT files: ${srtChunks.length}`);
-
-  // Save the combined SRT file to S3
-  await saveFile(transcriptKey, Buffer.from(finalSrt));
-
-  log.info(
-    `\n✅ Transcription complete for ${fileKey}.` +
-    `\n💾 SRT saved to ${transcriptKey}\n`
-  );
-
-  // Clean up the temporary directory (original file and its parent directory in /tmp)
-  const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
-  if (await fs.pathExists(tempBaseDir)) {
-    await fs.remove(tempBaseDir);
-    log.debug(`Cleaned up temporary directory: ${tempBaseDir}`);
-  }
-
-  // Apply spelling corrections
-  const s3FileOperations = {
-    getFileContent: async (filePath: string): Promise<string> => {
-      const buffer = await getFile(filePath);
-      return buffer.toString('utf-8');
-    },
-    saveFileContent: async (filePath: string, content: string): Promise<void> => {
-      await saveFile(filePath, Buffer.from(content, 'utf-8'));
+  try {
+    // Clean up any existing temporary chunks for this podcast to avoid ffmpeg conflicts
+    const tempPodcastDir = path.join('/tmp/audio', podcastName);
+    if (await fs.pathExists(tempPodcastDir)) {
+      log.debug(`Cleaning up existing temporary directory: ${tempPodcastDir}`);
+      await fs.remove(tempPodcastDir);
     }
-  };
 
-  const correctionResult = await applyCorrectionToFile(
-    transcriptKey,
-    s3FileOperations.getFileContent,
-    s3FileOperations.saveFileContent
-  );
+    // Ensure transcript directory exists
+    await createDirectory(transcriptDirKey);
 
-  if (correctionResult.totalCorrections > 0) {
-    log.debug(`Applied ${correctionResult.totalCorrections} spelling corrections to ${transcriptKey}`);
+    // Double-check if transcription exists (race condition protection)
+    if (await transcriptExists(fileKey)) {
+      log.debug(`Transcript already exists for ${fileKey} (detected after lock), skipping`);
+      return null;
+    }
+
+    // Get file size
+    const fileSizeMB = await getFileSizeMB(fileKey);
+
+    let chunks: TranscriptionChunk[] = [];
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
+      chunks = await splitAudioFile(fileKey);
+    } else {
+      // For small files, prepare them for processing
+      const { filePath } = await prepareAudioFile(fileKey);
+
+      chunks = [{
+        startTime: 0,
+        endTime: 0, // Will be determined by ffprobe
+        filePath: filePath
+      }];
+    }
+
+    // Transcribe each chunk
+    const srtChunks: string[] = [];
+    for (const chunk of chunks) {
+      log.info(`Transcribing chunk: ${chunk.filePath}`);
+      const srtContent = await transcribeViaWhisper({
+        filePath: chunk.filePath,
+        whisperApiProvider: WHISPER_API_PROVIDER,
+        responseFormat: 'srt'
+      });
+      srtChunks.push(srtContent);
+      // Clean up the individual chunk file
+      await fs.remove(chunk.filePath);
+      log.info(`Transcription complete for chunk: ${chunk.filePath}. SRT saved.`);
+    }
+
+    // Combine SRT files
+    const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks) : srtChunks[0];
+
+    // TODO: Remove this logging after debugging
+    log.info(`Combined SRT files: ${srtChunks.length}`);
+
+    // Save the combined SRT file to S3
+    await saveFile(transcriptKey, Buffer.from(finalSrt));
+
+    log.info(
+      `\n✅ Transcription complete for ${fileKey}.` +
+      `\n💾 SRT saved to ${transcriptKey}\n`
+    );
+
+    // Clean up the temporary directory (original file and its parent directory in /tmp)
+    const tempBaseDir = path.join('/tmp', path.dirname(fileKey).split(path.sep)[0]);
+    if (await fs.pathExists(tempBaseDir)) {
+      await fs.remove(tempBaseDir);
+      log.debug(`Cleaned up temporary directory: ${tempBaseDir}`);
+    }
+
+    // Apply spelling corrections
+    const s3FileOperations = {
+      getFileContent: async (filePath: string): Promise<string> => {
+        const buffer = await getFile(filePath);
+        return buffer.toString('utf-8');
+      },
+      saveFileContent: async (filePath: string, content: string): Promise<void> => {
+        await saveFile(filePath, Buffer.from(content, 'utf-8'));
+      }
+    };
+
+    const correctionResult = await applyCorrectionToFile(
+      transcriptKey,
+      s3FileOperations.getFileContent,
+      s3FileOperations.saveFileContent
+    );
+
+    if (correctionResult.totalCorrections > 0) {
+      log.debug(`Applied ${correctionResult.totalCorrections} spelling corrections to ${transcriptKey}`);
+    }
+
+    return correctionResult;
+  } catch (error) {
+    log.error(`Error processing ${fileKey}:`, error);
+    throw error;
+  } finally {
+    // Always remove from lockfile, even if processing failed
+    await removeFromLockfile(fileKey);
   }
-
-  return correctionResult;
 }
 
 /**
@@ -268,6 +408,10 @@ export async function handler(): Promise<void> {
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString());
   log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
+  log.info(`🔒 Process ID: ${PROCESS_ID}`);
+
+  // Clean up stale lockfile entries from previous runs
+  await cleanupStaleEntries();
 
   let newTranscriptsCreated = false;
 
@@ -329,6 +473,12 @@ export async function handler(): Promise<void> {
         stats.skippedFiles++;
         stats.podcastStats.get(podcastName)!.skipped++;
         log.debug(`Transcript already exists for ${fileKey}, skipping`);
+        continue;
+      }
+
+      // Check if file is being processed
+      if (await isFileBeingProcessed(fileKey)) {
+        log.debug(`File ${fileKey} is already being processed, skipping`);
         continue;
       }
 
