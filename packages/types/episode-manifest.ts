@@ -2,7 +2,8 @@ export type PodcastId =
 'football-cliches' | 
 'for-our-sins-the-cliches-pod-archive' | 
 'hard-fork' |
-'not-another-d-and-d-podcast';
+'not-another-d-and-d-podcast' |
+'claret-and-blue';
 
 export interface LlmAnnotations {
     episodeType?: string;

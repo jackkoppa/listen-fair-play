@@ -1,9 +1,9 @@
 export const RSS_CONFIG = {
-    'not-another-d-and-d-podcast': {
-        id: 'not-another-d-and-d-podcast',
-        rssFeedFile: 'not-another-d-and-d-podcast.xml',
-        title: 'Not Another D&D Podcast',
+    'claret-and-blue': {
+        id: 'claret-and-blue',
+        rssFeedFile: 'claret-and-blue.xml',
+        title: 'Claret & Blue',
         status: 'active',
-        url: 'https://rss.art19.com/not-another-d-and-d-podcast',
+        url: 'https://feeds.megaphone.fm/RPSL1112526468',
     },
 } as const;
