@@ -1,1 +1,0 @@
-export type SortOption = 'relevance' | 'newest' | 'oldest';
